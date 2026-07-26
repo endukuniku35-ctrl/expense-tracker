@@ -173,9 +173,9 @@ async function loadDashboard() {
                   <span style="color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:10px">
-                  <span style="color:var(--text-secondary)">Net balance</span>
+                  <span style="color:var(--text-secondary)">${isSettled ? 'Status' : isOwes ? 'Still Owes' : 'To Receive'}</span>
                   <span style="color:${isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8'}">
-                    ${b.netBalance >= 0 ? '+' : ''}₹${Math.round(b.netBalance).toLocaleString('en-IN')}
+                    ${isSettled ? '✅ All Clear' : '₹' + Math.round(b.outstanding).toLocaleString('en-IN')}
                   </span>
                 </div>
                 ${isSettled
@@ -240,8 +240,9 @@ async function loadDashboard() {
         </div>
         <div style="text-align:right">
           <div style="font-size:16px;font-weight:800;color:${isOwes ? 'var(--danger)' : 'var(--primary)'}">
-            ${isOwes ? '-' : '+'}${formatCurrency(Math.round(b.outstanding))}
+            ${formatCurrency(Math.round(b.outstanding))}
           </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${isOwes ? 'still owes' : 'to collect'}</div>
         </div>
       </div>`;
     }).join('');
