@@ -213,7 +213,9 @@ async function initDatabase() {
       { id: '1', userid: '192472374', password: bcrypt.hashSync('kandukurijagan@14062020', salt), rawPassword: 'kandukurijagan@14062020', name: 'Jagan Kandukuri', shortName: 'Jagan', role: 'admin', email: 'jagan@curry.local', avatar: 'JK', joinDate: '2024-01-01' },
       { id: '2', userid: '192472343', password: bcrypt.hashSync('nallamalasagar', salt), rawPassword: 'nallamalasagar', name: 'Sagar Nallamala', shortName: 'Sagar', role: 'member', email: 'sagar@curry.local', avatar: 'SN', joinDate: '2024-01-01' },
       { id: '3', userid: '192411184', password: bcrypt.hashSync('prathap', salt), rawPassword: 'prathap', name: 'Prathap Kumar', shortName: 'Prathap', role: 'member', email: 'prathap@curry.local', avatar: 'PK', joinDate: '2024-01-01' },
-      { id: '4', userid: '192411185', password: bcrypt.hashSync('bharath', salt), rawPassword: 'bharath', name: 'Bharath Reddy', shortName: 'Bharath', role: 'member', email: 'bharath@curry.local', avatar: 'BR', joinDate: '2024-01-01' }
+      { id: '4', userid: '192411185', password: bcrypt.hashSync('bharath', salt), rawPassword: 'bharath', name: 'Bharath Reddy', shortName: 'Bharath', role: 'member', email: 'bharath@curry.local', avatar: 'BR', joinDate: '2024-01-01' },
+      { id: '5', userid: '192412348', password: bcrypt.hashSync('charan', salt), rawPassword: 'charan', name: 'Charan', shortName: 'Charan', role: 'member', email: '192412348@curry.local', avatar: 'CH', joinDate: '2026-07-26' },
+      { id: '6', userid: 'Ganesh', password: bcrypt.hashSync('ganesh', salt), rawPassword: 'ganesh', name: 'Ganesh', shortName: 'Ganesh', role: 'member', email: 'Ganesh@curry.local', avatar: 'GA', joinDate: '2026-07-26' }
     ];
     writeData('users', defaultUsers);
     console.log('  ✅ Initialized default users');
