@@ -21,52 +21,51 @@ async function loadPayments() {
             Per-Meal Split Breakdown
           </h3>
           <div style="font-size:12px;color:var(--text-muted)">Live equal split ÷ participating members</div>
-        </div>
-        <div class="table-responsive" id="mealBreakdownTable">
-          <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
+          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading...
         </div>
       </div>
 
-      <!-- Balance Summary Cards -->
+      <!-- ══ Member Balance Cards ══ -->
       <div class="row g-3 mb-4" id="balanceCards">
         <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
           <div class="loader-spinner" style="margin:0 auto 12px"></div>
         </div>
       </div>
 
-      <!-- Settlement Record Section -->
+      <!-- ══ Record a Settlement ══ -->
       <div class="glass-card mb-4">
         <div class="card-header-custom">
-          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record / Submit a Payment Settlement</h3>
+          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Cash / UPI Payment</h3>
+          <div style="font-size:12px;color:var(--text-muted)">After paying via QR or cash, record it here to update balances</div>
         </div>
         <div class="card-body-custom">
           <div class="row g-3 align-items-end">
-            <div class="col-md-2">
-              <label class="form-label-custom">From (Payer)</label>
+            <div class="col-6 col-md-2">
+              <label class="form-label-custom">Who Paid</label>
               <select class="form-control-custom" id="qsFrom">
-                <option value="">-- Who Pays --</option>
+                <option value="">-- Select --</option>
               </select>
             </div>
-            <div class="col-md-2">
-              <label class="form-label-custom">To (Receiver)</label>
+            <div class="col-6 col-md-2">
+              <label class="form-label-custom">Paid To</label>
               <select class="form-control-custom" id="qsTo">
-                <option value="">-- Who Receives --</option>
+                <option value="">-- Select --</option>
               </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
               <label class="form-label-custom">Amount (₹)</label>
-              <input type="number" class="form-control-custom" id="qsAmount" placeholder="e.g. 500" min="1" />
+              <input type="number" class="form-control-custom" id="qsAmount" placeholder="e.g. 130" min="1" />
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2">
               <label class="form-label-custom">Date</label>
               <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-md-2">
               <label class="form-label-custom">Notes</label>
-              <input type="text" class="form-control-custom" id="qsNotes" placeholder="e.g. Cash / PhonePe" />
+              <input type="text" class="form-control-custom" id="qsNotes" placeholder="PhonePe / Cash" />
             </div>
-            <div class="col-md-2">
-              <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:10px">
+            <div class="col-12 col-md-2">
+              <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:11px;font-weight:700">
                 <i class="fas fa-check me-1"></i>Record Payment
               </button>
             </div>
@@ -74,15 +73,30 @@ async function loadPayments() {
         </div>
       </div>
 
-      <!-- Settlement Transaction Log -->
+      <!-- ══ Payment History ══ -->
       <div class="glass-card">
         <div class="card-header-custom">
-          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment & Settlement Transactions Log</h3>
+          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment History</h3>
         </div>
         <div id="paymentHistoryLog">
           <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
         </div>
       </div>
+
+      <!-- ══ Per-Meal Breakdown ══ -->
+      <div class="glass-card mt-4">
+        <div class="card-header-custom">
+          <h3 class="card-title-custom">
+            <div class="card-title-icon"><i class="fas fa-utensils"></i></div>
+            Per-Meal Split Breakdown
+          </h3>
+          <div style="font-size:12px;color:var(--text-muted)">Detailed bill split per meal</div>
+        </div>
+        <div class="table-responsive" id="mealBreakdownTable">
+          <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
+        </div>
+      </div>
+
     </div>`;
 
   const data = await api('/api/balance');
