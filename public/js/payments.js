@@ -1,27 +1,37 @@
 /**
  * payments.js – Live Payment Status & Settlement Tracker
- */
-
-async function loadPayments() {
+ */async function loadPayments() {
   const content = document.getElementById('viewContent');
   content.innerHTML = `
     <div style="animation:fadeInUp 0.4s ease">
+      <!-- ══ PhonePe QR Code Quick Pay Banner ══ -->
+      <div class="glass-card mb-4" style="background:linear-gradient(135deg,rgba(26,115,232,0.08),rgba(52,168,83,0.08));border:1px solid rgba(26,115,232,0.3)">
+        <div class="card-body-custom" style="padding:20px 24px">
+          <div class="row align-items-center g-3">
+            <div class="col-md-3 text-center">
+              <img src="/images/admin_phonepe_qr.png" alt="PhonePe QR Code" style="width:130px;height:130px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15)" />
+            </div>
+            <div class="col-md-9">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span class="badge bg-success" style="font-size:11px">Verified UPI QR</span>
+                <span style="font-size:12px;color:var(--text-muted)">Receiver: <strong>Kandukuri Jagan (Admin)</strong></span>
+              </div>
+              <h4 style="font-weight:800;color:var(--text-primary);margin-bottom:6px">Pay Outstanding Curry Balance via PhonePe / GPay / PayTM</h4>
+              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+                Scan the QR code with any UPI App or use UPI ID: <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:3px 8px;border-radius:6px;font-weight:700">8367047947@ybl</code>
+              </div>
+              <a href="upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense" class="btn-success-custom" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none">
+                <i class="fas fa-mobile-alt"></i> Open UPI App Directly
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Summary -->
       <div class="row g-3 mb-4" id="paymentTopCards">
         <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
           <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading payment statistics...
-        </div>
-      </div>
-
-      <!-- Per-Meal Breakdown -->
-      <div class="glass-card mb-4">
-        <div class="card-header-custom">
-          <h3 class="card-title-custom">
-            <div class="card-title-icon"><i class="fas fa-utensils"></i></div>
-            Per-Meal Split Breakdown
-          </h3>
-          <div style="font-size:12px;color:var(--text-muted)">Live equal split ÷ participating members</div>
-          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading...
         </div>
       </div>
 
@@ -87,7 +97,7 @@ async function loadPayments() {
         `}
 
       <!-- ══ Payment History ══ -->
-      <div class="glass-card">
+      <div class="glass-card mb-4">
         <div class="card-header-custom">
           <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment History</h3>
         </div>
@@ -112,109 +122,139 @@ async function loadPayments() {
 
     </div>`;
 
-  // ─── Parallel Fetching for Blazing Speed ───
-  const [data, expensesRes] = await Promise.all([
-    api('/api/balance'),
-    api('/api/expenses/all')
-  ]);
+  try {
+    // ─── Parallel Fetching for Blazing Speed ───
+    const [data, expensesRes] = await Promise.all([
+      api('/api/balance'),
+      api('/api/expenses/all')
+    ]);
 
-  if (!data) return;
+    if (!data) return;
 
-  const { balances, totalExpenses, perPersonShare, settlements } = data;
-  const expenses = expensesRes?.data || [];
-  window.currentBalances = balances;
+    const { balances, totalExpenses, perPersonShare, settlements } = data;
+    const expenses = expensesRes?.data || [];
+    window.currentBalances = balances;
 
-  // Populate quick settle dropdowns — locked to logged-in user
-  const me = App.currentUser;
-  const fromEl = document.getElementById('qsFrom');
-  const toEl   = document.getElementById('qsTo');
-  const adminMember = balances.find(b => b.role === 'admin') || balances.find(b => b.userid === '192472374');
+    // Populate quick settle dropdowns — locked to logged-in user
+    const me = App.currentUser;
+    const fromEl = document.getElementById('qsFrom');
+    const toEl   = document.getElementById('qsTo');
+    const adminMember = (balances || []).find(b => b.role === 'admin') || (balances || []).find(b => b.userid === '192472374') || { userid: '192472374', name: 'Jagan' };
 
-  if (App.isAdmin) {
-    const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
-    if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
-    if (toEl)   toEl.innerHTML   = `<option value="">-- Who Receives --</option>` + opts;
-    if (toEl && adminMember) toEl.value = adminMember.userid;
-  } else if (me) {
-    if (fromEl) {
-      fromEl.innerHTML = `<option value="${me.userid}">${me.name}</option>`;
-      fromEl.disabled  = true;
-      fromEl.style.opacity = '0.75';
+    if (App.isAdmin) {
+      const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
+      if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
+      if (toEl)   toEl.innerHTML   = `<option value="">-- Who Receives --</option>` + opts;
+      if (toEl && adminMember) toEl.value = adminMember.userid;
+    } else if (me) {
+      if (fromEl) {
+        fromEl.innerHTML = `<option value="${me.userid}">${me.name}</option>`;
+        fromEl.disabled  = true;
+        fromEl.style.opacity = '0.75';
+      }
+      if (toEl && adminMember) {
+        toEl.innerHTML = `<option value="${adminMember.userid}">${adminMember.name} (Admin)</option>`;
+        toEl.disabled  = true;
+        toEl.style.opacity = '0.75';
+      }
     }
-    if (toEl && adminMember) {
-      toEl.innerHTML = `<option value="${adminMember.userid}">${adminMember.name} (Admin)</option>`;
-      toEl.disabled  = true;
-      toEl.style.opacity = '0.75';
+
+    // ─── Top Summary Cards ────────────────────────────
+    const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
+    const totalReceive  = balances.filter(b => b.netBalance > 0).reduce((s, b) => s + b.outstanding, 0);
+    const topCards = document.getElementById('paymentTopCards');
+    if (topCards) {
+      topCards.innerHTML = `
+        <div class="col-md-3">
+          <div class="stat-card blue"><div class="stat-icon blue"><i class="fas fa-utensils"></i></div>
+            <div class="stat-label">Total Curry Bills</div>
+            <div class="stat-value" id="ptTotal">₹0</div>
+            <div class="stat-change neutral"><i class="fas fa-receipt"></i> ${balances.reduce((s,b)=>s+b.expenseCount,0)} meals</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card green"><div class="stat-icon green"><i class="fas fa-divide"></i></div>
+            <div class="stat-label">Average Per Person Share</div>
+            <div class="stat-value" id="ptShare">₹0</div>
+            <div class="stat-change neutral"><i class="fas fa-users"></i> ÷ ${balances.length} members</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card red"><div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
+            <div class="stat-label">Still Owed</div>
+            <div class="stat-value" id="ptOwed">₹0</div>
+            <div class="stat-change neutral"><i class="fas fa-clock"></i> Pending settlements</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card purple"><div class="stat-icon purple"><i class="fas fa-check-double"></i></div>
+            <div class="stat-label">To Be Received</div>
+            <div class="stat-value" id="ptReceive">₹0</div>
+            <div class="stat-change neutral"><i class="fas fa-handshake"></i> Outstanding credit</div>
+          </div>
+        </div>`;
+
+      animateCounter(document.getElementById('ptTotal'),   totalExpenses,    '₹');
+      animateCounter(document.getElementById('ptShare'),   Math.round(perPersonShare), '₹');
+      animateCounter(document.getElementById('ptOwed'),    Math.round(totalOwed),  '₹');
+      animateCounter(document.getElementById('ptReceive'), Math.round(totalReceive), '₹');
     }
-  }
+    const mealEl = document.getElementById('mealBreakdownTable');
+    if (expenses.length === 0) {
+      mealEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">No meals recorded yet</div></div>`;
+    } else {
+      const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+      mealEl.innerHTML = `
+        <table class="custom-table">
+          <thead><tr>
+            <th>Date</th><th>Meal</th><th>Total Bill</th><th>Paid By</th>
+            ${balances.map(b => `<th style="text-align:center">${b.shortName}'s Share</th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${sorted.map(e => {
+              const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : balances.map(b => b.userid);
+              const count = splitList.length;
+              const share = Math.round(e.amount / count);
+              const paidById = e.paidBy;
+              const payerName = e.paidByName || 'Member';
 
-  // ─── Top Summary Cards ────────────────────────────
-  const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
-  const totalReceive  = balances.filter(b => b.netBalance > 0).reduce((s, b) => s + b.outstanding, 0);
-  const topCards = document.getElementById('paymentTopCards');
-  if (topCards) {
-    topCards.innerHTML = `
-      <div class="col-md-3">
-        <div class="stat-card blue"><div class="stat-icon blue"><i class="fas fa-utensils"></i></div>
-          <div class="stat-label">Total Curry Bills</div>
-          <div class="stat-value" id="ptTotal">₹0</div>
-          <div class="stat-change neutral"><i class="fas fa-receipt"></i> ${balances.reduce((s,b)=>s+b.expenseCount,0)} meals</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card green"><div class="stat-icon green"><i class="fas fa-divide"></i></div>
-          <div class="stat-label">Average Per Person Share</div>
-          <div class="stat-value" id="ptShare">₹0</div>
-          <div class="stat-change neutral"><i class="fas fa-users"></i> ÷ ${balances.length} members</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card red"><div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
-          <div class="stat-label">Still Owed</div>
-          <div class="stat-value" id="ptOwed">₹0</div>
-          <div class="stat-change neutral"><i class="fas fa-clock"></i> Pending settlements</div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="stat-card purple"><div class="stat-icon purple"><i class="fas fa-check-double"></i></div>
-          <div class="stat-label">To Be Received</div>
-          <div class="stat-value" id="ptReceive">₹0</div>
-          <div class="stat-change neutral"><i class="fas fa-handshake"></i> Outstanding credit</div>
-        </div>
-      </div>`;
-
-    animateCounter(document.getElementById('ptTotal'),   totalExpenses,    '₹');
-    animateCounter(document.getElementById('ptShare'),   Math.round(perPersonShare), '₹');
-    animateCounter(document.getElementById('ptOwed'),    Math.round(totalOwed),  '₹');
-    animateCounter(document.getElementById('ptReceive'), Math.round(totalReceive), '₹');
-  }
-  const mealEl = document.getElementById('mealBreakdownTable');
-  if (expenses.length === 0) {
-    mealEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">No meals recorded yet</div></div>`;
-  } else {
-    const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-    mealEl.innerHTML = `
-      <table class="custom-table">
-        <thead><tr>
-          <th>Date</th><th>Meal</th><th>Total Bill</th><th>Paid By</th>
-          ${balances.map(b => `<th style="text-align:center">${b.shortName}'s Share</th>`).join('')}
-        </tr></thead>
-        <tbody>
-          ${sorted.map(e => {
-            const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : balances.map(b => b.userid);
-            const count = splitList.length;
-            const share = Math.round(e.amount / count);
-            const paidById = e.paidBy;
-
-            return `<tr>
-              <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">${formatDate(e.date)}</td>
-              <td>
-                <strong>${e.title}</strong>
-                <div style="font-size:11px;color:var(--text-muted)">${e.category} (${count} members)</div>
-              </td>
-              <td><strong style="color:var(--primary)">₹${e.amount.toLocaleString('en-IN')}</strong></td>
-              <td><div style="display:flex;align-items:center;gap:7px">
-                <div class="avatar ${avatarClass(e.paidByName)}" style="width:26px;height:26px;border-radius:7px;font-size:10px">${e.paidByName.substring(0,2).toUpperCase()}</div>
+              return `<tr>
+                <td style="color:var(--text-muted);font-size:12px;white-space:nowrap">${formatDate(e.date)}</td>
+                <td>
+                  <strong>${e.title}</strong>
+                  <div style="font-size:11px;color:var(--text-muted)">${e.category} (${count} members)</div>
+                </td>
+                <td><strong style="color:var(--primary)">₹${e.amount.toLocaleString('en-IN')}</strong></td>
+                <td><div style="display:flex;align-items:center;gap:7px">
+                  <div class="avatar ${avatarClass(payerName)}" style="width:26px;height:26px;border-radius:7px;font-size:10px">${payerName.substring(0,2).toUpperCase()}</div>
+                  <span style="font-size:13px">${payerName}</span>
+                </div></td>
+                ${balances.map(b => {
+                  const uid = b.userid;
+                  const joined = splitList.includes(uid);
+                  if (!joined) {
+                    return `<td style="text-align:center;color:var(--text-muted);font-size:12px"><em>- (didn't join)</em></td>`;
+                  }
+                  return `<td style="text-align:center">
+                    <span style="font-size:13px;font-weight:600;color:${uid === paidById ? 'var(--secondary)' : 'var(--danger)'}">
+                      ₹${share.toLocaleString('en-IN')}
+                    </span>
+                    ${uid === paidById ? `<div style="font-size:10px;color:var(--secondary)">✅ paid</div>` : `<div style="font-size:10px;color:var(--danger)">owes</div>`}
+                  </td>`;
+                }).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--bg-2);font-weight:700">
+              <td colspan="2">TOTAL</td>
+              <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
+              <td></td>
+              ${balances.map(b => `<td style="text-align:center;color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</td>`).join('')}
+            </tr>
+          </tfoot>
+        </table>`;
+    }>${e.paidByName.substring(0,2).toUpperCase()}</div>
                 <span style="font-size:13px">${e.paidByName}</span>
               </div></td>
               ${balances.map(b => {
@@ -344,6 +384,19 @@ async function loadPayments() {
           </tbody>
         </table>
       </div>`;
+  }
+  } catch (err) {
+    console.error('Error loading payments view:', err);
+    const content = document.getElementById('viewContent');
+    if (content) {
+      content.innerHTML = `
+        <div style="padding:40px;text-align:center;color:var(--text-muted)">
+          <div style="font-size:36px;margin-bottom:8px">⚠️</div>
+          <div style="font-weight:700;color:var(--text-primary)">Unable to load Payment Status page</div>
+          <div style="font-size:13px;margin-bottom:16px">Please try refreshing or returning to Dashboard.</div>
+          <button class="btn-primary-custom" onclick="loadPayments()"><i class="fas fa-sync me-1"></i>Retry Loading</button>
+        </div>`;
+    }
   }
 }
 
