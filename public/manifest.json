@@ -6,6 +6,7 @@
   "start_url": "/?mode=standalone",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0f0c29",
   "theme_color": "#1a73e8",

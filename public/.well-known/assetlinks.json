@@ -4,7 +4,11 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.onrender.expense_tracker_77br.twa",
-      "sha256_cert_fingerprints": ["2E:CF:F9:8D:BF:22:5A:37:9C:7F:44:1B:9D:32:60:66:A3:A6:D9:C0:36:4B:53:98:17:2B:82:EA:4C:C1:4E:86"]
+      "sha256_cert_fingerprints": [
+        "2E:CF:F9:8D:BF:22:5A:37:9C:7F:44:1B:9D:32:60:66:A3:A6:D9:C0:36:4B:53:98:17:2B:82:EA:4C:C1:4E:86",
+        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C",
+        "9D:A6:67:71:01:A0:87:6A:3E:92:43:08:4F:91:A1:00:CD:A8:12:F1:C9:83:B3:68:55:76:7D:66:13:B6:5E:28"
+      ]
     }
   },
   {
@@ -12,7 +16,11 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.currytracker.app",
-      "sha256_cert_fingerprints": ["2E:CF:F9:8D:BF:22:5A:37:9C:7F:44:1B:9D:32:60:66:A3:A6:D9:C0:36:4B:53:98:17:2B:82:EA:4C:C1:4E:86"]
+      "sha256_cert_fingerprints": [
+        "2E:CF:F9:8D:BF:22:5A:37:9C:7F:44:1B:9D:32:60:66:A3:A6:D9:C0:36:4B:53:98:17:2B:82:EA:4C:C1:4E:86",
+        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C",
+        "9D:A6:67:71:01:A0:87:6A:3E:92:43:08:4F:91:A1:00:CD:A8:12:F1:C9:83:B3:68:55:76:7D:66:13:B6:5E:28"
+      ]
     }
   }
 ]
