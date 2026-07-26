@@ -634,3 +634,5 @@ async function quickSettleFull(fromMemberId, fromMemberName, toMemberId, toMembe
     showToast('Error', res?.message || 'Failed to clear balance.', 'error');
   }
 }
+
+window.loadMembers = loadMembers;

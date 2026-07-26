@@ -266,3 +266,5 @@ async function loadDashboard() {
     }).join('');
   }
 }
+
+window.loadDashboard = loadDashboard;

@@ -176,15 +176,20 @@ function navigateTo(view) {
   // Load view
   const content = document.getElementById('viewContent');
   try {
-    switch (view) {
-      case 'dashboard': if (typeof loadDashboard === 'function') loadDashboard(); break;
-      case 'members': if (typeof loadMembers === 'function') loadMembers(); break;
-      case 'expenses': if (typeof loadExpenses === 'function') loadExpenses(); break;
-      case 'payments': if (typeof loadPayments === 'function') loadPayments(); else if (window.loadPayments) window.loadPayments(); break;
-      case 'reports': if (typeof loadReports === 'function') loadReports(); break;
-      case 'charts': if (typeof loadCharts === 'function') loadCharts(); break;
-      case 'profile': if (typeof loadProfile === 'function') loadProfile(); break;
-      default: if (typeof loadDashboard === 'function') loadDashboard();
+    const loaderName = 'load' + view.charAt(0).toUpperCase() + view.slice(1);
+    const loaderFn = window[loaderName] || (view === 'payments' ? window.loadPayments : null);
+
+    if (typeof loaderFn === 'function') {
+      loaderFn();
+    } else {
+      setTimeout(() => {
+        const retryFn = window[loaderName] || window.loadPayments;
+        if (typeof retryFn === 'function') {
+          retryFn();
+        } else if (content) {
+          content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading view... <button class="btn-primary-custom" onclick="navigateTo('${view}')">Reload</button></div>`;
+        }
+      }, 100);
     }
   } catch (err) {
     console.error('Error loading view:', view, err);
