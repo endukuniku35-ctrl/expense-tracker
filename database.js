@@ -1,11 +1,11 @@
 /**
- * database.js – SQLite Backend Database Engine
- * Persistent SQL storage for Users, Expenses, Settlements & Notifications.
+ * database.js – Pure JavaScript Data Storage Engine
+ * 100% portable across all Node.js platforms (Render, Linux, Windows, macOS).
+ * Zero C++ native dependencies & zero GLIBC errors.
  */
 
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 
 const dataDir = path.join(__dirname, 'data');
@@ -13,146 +13,225 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'curry_tracker.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Error opening SQLite database:', err.message);
-  } else {
-    console.log('✅ Connected to SQLite database:', dbPath);
+function getFilePath(table) {
+  return path.join(dataDir, `${table}.json`);
+}
+
+function readData(table) {
+  const filePath = getFilePath(table);
+  if (!fs.existsSync(filePath)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (e) {
+    return [];
   }
-});
-
-// Helper for Promisified Queries
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
 }
 
-function all(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+function writeData(table, data) {
+  const filePath = getFilePath(table);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-function get(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+// ─── Query Emulators ───────────────────────────────
+
+async function all(tableOrSql) {
+  if (tableOrSql.includes('expenses')) return readData('expenses');
+  if (tableOrSql.includes('settlements')) return readData('settlements');
+  if (tableOrSql.includes('notifications')) return readData('notifications');
+  if (tableOrSql.includes('users')) return readData('users');
+  return [];
 }
 
-// Initialize Tables and Sample Data
+async function get(sql, params = []) {
+  if (sql.includes('FROM users WHERE userid')) {
+    const users = readData('users');
+    return users.find(u => u.userid === params[0]) || null;
+  }
+  if (sql.includes('SELECT shortName FROM users WHERE userid')) {
+    const users = readData('users');
+    const u = users.find(x => x.userid === params[0]);
+    return u ? { shortName: u.shortName } : null;
+  }
+  if (sql.includes('FROM expenses WHERE id')) {
+    const expenses = readData('expenses');
+    return expenses.find(e => e.id === params[0]) || null;
+  }
+  if (sql.includes('FROM settlements WHERE id')) {
+    const settlements = readData('settlements');
+    return settlements.find(s => s.id === params[0]) || null;
+  }
+  if (sql.includes('COUNT(*)')) {
+    let table = 'expenses';
+    if (sql.includes('users')) table = 'users';
+    const items = readData(table);
+    return { count: items.length };
+  }
+  return null;
+}
+
+async function run(sql, params = []) {
+  // Expenses INSERT
+  if (sql.includes('INSERT INTO expenses')) {
+    const expenses = readData('expenses');
+    const newExp = {
+      id: params[0],
+      title: params[1],
+      description: params[2],
+      amount: parseFloat(params[3]),
+      paidBy: params[4],
+      paidByName: params[5],
+      splitBetween: typeof params[6] === 'string' ? JSON.parse(params[6]) : params[6],
+      category: params[7],
+      date: params[8],
+      notes: params[9],
+      status: params[10] || 'active',
+      createdAt: params[11],
+      updatedAt: params[12]
+    };
+    expenses.unshift(newExp);
+    writeData('expenses', expenses);
+    return;
+  }
+
+  // Expenses UPDATE
+  if (sql.includes('UPDATE expenses')) {
+    const expenses = readData('expenses');
+    const id = params[10];
+    const idx = expenses.findIndex(e => e.id === id);
+    if (idx !== -1) {
+      expenses[idx] = {
+        ...expenses[idx],
+        title: params[0],
+        description: params[1],
+        amount: parseFloat(params[2]),
+        paidBy: params[3],
+        paidByName: params[4],
+        splitBetween: typeof params[5] === 'string' ? JSON.parse(params[5]) : params[5],
+        category: params[6],
+        date: params[7],
+        notes: params[8],
+        updatedAt: params[9]
+      };
+      writeData('expenses', expenses);
+    }
+    return;
+  }
+
+  // Expenses DELETE
+  if (sql.includes('DELETE FROM expenses')) {
+    let expenses = readData('expenses');
+    expenses = expenses.filter(e => e.id !== params[0]);
+    writeData('expenses', expenses);
+    return;
+  }
+
+  // Settlements INSERT
+  if (sql.includes('INSERT INTO settlements')) {
+    const settlements = readData('settlements');
+    const newSet = {
+      id: params[0],
+      fromMemberId: params[1],
+      fromMemberName: params[2],
+      toMemberId: params[3],
+      toMemberName: params[4],
+      amount: parseFloat(params[5]),
+      notes: params[6],
+      date: params[7],
+      createdAt: params[8]
+    };
+    settlements.unshift(newSet);
+    writeData('settlements', settlements);
+    return;
+  }
+
+  // Settlements DELETE
+  if (sql.includes('DELETE FROM settlements')) {
+    let settlements = readData('settlements');
+    settlements = settlements.filter(s => s.id !== params[0]);
+    writeData('settlements', settlements);
+    return;
+  }
+
+  // Notifications INSERT
+  if (sql.includes('INSERT INTO notifications')) {
+    const notifications = readData('notifications');
+    notifications.unshift({
+      id: params[0],
+      type: params[1],
+      message: params[2],
+      timestamp: params[3],
+      read: false,
+      forRole: params[4] || 'admin'
+    });
+    writeData('notifications', notifications.slice(0, 50));
+    return;
+  }
+
+  // Notifications UPDATE (mark read)
+  if (sql.includes('UPDATE notifications SET read = 1 WHERE id')) {
+    const notifications = readData('notifications');
+    const n = notifications.find(x => x.id === params[0]);
+    if (n) n.read = true;
+    writeData('notifications', notifications);
+    return;
+  }
+
+  if (sql.includes('UPDATE notifications SET read = 1')) {
+    const notifications = readData('notifications');
+    notifications.forEach(n => n.read = true);
+    writeData('notifications', notifications);
+    return;
+  }
+}
+
 async function initDatabase() {
-  // 1. Users Table
-  await run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      userid TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      shortName TEXT,
-      role TEXT DEFAULT 'member',
-      email TEXT,
-      avatar TEXT,
-      joinDate TEXT
-    )
-  `);
-
-  // 2. Expenses Table
-  await run(`
-    CREATE TABLE IF NOT EXISTS expenses (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      description TEXT,
-      amount REAL NOT NULL,
-      paidBy TEXT NOT NULL,
-      paidByName TEXT NOT NULL,
-      splitBetween TEXT NOT NULL,
-      category TEXT DEFAULT 'General',
-      date TEXT NOT NULL,
-      notes TEXT,
-      status TEXT DEFAULT 'active',
-      createdAt TEXT,
-      updatedAt TEXT
-    )
-  `);
-
-  // 3. Settlements Table
-  await run(`
-    CREATE TABLE IF NOT EXISTS settlements (
-      id TEXT PRIMARY KEY,
-      fromMemberId TEXT NOT NULL,
-      fromMemberName TEXT NOT NULL,
-      toMemberId TEXT NOT NULL,
-      toMemberName TEXT NOT NULL,
-      amount REAL NOT NULL,
-      notes TEXT,
-      date TEXT NOT NULL,
-      createdAt TEXT
-    )
-  `);
-
-  // 4. Notifications Table
-  await run(`
-    CREATE TABLE IF NOT EXISTS notifications (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL,
-      message TEXT NOT NULL,
-      timestamp TEXT NOT NULL,
-      read INTEGER DEFAULT 0,
-      forRole TEXT DEFAULT 'admin'
-    )
-  `);
-
-  // Populate Users if empty
-  const userCount = await get('SELECT COUNT(*) as count FROM users');
-  if (userCount.count === 0) {
+  // Check users
+  const users = readData('users');
+  if (users.length === 0) {
     const salt = bcrypt.genSaltSync(10);
-    const users = [
-      ['1', '192472374', bcrypt.hashSync('kandukurijagan@14062020', salt), 'Jagan Kandukuri', 'Jagan', 'admin', 'jagan@curry.local', 'JK', '2024-01-01'],
-      ['2', '192472343', bcrypt.hashSync('nallamalasagar', salt), 'Sagar Nallamala', 'Sagar', 'member', 'sagar@curry.local', 'SN', '2024-01-01'],
-      ['3', '192411184', bcrypt.hashSync('prathap', salt), 'Prathap Kumar', 'Prathap', 'member', 'prathap@curry.local', 'PK', '2024-01-01'],
-      ['4', '192411185', bcrypt.hashSync('bharath', salt), 'Bharath Reddy', 'Bharath', 'member', 'bharath@curry.local', 'BR', '2024-01-01']
+    const defaultUsers = [
+      { id: '1', userid: '192472374', password: bcrypt.hashSync('kandukurijagan@14062020', salt), name: 'Jagan Kandukuri', shortName: 'Jagan', role: 'admin', email: 'jagan@curry.local', avatar: 'JK', joinDate: '2024-01-01' },
+      { id: '2', userid: '192472343', password: bcrypt.hashSync('nallamalasagar', salt), name: 'Sagar Nallamala', shortName: 'Sagar', role: 'member', email: 'sagar@curry.local', avatar: 'SN', joinDate: '2024-01-01' },
+      { id: '3', userid: '192411184', password: bcrypt.hashSync('prathap', salt), name: 'Prathap Kumar', shortName: 'Prathap', role: 'member', email: 'prathap@curry.local', avatar: 'PK', joinDate: '2024-01-01' },
+      { id: '4', userid: '192411185', password: bcrypt.hashSync('bharath', salt), name: 'Bharath Reddy', shortName: 'Bharath', role: 'member', email: 'bharath@curry.local', avatar: 'BR', joinDate: '2024-01-01' }
     ];
-    for (const u of users) {
-      await run('INSERT INTO users (id, userid, password, name, shortName, role, email, avatar, joinDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', u);
-    }
-    console.log('✅ Populated default users in SQLite');
+    writeData('users', defaultUsers);
+    console.log('  ✅ Initialized default users');
   }
 
-  // Populate Initial Expenses if empty
-  const expCount = await get('SELECT COUNT(*) as count FROM expenses');
-  if (expCount.count === 0) {
-    const all4 = JSON.stringify(['192472374', '192472343', '192411184', '192411185']);
+  // Check expenses
+  const expenses = readData('expenses');
+  if (expenses.length === 0) {
+    const all4 = ['192472374', '192472343', '192411184', '192411185'];
     const sampleExpenses = [
-      ['exp1', 'Chicken Curry', 'Lunch - Chicken curry for the team', 320, '192472374', 'Jagan', all4, 'Lunch', '2026-07-01', 'Restaurant - Spice Garden', 'active', '2026-07-01T12:00:00Z', '2026-07-01T12:00:00Z'],
-      ['exp2', 'Mutton Biryani', 'Dinner - Mutton biryani special', 560, '192472343', 'Sagar', all4, 'Dinner', '2026-07-03', 'Ordered from Biryani House', 'active', '2026-07-03T19:30:00Z', '2026-07-03T19:30:00Z'],
-      ['exp3', 'Veg Curry + Rice', 'Lunch - Veg curry and rice', 240, '192411184', 'Prathap', all4, 'Lunch', '2026-07-05', 'Canteen lunch', 'active', '2026-07-05T13:00:00Z', '2026-07-05T13:00:00Z'],
-      ['exp4', 'Fish Curry', 'Dinner - Fresh fish curry', 480, '192411185', 'Bharath', all4, 'Dinner', '2026-07-07', 'Fish market purchase', 'active', '2026-07-07T20:00:00Z', '2026-07-07T20:00:00Z'],
-      ['exp5', 'Dal Tadka + Roti', 'Lunch - Dal tadka with rotis', 180, '192472374', 'Jagan', all4, 'Lunch', '2026-07-10', 'Home cooked', 'active', '2026-07-10T13:30:00Z', '2026-07-10T13:30:00Z'],
-      ['exp6', 'Paneer Butter Masala', 'Special dinner', 420, '192472343', 'Sagar', all4, 'Dinner', '2026-07-12', 'Weekend treat', 'active', '2026-07-12T20:30:00Z', '2026-07-12T20:30:00Z'],
-      ['exp7', 'Egg Curry', 'Breakfast - Egg curry', 160, '192411184', 'Prathap', all4, 'Breakfast', '2026-07-14', 'Morning meal', 'active', '2026-07-14T08:00:00Z', '2026-07-14T08:00:00Z'],
-      ['exp8', 'Prawn Masala', 'Special - Prawn masala curry', 640, '192411185', 'Bharath', all4, 'Dinner', '2026-07-16', 'Celebration dinner', 'active', '2026-07-16T20:00:00Z', '2026-07-16T20:00:00Z'],
-      ['exp9', 'Mixed Veg Curry', 'Lunch - Mixed veg curry', 200, '192472374', 'Jagan', all4, 'Lunch', '2026-07-18', 'Healthy lunch', 'active', '2026-07-18T13:00:00Z', '2026-07-18T13:00:00Z'],
-      ['exp10', 'Chicken Tikka Masala', 'Dinner - Tikka masala', 500, '192472343', 'Sagar', all4, 'Dinner', '2026-07-20', 'Curry Corner', 'active', '2026-07-20T19:00:00Z', '2026-07-20T19:00:00Z'],
-      ['exp11', 'Rajma Chawal', 'Lunch - Rajma rice', 220, '192411184', 'Prathap', all4, 'Lunch', '2026-07-22', 'Home cooked', 'active', '2026-07-22T13:00:00Z', '2026-07-22T13:00:00Z'],
-      ['exp12', 'Lamb Rogan Josh', 'Special dinner', 720, '192411185', 'Bharath', all4, 'Dinner', '2026-07-24', 'Kashmir Kitchen', 'active', '2026-07-24T20:30:00Z', '2026-07-24T20:30:00Z'],
-      ['exp13', 'Sambar + Idli', 'Breakfast - South Indian', 140, '192472374', 'Jagan', all4, 'Breakfast', '2026-07-26', 'Morning breakfast', 'active', '2026-07-26T08:00:00Z', '2026-07-26T08:00:00Z']
+      { id: 'exp1', title: 'Chicken Curry', description: 'Lunch - Chicken curry for the team', amount: 320, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Lunch', date: '2026-07-01', notes: 'Restaurant - Spice Garden', status: 'active', createdAt: '2026-07-01T12:00:00Z', updatedAt: '2026-07-01T12:00:00Z' },
+      { id: 'exp2', title: 'Mutton Biryani', description: 'Dinner - Mutton biryani special', amount: 560, paidBy: '192472343', paidByName: 'Sagar', splitBetween: all4, category: 'Dinner', date: '2026-07-03', notes: 'Ordered from Biryani House', status: 'active', createdAt: '2026-07-03T19:30:00Z', updatedAt: '2026-07-03T19:30:00Z' },
+      { id: 'exp3', title: 'Veg Curry + Rice', description: 'Lunch - Veg curry and rice', amount: 240, paidBy: '192411184', paidByName: 'Prathap', splitBetween: all4, category: 'Lunch', date: '2026-07-05', notes: 'Canteen lunch', status: 'active', createdAt: '2026-07-05T13:00:00Z', updatedAt: '2026-07-05T13:00:00Z' },
+      { id: 'exp4', title: 'Fish Curry', description: 'Dinner - Fresh fish curry', amount: 480, paidBy: '192411185', paidByName: 'Bharath', splitBetween: all4, category: 'Dinner', date: '2026-07-07', notes: 'Fish market purchase', status: 'active', createdAt: '2026-07-07T20:00:00Z', updatedAt: '2026-07-07T20:00:00Z' },
+      { id: 'exp5', title: 'Dal Tadka + Roti', description: 'Lunch - Dal tadka with rotis', amount: 180, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Lunch', date: '2026-07-10', notes: 'Home cooked', status: 'active', createdAt: '2026-07-10T13:30:00Z', updatedAt: '2026-07-10T13:30:00Z' },
+      { id: 'exp6', title: 'Paneer Butter Masala', description: 'Special dinner', amount: 420, paidBy: '192472343', paidByName: 'Sagar', splitBetween: all4, category: 'Dinner', date: '2026-07-12', notes: 'Weekend treat', status: 'active', createdAt: '2026-07-12T20:30:00Z', updatedAt: '2026-07-12T20:30:00Z' },
+      { id: 'exp7', title: 'Egg Curry', description: 'Breakfast - Egg curry', amount: 160, paidBy: '192411184', paidByName: 'Prathap', splitBetween: all4, category: 'Breakfast', date: '2026-07-14', notes: 'Morning meal', status: 'active', createdAt: '2026-07-14T08:00:00Z', updatedAt: '2026-07-14T08:00:00Z' },
+      { id: 'exp8', title: 'Prawn Masala', description: 'Special - Prawn masala curry', amount: 640, paidBy: '192411185', paidByName: 'Bharath', splitBetween: all4, category: 'Dinner', date: '2026-07-16', notes: 'Celebration dinner', status: 'active', createdAt: '2026-07-16T20:00:00Z', updatedAt: '2026-07-16T20:00:00Z' },
+      { id: 'exp9', title: 'Mixed Veg Curry', description: 'Lunch - Mixed veg curry', amount: 200, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Lunch', date: '2026-07-18', notes: 'Healthy lunch', status: 'active', createdAt: '2026-07-18T13:00:00Z', updatedAt: '2026-07-18T13:00:00Z' },
+      { id: 'exp10', title: 'Chicken Tikka Masala', description: 'Dinner - Tikka masala', amount: 500, paidBy: '192472343', paidByName: 'Sagar', splitBetween: all4, category: 'Dinner', date: '2026-07-20', notes: 'Curry Corner', status: 'active', createdAt: '2026-07-20T19:00:00Z', updatedAt: '2026-07-20T19:00:00Z' },
+      { id: 'exp11', title: 'Rajma Chawal', description: 'Lunch - Rajma rice', amount: 220, paidBy: '192411184', paidByName: 'Prathap', splitBetween: all4, category: 'Lunch', date: '2026-07-22', notes: 'Home cooked', status: 'active', createdAt: '2026-07-22T13:00:00Z', updatedAt: '2026-07-22T13:00:00Z' },
+      { id: 'exp12', title: 'Lamb Rogan Josh', description: 'Special dinner', amount: 720, paidBy: '192411185', paidByName: 'Bharath', splitBetween: all4, category: 'Dinner', date: '2026-07-24', notes: 'Kashmir Kitchen', status: 'active', createdAt: '2026-07-24T20:30:00Z', updatedAt: '2026-07-24T20:30:00Z' },
+      { id: 'exp13', title: 'Sambar + Idli', description: 'Breakfast - South Indian', amount: 140, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Breakfast', date: '2026-07-26', notes: 'Morning breakfast', status: 'active', createdAt: '2026-07-26T08:00:00Z', updatedAt: '2026-07-26T08:00:00Z' }
     ];
-    for (const e of sampleExpenses) {
-      await run(`INSERT INTO expenses (id, title, description, amount, paidBy, paidByName, splitBetween, category, date, notes, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, e);
-    }
-    console.log('✅ Populated default expenses in SQLite');
+    writeData('expenses', sampleExpenses);
+    console.log('  ✅ Initialized default expenses');
+  }
+
+  // Check settlements
+  const settlements = readData('settlements');
+  if (!fs.existsSync(getFilePath('settlements'))) {
+    writeData('settlements', []);
+  }
+
+  // Check notifications
+  if (!fs.existsSync(getFilePath('notifications'))) {
+    writeData('notifications', []);
   }
 }
 
-module.exports = { db, run, all, get, initDatabase };
+module.exports = { all, get, run, initDatabase };
