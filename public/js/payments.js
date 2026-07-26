@@ -112,10 +112,17 @@ async function loadPayments() {
 
     </div>`;
 
-  const data = await api('/api/balance');
+  // ─── Parallel Fetching for Blazing Speed ───
+  const [data, expensesRes] = await Promise.all([
+    api('/api/balance'),
+    api('/api/expenses/all')
+  ]);
+
   if (!data) return;
 
   const { balances, totalExpenses, perPersonShare, settlements } = data;
+  const expenses = expensesRes?.data || [];
+  window.currentBalances = balances;
 
   // Populate quick settle dropdowns — locked to logged-in user
   const me = App.currentUser;
@@ -124,13 +131,11 @@ async function loadPayments() {
   const adminMember = balances.find(b => b.role === 'admin') || balances.find(b => b.userid === '192472374');
 
   if (App.isAdmin) {
-    // Admin can pick any payer
     const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
     if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
     if (toEl)   toEl.innerHTML   = `<option value="">-- Who Receives --</option>` + opts;
     if (toEl && adminMember) toEl.value = adminMember.userid;
-  } else {
-    // Non-admin: locked to themselves paying the admin
+  } else if (me) {
     if (fromEl) {
       fromEl.innerHTML = `<option value="${me.userid}">${me.name}</option>`;
       fromEl.disabled  = true;
@@ -147,43 +152,42 @@ async function loadPayments() {
   const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
   const totalReceive  = balances.filter(b => b.netBalance > 0).reduce((s, b) => s + b.outstanding, 0);
   const topCards = document.getElementById('paymentTopCards');
-  topCards.innerHTML = `
-    <div class="col-md-3">
-      <div class="stat-card blue"><div class="stat-icon blue"><i class="fas fa-utensils"></i></div>
-        <div class="stat-label">Total Curry Bills</div>
-        <div class="stat-value" id="ptTotal">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-receipt"></i> ${balances.reduce((s,b)=>s+b.expenseCount,0)} meals</div>
+  if (topCards) {
+    topCards.innerHTML = `
+      <div class="col-md-3">
+        <div class="stat-card blue"><div class="stat-icon blue"><i class="fas fa-utensils"></i></div>
+          <div class="stat-label">Total Curry Bills</div>
+          <div class="stat-value" id="ptTotal">₹0</div>
+          <div class="stat-change neutral"><i class="fas fa-receipt"></i> ${balances.reduce((s,b)=>s+b.expenseCount,0)} meals</div>
+        </div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="stat-card green"><div class="stat-icon green"><i class="fas fa-divide"></i></div>
-        <div class="stat-label">Average Per Person Share</div>
-        <div class="stat-value" id="ptShare">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-users"></i> ÷ ${balances.length} members</div>
+      <div class="col-md-3">
+        <div class="stat-card green"><div class="stat-icon green"><i class="fas fa-divide"></i></div>
+          <div class="stat-label">Average Per Person Share</div>
+          <div class="stat-value" id="ptShare">₹0</div>
+          <div class="stat-change neutral"><i class="fas fa-users"></i> ÷ ${balances.length} members</div>
+        </div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="stat-card red"><div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
-        <div class="stat-label">Still Owed</div>
-        <div class="stat-value" id="ptOwed">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-clock"></i> Pending settlements</div>
+      <div class="col-md-3">
+        <div class="stat-card red"><div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
+          <div class="stat-label">Still Owed</div>
+          <div class="stat-value" id="ptOwed">₹0</div>
+          <div class="stat-change neutral"><i class="fas fa-clock"></i> Pending settlements</div>
+        </div>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="stat-card purple"><div class="stat-icon purple"><i class="fas fa-check-double"></i></div>
-        <div class="stat-label">To Be Received</div>
-        <div class="stat-value" id="ptReceive">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-handshake"></i> Outstanding credit</div>
-      </div>
-    </div>`;
+      <div class="col-md-3">
+        <div class="stat-card purple"><div class="stat-icon purple"><i class="fas fa-check-double"></i></div>
+          <div class="stat-label">To Be Received</div>
+          <div class="stat-value" id="ptReceive">₹0</div>
+          <div class="stat-change neutral"><i class="fas fa-handshake"></i> Outstanding credit</div>
+        </div>
+      </div>`;
 
-  animateCounter(document.getElementById('ptTotal'),   totalExpenses,    '₹');
-  animateCounter(document.getElementById('ptShare'),   Math.round(perPersonShare), '₹');
-  animateCounter(document.getElementById('ptOwed'),    Math.round(totalOwed),  '₹');
-  animateCounter(document.getElementById('ptReceive'), Math.round(totalReceive), '₹');
-
-  // ─── Per-Meal Breakdown Table ─────────────────────
-  const expenses = (await api('/api/expenses/all'))?.data || [];
+    animateCounter(document.getElementById('ptTotal'),   totalExpenses,    '₹');
+    animateCounter(document.getElementById('ptShare'),   Math.round(perPersonShare), '₹');
+    animateCounter(document.getElementById('ptOwed'),    Math.round(totalOwed),  '₹');
+    animateCounter(document.getElementById('ptReceive'), Math.round(totalReceive), '₹');
+  }
   const mealEl = document.getElementById('mealBreakdownTable');
   if (expenses.length === 0) {
     mealEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">No meals recorded yet</div></div>`;
