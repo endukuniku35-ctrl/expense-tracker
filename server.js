@@ -1,14 +1,17 @@
 /**
  * Curry Expense Tracker - Main Server
- * Node.js + Express backend with session authentication
+ * Node.js + Express backend with fast performance & keep-alive optimizations
  */
 
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+const http = require('http');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,11 +23,19 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 // Trust reverse proxy (required for Render / Heroku HTTPS sessions)
 app.set('trust proxy', 1);
 
+// GZIP Compression for blazing fast load speeds (~70% payload reduction)
+app.use(compression());
+
 // Middleware
 app.use(cors({ credentials: true, origin: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static assets with 1-day browser caching for instant reloading
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true
+}));
 
 // Session configuration
 app.use(session({
@@ -38,9 +49,14 @@ app.use(session({
   }
 }));
 
-// Initialize SQLite database tables & sample data
+// Initialize database tables & sample data
 const { initDatabase } = require('./database');
 initDatabase().catch(err => console.error('Database initialization error:', err));
+
+// Lightweight Ping Endpoint for Keep-Alive
+app.get('/ping', (req, res) => {
+  res.status(200).send('PONG');
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -81,10 +97,19 @@ app.listen(PORT, () => {
   console.log('  🍛 Curry Expense Tracker - Server Started');
   console.log('================================================');
   console.log(`  URL: http://localhost:${PORT}`);
-  console.log(`  Mode: JSON File Storage`);
+  console.log(`  Mode: Fast-Performance Engine`);
   console.log('================================================');
-  console.log('  Admin Login: 192472374 / kandukurijagan@14062020');
-  console.log('================================================');
+
+  // Automatic 10-Minute Keep-Alive Self-Ping to Prevent Cloud Spin-Down Delay
+  const RENDER_URL = process.env.RENDER_EXTERNAL_URL || 'https://expense-tracker-77br.onrender.com';
+  setInterval(() => {
+    try {
+      const client = RENDER_URL.startsWith('https') ? https : http;
+      client.get(`${RENDER_URL}/ping`, (res) => {
+        // Keep warm success
+      }).on('error', () => {});
+    } catch (e) {}
+  }, 10 * 60 * 1000); // Ping every 10 minutes
 });
 
 module.exports = app;
