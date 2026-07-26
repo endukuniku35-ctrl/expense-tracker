@@ -26,12 +26,12 @@ async function loadReports() {
             </div>
             <div class="col-md-3">
               <label class="form-label-custom">Filter by Member</label>
-              <select class="form-control-custom" id="exportMember">
-                <option value="">All Members</option>
-                <option value="192472374">Jagan</option>
-                <option value="192472343">Sagar</option>
-                <option value="192411184">Prathap</option>
-                <option value="192411185">Bharath</option>
+              <select class="form-control-custom" id="exportMember" ${App.isAdmin ? '' : 'disabled style="opacity:0.75"'}>
+                ${App.isAdmin ? '<option value="">All Members</option>' : ''}
+                <option value="192472374" ${App.currentUser?.userid==='192472374'?'selected':''}>Jagan</option>
+                <option value="192472343" ${App.currentUser?.userid==='192472343'?'selected':''}>Sagar</option>
+                <option value="192411184" ${App.currentUser?.userid==='192411184'?'selected':''}>Prathap</option>
+                <option value="192411185" ${App.currentUser?.userid==='192411185'?'selected':''}>Bharath</option>
               </select>
             </div>
             <div class="col-md-6">

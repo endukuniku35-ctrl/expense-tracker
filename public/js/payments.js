@@ -245,8 +245,10 @@ async function loadPayments() {
   }
 
   // ─── Balance Cards ────────────────────────────────
+  const me = App.currentUser;
+  const displayBalances = App.isAdmin ? balances : balances.filter(b => b.userid === me?.userid);
   const balEl = document.getElementById('balanceCards');
-  balEl.innerHTML = balances.map((b, i) => {
+  balEl.innerHTML = displayBalances.map((b, i) => {
     const totalPaid  = b.totalPaid || 0;
     const totalShare = b.totalShare || 0;
     const settledOut = b.settledOut || 0;
@@ -260,19 +262,6 @@ async function loadPayments() {
     const pct = perPersonShare > 0 ? Math.min(100, Math.round(((totalPaid + settledOut) / perPersonShare) * 100)) : 0;
 
     return `<div class="col-xl-3 col-md-6">
-              ? `<span class="badge-pending">🔴 Owes</span>`
-              : `<span class="badge-partial" style="background:rgba(26,115,232,.1);color:var(--primary);border-color:rgba(26,115,232,.3)">💰 Credit</span>`
-          }
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-          <div style="background:var(--bg-2);border-radius:9px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">Bills Paid</div>
-            <div style="font-size:15px;font-weight:700;color:var(--primary)">₹${b.totalPaid.toLocaleString('en-IN')}</div>
-          </div>
-          <div style="background:var(--bg-2);border-radius:9px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">Fair Share</div>
-            <div style="font-size:15px;font-weight:700;color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</div>
       <div class="payment-card" style="animation-delay:${i*0.1}s;">
         <!-- Member header -->
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
@@ -324,16 +313,20 @@ async function loadPayments() {
   }).join('');
 
   // ─── Payment Transactions Log Table ───────────────
+  const displaySettlements = App.isAdmin
+    ? settlements
+    : (settlements || []).filter(s => s.fromMemberId === me?.userid || s.toMemberId === me?.userid);
+
   const logEl = document.getElementById('paymentHistoryLog');
-  if (!settlements || settlements.length === 0) {
-    logEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">No payment settlements recorded yet</div><div class="empty-desc">When a member pays cash to settle their share, record it above.</div></div>`;
+  if (!displaySettlements || displaySettlements.length === 0) {
+    logEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">No payment settlements recorded yet</div><div class="empty-desc">When a payment is recorded, it will appear here.</div></div>`;
   } else {
     logEl.innerHTML = `
       <div class="table-responsive">
         <table class="custom-table">
           <thead><tr><th>Date</th><th>From (Payer)</th><th>To (Receiver)</th><th>Amount Paid</th><th>Notes</th>${App.isAdmin ? '<th>Action</th>' : ''}</tr></thead>
           <tbody>
-            ${settlements.map(s => `
+            ${displaySettlements.map(s => `
               <tr>
                 <td style="color:var(--text-muted);font-size:13px">${formatDate(s.date)}</td>
                 <td><div style="display:flex;align-items:center;gap:8px">

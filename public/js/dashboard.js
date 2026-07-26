@@ -144,6 +144,9 @@ async function loadDashboard() {
 
   // ─── Split Summary Banner ─────────────────────────
   const totalExp = stats.totalExpenses;
+  const me = App.currentUser;
+  const displayBalances = App.isAdmin ? balances : balances.filter(b => b.userid === me?.userid);
+
   document.getElementById('splitSummary').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
       <div style="font-size:20px">🍛</div>
@@ -153,7 +156,7 @@ async function loadDashboard() {
       </div>
     </div>
     <div class="row g-3">
-      ${balances.map(b => {
+      ${displayBalances.map(b => {
         const isOwes = (b.outstanding > 0) && (b.netBalance < 0 || b.totalPaid <= b.totalShare);
         const isSettled = b.outstanding <= 0;
         return `
@@ -192,14 +195,19 @@ async function loadDashboard() {
 
   // ─── Recent Expenses ──────────────────────────────
   const recentEl = document.getElementById('recentExpenses');
-  if (!recentExpenses || recentExpenses.length === 0) {
+  const userRecentExpenses = App.isAdmin ? recentExpenses : (recentExpenses || []).filter(e => {
+    const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : ['192472374', '192472343', '192411184', '192411185'];
+    return splitList.includes(me?.userid) || e.paidBy === me?.userid;
+  });
+
+  if (!userRecentExpenses || userRecentExpenses.length === 0) {
     recentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🧾</div><div class="empty-title">No expenses yet</div></div>`;
   } else {
     recentEl.innerHTML = `
       <table class="custom-table">
         <thead><tr><th>Date</th><th>Meal</th><th>Total Bill</th><th>Paid By</th><th>Split Details</th></tr></thead>
         <tbody>
-          ${recentExpenses.map(e => {
+          ${userRecentExpenses.map(e => {
             const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : ['192472374', '192472343', '192411184', '192411185'];
             const count = splitList.length;
             const eachAmount = Math.round(e.amount / count);
@@ -224,7 +232,10 @@ async function loadDashboard() {
 
   // ─── Who Owes What ────────────────────────────────
   const owesEl = document.getElementById('whoOwesWhat');
-  const owingMembers = balances.filter(b => b.outstanding > 0);
+  const owingMembers = App.isAdmin
+    ? balances.filter(b => b.outstanding > 0)
+    : balances.filter(b => b.outstanding > 0 && b.userid === me?.userid);
+
   if (owingMembers.length === 0) {
     owesEl.innerHTML = `<div class="empty-state" style="padding:30px"><div style="font-size:40px">🎉</div><div class="empty-title">All Settled!</div><div class="empty-desc">Everyone is square.</div></div>`;
   } else {

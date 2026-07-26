@@ -127,13 +127,20 @@ async function fetchExpenses() {
 
   const wrap = document.getElementById('expensesTableWrap');
   const isAdmin = App.isAdmin;
+  const me = App.currentUser;
 
-  if (!data.data || data.data.length === 0) {
+  const rawList = data.data || [];
+  const visibleExpenses = isAdmin ? rawList : rawList.filter(e => {
+    const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : ['192472374', '192472343', '192411184', '192411185'];
+    return splitList.includes(me?.userid) || e.paidBy === me?.userid;
+  });
+
+  if (!visibleExpenses || visibleExpenses.length === 0) {
     wrap.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🧾</div>
         <div class="empty-title">No expenses found</div>
-        <div class="empty-desc">Try adjusting your filters or add a new expense.</div>
+        <div class="empty-desc">Try adjusting your filters or check back later.</div>
         ${isAdmin ? `<button class="btn-primary-custom mt-3" onclick="openAddExpense()"><i class="fas fa-plus me-1"></i>Add Expense</button>` : ''}
       </div>
     `;
@@ -154,7 +161,7 @@ async function fetchExpenses() {
         ${isAdmin ? '<th style="text-align:center">Actions</th>' : ''}
       </tr></thead>
       <tbody>
-        ${data.data.map(e => {
+        ${visibleExpenses.map(e => {
           const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : ['192472374', '192472343', '192411184', '192411185'];
           const count = splitList.length;
           const eachShare = Math.round(e.amount / count);

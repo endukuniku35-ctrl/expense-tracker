@@ -95,9 +95,13 @@ async function loadMembers() {
     // Store balances globally for settlement modal
     window.currentBalances = balances;
 
+    // ─── Member Cards & Table Filtering for User ───────
+    const me = App.currentUser;
+    const visibleBalances = App.isAdmin ? balances : balances.filter(b => b.userid === me?.userid);
+
     // ─── Member Cards ─────────────────────────────────
     const cardsEl = document.getElementById('memberCards');
-    cardsEl.innerHTML = balances.map((b, i) => {
+    cardsEl.innerHTML = visibleBalances.map((b, i) => {
       const totalPaid  = b.totalPaid || 0;
       const totalShare = b.totalShare || 0;
       const settledOut = b.settledOut || 0;
@@ -180,7 +184,7 @@ async function loadMembers() {
 
     // ─── Table ────────────────────────────────────────
     const tbody = document.getElementById('memberTableBody');
-    tbody.innerHTML = balances.map(b => {
+    tbody.innerHTML = visibleBalances.map(b => {
       const totalPaid  = b.totalPaid || 0;
       const totalShare = b.totalShare || 0;
       const settledOut = b.settledOut || 0;
@@ -237,18 +241,24 @@ async function loadMembers() {
     }).join('');
 
     // ─── Totals footer ────────────────────────────────
-    tbody.innerHTML += `
-      <tr style="background:var(--bg-2);font-weight:700">
-        <td>TOTAL</td>
-        <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
-        <td>₹${Math.round(perPersonShare * balances.length).toLocaleString('en-IN')}</td>
-        <td colspan="5" style="color:var(--text-muted);font-size:13px">
-          ${balances.length} Members Registered
-        </td>
-      </tr>`;
+    if (App.isAdmin) {
+      tbody.innerHTML += `
+        <tr style="background:var(--bg-2);font-weight:700">
+          <td>TOTAL</td>
+          <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
+          <td>₹${Math.round(perPersonShare * balances.length).toLocaleString('en-IN')}</td>
+          <td colspan="5" style="color:var(--text-muted);font-size:13px">
+            ${balances.length} Members Registered
+          </td>
+        </tr>`;
+    }
 
     // ─── Settlements ──────────────────────────────────
-    renderSettlements(settlements);
+    const visibleSettlements = App.isAdmin
+      ? settlements
+      : settlements.filter(s => s.fromMemberId === me?.userid || s.toMemberId === me?.userid);
+
+    renderSettlements(visibleSettlements);
   } catch (err) {
     console.error('Error loading members page:', err);
     const errorHtml = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load data. Please refresh the page.</div>`;
