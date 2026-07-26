@@ -197,9 +197,17 @@ async function loadPayments() {
   // ─── Balance Cards ────────────────────────────────
   const balEl = document.getElementById('balanceCards');
   balEl.innerHTML = balances.map((b, i) => {
-    const isOwes    = b.netBalance < 0;
-    const isSettled = b.outstanding <= 0;
-    const pct = perPersonShare > 0 ? Math.min(100, Math.round((b.totalPaid / perPersonShare) * 100)) : 0;
+    const totalPaid  = b.totalPaid || 0;
+    const totalShare = b.totalShare || 0;
+    const settledOut = b.settledOut || 0;
+    const settledIn  = b.settledIn || 0;
+
+    // Effective Net Balance after settlements
+    const net = Math.round((totalPaid + settledOut) - (totalShare + settledIn));
+    const out = Math.abs(net);
+    const isOwes = net < 0;
+    const isSettled = out <= 0;
+    const pct = perPersonShare > 0 ? Math.min(100, Math.round(((totalPaid + settledOut) / perPersonShare) * 100)) : 0;
 
     return `<div class="col-xl-3 col-md-6">
       <div class="payment-card" style="animation-delay:${i*0.1}s">
@@ -233,10 +241,10 @@ async function loadPayments() {
         <div style="background:${isOwes ? 'rgba(234,67,53,0.08)' : isSettled ? 'rgba(52,168,83,0.08)' : 'rgba(26,115,232,0.08)'};border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Net Balance</div>
           <div style="font-size:22px;font-weight:800;color:${isOwes ? 'var(--danger)' : isSettled ? 'var(--secondary)' : 'var(--primary)'}">
-            ${b.netBalance >= 0 ? '+' : ''}₹${Math.round(b.netBalance).toLocaleString('en-IN')}
+            ${net >= 0 ? '+' : ''}₹${Math.round(net).toLocaleString('en-IN')}
           </div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
-            ${isSettled ? 'All square! 🎉' : isOwes ? `Outstanding: ₹${Math.round(b.outstanding).toLocaleString('en-IN')}` : `To collect: ₹${Math.round(b.outstanding).toLocaleString('en-IN')}`}
+            ${isSettled ? 'All square! 🎉' : isOwes ? `Outstanding: ₹${Math.round(out).toLocaleString('en-IN')}` : `To collect: ₹${Math.round(out).toLocaleString('en-IN')}`}
           </div>
         </div>
 

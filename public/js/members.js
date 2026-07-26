@@ -98,13 +98,18 @@ async function loadMembers() {
     // ─── Member Cards ─────────────────────────────────
     const cardsEl = document.getElementById('memberCards');
     cardsEl.innerHTML = balances.map((b, i) => {
-      const net = b.netBalance || 0;
-      const out = b.outstanding || 0;
+      const totalPaid  = b.totalPaid || 0;
+      const totalShare = b.totalShare || 0;
+      const settledOut = b.settledOut || 0;
+      const settledIn  = b.settledIn || 0;
+
+      // Effective Net Balance after settlements
+      const net = Math.round((totalPaid + settledOut) - (totalShare + settledIn));
+      const out = Math.abs(net);
       const isOwes = net < 0;
       const isSettled = out <= 0;
-      const totalPaid = b.totalPaid || 0;
-      const totalShare = b.totalShare || 0;
-      const pct = totalShare > 0 ? Math.min(100, Math.round((totalPaid / totalShare) * 100)) : 0;
+      const totalPaidEffective = totalPaid + settledOut;
+      const pct = totalShare > 0 ? Math.min(100, Math.round((totalPaidEffective / totalShare) * 100)) : 0;
       const accentColor = isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8';
 
       return `
@@ -182,11 +187,17 @@ async function loadMembers() {
     // ─── Table ────────────────────────────────────────
     const tbody = document.getElementById('memberTableBody');
     tbody.innerHTML = balances.map(b => {
-      const net = b.netBalance || 0;
-      const out = b.outstanding || 0;
+      const totalPaid  = b.totalPaid || 0;
+      const totalShare = b.totalShare || 0;
+      const settledOut = b.settledOut || 0;
+      const settledIn  = b.settledIn || 0;
+
+      // Effective Net Balance after settlements
+      const net = Math.round((totalPaid + settledOut) - (totalShare + settledIn));
+      const out = Math.abs(net);
       const isOwes = net < 0;
       const isSettled = out <= 0;
-      const maxAbs = Math.max(...balances.map(x => Math.abs(x.netBalance || 0)), 1);
+      const maxAbs = Math.max(...balances.map(x => Math.abs(((x.totalPaid||0)+(x.settledOut||0)) - ((x.totalShare||0)+(x.settledIn||0)))), 1);
       const barPct = Math.round((Math.abs(net) / maxAbs) * 100);
 
       return `<tr>
