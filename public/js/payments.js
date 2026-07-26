@@ -5,125 +5,130 @@
 window.loadPayments = async function loadPayments() {
   const content = document.getElementById('viewContent');
   if (!content) return;
-  content.innerHTML = `
-    <div style="animation:fadeInUp 0.4s ease">
-      <!-- ══ PhonePe QR Code Quick Pay Banner ══ -->
-      <div class="glass-card mb-4" style="background:linear-gradient(135deg,rgba(26,115,232,0.08),rgba(52,168,83,0.08));border:1px solid rgba(26,115,232,0.3)">
-        <div class="card-body-custom" style="padding:20px 24px">
-          <div class="row align-items-center g-3">
-            <div class="col-md-3 text-center">
-              <img src="/images/admin_phonepe_qr.png" alt="PhonePe QR Code" style="width:130px;height:130px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15)" />
-            </div>
-            <div class="col-md-9">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                <span class="badge bg-success" style="font-size:11px">Verified UPI QR</span>
-                <span style="font-size:12px;color:var(--text-muted)">Receiver: <strong>Kandukuri Jagan (Admin)</strong></span>
+
+  // Check if view-payments container exists; if not, build shell
+  let viewEl = document.getElementById('view-payments');
+  if (!viewEl) {
+    content.innerHTML = `
+      <div id="view-payments" class="view-section">
+        <div style="animation:fadeInUp 0.4s ease">
+          <!-- ══ PhonePe QR Code Quick Pay Banner ══ -->
+          <div class="glass-card mb-4" style="background:linear-gradient(135deg,rgba(26,115,232,0.08),rgba(52,168,83,0.08));border:1px solid rgba(26,115,232,0.3)">
+            <div class="card-body-custom" style="padding:20px 24px">
+              <div class="row align-items-center g-3">
+                <div class="col-md-3 text-center">
+                  <img src="/images/admin_phonepe_qr.png" alt="PhonePe QR Code" style="width:130px;height:130px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15)" />
+                </div>
+                <div class="col-md-9">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <span class="badge bg-success" style="font-size:11px">Verified UPI QR</span>
+                    <span style="font-size:12px;color:var(--text-muted)">Receiver: <strong>Kandukuri Jagan (Admin)</strong></span>
+                  </div>
+                  <h4 style="font-weight:800;color:var(--text-primary);margin-bottom:6px">Pay Outstanding Curry Balance via PhonePe / GPay / PayTM</h4>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+                    Scan the QR code with any UPI App or use UPI ID: <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:3px 8px;border-radius:6px;font-weight:700">8367047947@ybl</code>
+                  </div>
+                  <a href="upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense" class="btn-success-custom" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none">
+                    <i class="fas fa-mobile-alt"></i> Open UPI App Directly
+                  </a>
+                </div>
               </div>
-              <h4 style="font-weight:800;color:var(--text-primary);margin-bottom:6px">Pay Outstanding Curry Balance via PhonePe / GPay / PayTM</h4>
-              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
-                Scan the QR code with any UPI App or use UPI ID: <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:3px 8px;border-radius:6px;font-weight:700">8367047947@ybl</code>
-              </div>
-              <a href="upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense" class="btn-success-custom" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none">
-                <i class="fas fa-mobile-alt"></i> Open UPI App Directly
-              </a>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="row g-3 mb-4" id="paymentTopCards">
+            <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
+              <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading payment statistics...
+            </div>
+          </div>
+
+          <!-- Member Balance Cards -->
+          <div class="row g-3 mb-4" id="balanceCards">
+            <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
+              <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading member balances...
+            </div>
+          </div>
+
+          <!-- Record a Settlement -->
+          <div class="glass-card mb-4" id="recordPaymentCard">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Payment</h3>
+              <div style="font-size:12px;color:var(--text-muted)">Only admin can confirm and record payments</div>
+            </div>
+            <div class="card-body-custom" id="recordPaymentBody"></div>
+          </div>
+
+          <!-- Payment History -->
+          <div class="glass-card mb-4">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment History</h3>
+            </div>
+            <div id="paymentHistoryLog">
+              <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading history...</div>
+            </div>
+          </div>
+
+          <!-- Per-Meal Breakdown -->
+          <div class="glass-card mt-4">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom">
+                <div class="card-title-icon"><i class="fas fa-utensils"></i></div>
+                Per-Meal Split Breakdown
+              </h3>
+              <div style="font-size:12px;color:var(--text-muted)">Detailed bill split per meal</div>
+            </div>
+            <div class="table-responsive" id="mealBreakdownTable">
+              <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading meal breakdown...</div>
             </div>
           </div>
         </div>
-      </div>
+      </div>`;
+  }
 
-      <!-- Summary -->
-      <div class="row g-3 mb-4" id="paymentTopCards">
-        <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
-          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading payment statistics...
-        </div>
-      </div>
-
-      <!-- ══ Member Balance Cards ══ -->
-      <div class="row g-3 mb-4" id="balanceCards">
-        <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
-          <div class="loader-spinner" style="margin:0 auto 12px"></div>
-        </div>
-      </div>
-
-      <!-- ══ Record a Settlement ══ -->
-      <div class="glass-card mb-4">
-        <div class="card-header-custom">
-          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Payment
-            ${App.isAdmin ? '' : '<span style="background:rgba(234,67,53,0.1);color:#ea4335;border:1px solid rgba(234,67,53,0.3);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:10px">🔒 Admin Only</span>'}
-          </h3>
-          <div style="font-size:12px;color:var(--text-muted)">Only admin can confirm and record payments</div>
-        </div>
-        ${App.isAdmin ? `
-        <div class="card-body-custom">
-          <div class="row g-3 align-items-end">
-            <div class="col-6 col-md-2">
-              <label class="form-label-custom">Who Paid</label>
-              <select class="form-control-custom" id="qsFrom">
-                <option value="">-- Select --</option>
-              </select>
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label-custom">Paid To</label>
-              <select class="form-control-custom" id="qsTo">
-                <option value="">-- Select --</option>
-              </select>
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label-custom">Amount (₹)</label>
-              <input type="number" class="form-control-custom" id="qsAmount" placeholder="e.g. 130" min="1" />
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label-custom">Date</label>
-              <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
-            </div>
-            <div class="col-12 col-md-2">
-              <label class="form-label-custom">Notes</label>
-              <input type="text" class="form-control-custom" id="qsNotes" placeholder="PhonePe / Cash" />
-            </div>
-            <div class="col-12 col-md-2">
-              <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:11px;font-weight:700">
-                <i class="fas fa-check me-1"></i>Record Payment
-              </button>
-            </div>
+  // Populate record payment form according to role
+  const recordBody = document.getElementById('recordPaymentBody');
+  if (recordBody) {
+    if (App.isAdmin) {
+      recordBody.innerHTML = `
+        <div class="row g-3 align-items-end">
+          <div class="col-6 col-md-2">
+            <label class="form-label-custom">Who Paid</label>
+            <select class="form-control-custom" id="qsFrom"><option value="">-- Select --</option></select>
           </div>
-        </div>
-        ` : `
-        <div class="card-body-custom">
-          <div style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(26,115,232,0.06);border-radius:12px;border:1px dashed rgba(26,115,232,0.3)">
-            <div style="font-size:36px">📲</div>
-            <div>
-              <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:4px">Scan the QR above &amp; pay via UPI</div>
-              <div style="font-size:13px;color:var(--text-muted)">After you pay, let <strong>Jagan (Admin)</strong> know — he will confirm and update your balance.</div>
-            </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label-custom">Paid To</label>
+            <select class="form-control-custom" id="qsTo"><option value="">-- Select --</option></select>
           </div>
-        </div>
-        `}
-
-      <!-- ══ Payment History ══ -->
-      <div class="glass-card mb-4">
-        <div class="card-header-custom">
-          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment History</h3>
-        </div>
-        <div id="paymentHistoryLog">
-          <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
-        </div>
-      </div>
-
-      <!-- ══ Per-Meal Breakdown ══ -->
-      <div class="glass-card mt-4">
-        <div class="card-header-custom">
-          <h3 class="card-title-custom">
-            <div class="card-title-icon"><i class="fas fa-utensils"></i></div>
-            Per-Meal Split Breakdown
-          </h3>
-          <div style="font-size:12px;color:var(--text-muted)">Detailed bill split per meal</div>
-        </div>
-        <div class="table-responsive" id="mealBreakdownTable">
-          <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
-        </div>
-      </div>
-
-    </div>`;
+          <div class="col-6 col-md-2">
+            <label class="form-label-custom">Amount (₹)</label>
+            <input type="number" class="form-control-custom" id="qsAmount" placeholder="e.g. 130" min="1" />
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label-custom">Date</label>
+            <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
+          </div>
+          <div class="col-12 col-md-2">
+            <label class="form-label-custom">Notes</label>
+            <input type="text" class="form-control-custom" id="qsNotes" placeholder="PhonePe / Cash" />
+          </div>
+          <div class="col-12 col-md-2">
+            <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:11px;font-weight:700">
+              <i class="fas fa-check me-1"></i>Record Payment
+            </button>
+          </div>
+        </div>`;
+    } else {
+      recordBody.innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(26,115,232,0.06);border-radius:12px;border:1px dashed rgba(26,115,232,0.3)">
+          <div style="font-size:36px">📲</div>
+          <div>
+            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:4px">Scan the QR above &amp; pay via UPI</div>
+            <div style="font-size:13px;color:var(--text-muted)">After you pay, let <strong>Jagan (Admin)</strong> know — he will confirm and update your balance.</div>
+          </div>
+        </div>`;
+    }
+  }
 
   try {
     const data = await api('/api/balance');

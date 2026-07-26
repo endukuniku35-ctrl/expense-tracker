@@ -21,6 +21,8 @@ router.get('/', requireAuth, async (req, res) => {
     console.error('Error fetching members balance:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch members balance' });
   }
+});
+
 // GET /api/members/credentials - Get registered logins & credentials (Admin only)
 router.get('/credentials', requireAdmin, async (req, res) => {
   try {

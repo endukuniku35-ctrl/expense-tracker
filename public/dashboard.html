@@ -467,9 +467,79 @@
 
     <!-- View Content -->
     <main class="page-content" id="viewContent">
-      <div style="padding:60px 20px;text-align:center;color:var(--text-muted)">
-        <div class="loader-spinner" style="margin:0 auto 16px;width:36px;height:36px"></div>
-        <div style="font-weight:600">Loading view...</div>
+      <div id="view-payments" class="view-section">
+        <div style="animation:fadeInUp 0.4s ease">
+          <!-- ══ PhonePe QR Code Quick Pay Banner ══ -->
+          <div class="glass-card mb-4" style="background:linear-gradient(135deg,rgba(26,115,232,0.08),rgba(52,168,83,0.08));border:1px solid rgba(26,115,232,0.3)">
+            <div class="card-body-custom" style="padding:20px 24px">
+              <div class="row align-items-center g-3">
+                <div class="col-md-3 text-center">
+                  <img src="/images/admin_phonepe_qr.png" alt="PhonePe QR Code" style="width:130px;height:130px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15)" />
+                </div>
+                <div class="col-md-9">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <span class="badge bg-success" style="font-size:11px">Verified UPI QR</span>
+                    <span style="font-size:12px;color:var(--text-muted)">Receiver: <strong>Kandukuri Jagan (Admin)</strong></span>
+                  </div>
+                  <h4 style="font-weight:800;color:var(--text-primary);margin-bottom:6px">Pay Outstanding Curry Balance via PhonePe / GPay / PayTM</h4>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+                    Scan the QR code with any UPI App or use UPI ID: <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:3px 8px;border-radius:6px;font-weight:700">8367047947@ybl</code>
+                  </div>
+                  <a href="upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense" class="btn-success-custom" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none">
+                    <i class="fas fa-mobile-alt"></i> Open UPI App Directly
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="row g-3 mb-4" id="paymentTopCards">
+            <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
+              <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading payment statistics...
+            </div>
+          </div>
+
+          <!-- Member Balance Cards -->
+          <div class="row g-3 mb-4" id="balanceCards">
+            <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
+              <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading member balances...
+            </div>
+          </div>
+
+          <!-- Record a Settlement -->
+          <div class="glass-card mb-4" id="recordPaymentCard">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Payment</h3>
+              <div style="font-size:12px;color:var(--text-muted)">Only admin can confirm and record payments</div>
+            </div>
+            <div class="card-body-custom" id="recordPaymentBody"></div>
+          </div>
+
+          <!-- Payment History -->
+          <div class="glass-card mb-4">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment History</h3>
+            </div>
+            <div id="paymentHistoryLog">
+              <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading payment history...</div>
+            </div>
+          </div>
+
+          <!-- Per-Meal Breakdown -->
+          <div class="glass-card mt-4">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom">
+                <div class="card-title-icon"><i class="fas fa-utensils"></i></div>
+                Per-Meal Split Breakdown
+              </h3>
+              <div style="font-size:12px;color:var(--text-muted)">Detailed bill split per meal</div>
+            </div>
+            <div class="table-responsive" id="mealBreakdownTable">
+              <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading meal breakdown...</div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -546,15 +616,15 @@
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/js/dashboard.js?v=6.0"></script>
-<script src="/js/members.js?v=6.0"></script>
-<script src="/js/expenses.js?v=6.0"></script>
-<script src="/js/payments.js?v=6.0"></script>
-<script src="/js/reports.js?v=6.0"></script>
-<script src="/js/charts.js?v=6.0"></script>
-<script src="/js/profile.js?v=6.0"></script>
-<script src="/js/notifications.js?v=6.0"></script>
-<script src="/js/search.js?v=6.0"></script>
-<script src="/js/app.js?v=6.0"></script>
+<script src="/js/dashboard.js?v=7.0"></script>
+<script src="/js/members.js?v=7.0"></script>
+<script src="/js/expenses.js?v=7.0"></script>
+<script src="/js/payments.js?v=7.0"></script>
+<script src="/js/reports.js?v=7.0"></script>
+<script src="/js/charts.js?v=7.0"></script>
+<script src="/js/profile.js?v=7.0"></script>
+<script src="/js/notifications.js?v=7.0"></script>
+<script src="/js/search.js?v=7.0"></script>
+<script src="/js/app.js?v=7.0"></script>
 </body>
 </html>
