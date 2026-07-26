@@ -188,6 +188,7 @@ function navigateTo(view) {
     members: { title: 'Members', breadcrumb: 'Team Members & Status' },
     expenses: { title: 'Expenses', breadcrumb: 'Expense Management' },
     payments: { title: 'Payment Status', breadcrumb: 'Track Payments' },
+    chat: { title: 'Roommate Chat', breadcrumb: 'Group Messages & Reminders' },
     reports: { title: 'Reports', breadcrumb: 'Analytics & Reports' },
     charts: { title: 'Charts', breadcrumb: 'Visual Analytics' },
     profile: { title: 'Profile', breadcrumb: 'Account Settings' },
@@ -204,6 +205,7 @@ function navigateTo(view) {
     members: window.loadMembers,
     expenses: window.loadExpenses,
     payments: window.loadPayments,
+    chat: window.loadChatMessages,
     reports: window.loadReports,
     charts: window.loadCharts,
     profile: window.loadProfile

@@ -48,6 +48,7 @@ async function all(tableOrSql) {
   if (tableOrSql.includes('expenses')) return readData('expenses');
   if (tableOrSql.includes('settlements')) return readData('settlements');
   if (tableOrSql.includes('notifications')) return readData('notifications');
+  if (tableOrSql.includes('messages')) return readData('messages');
   if (tableOrSql.includes('users')) return readData('users');
   return [];
 }
@@ -174,6 +175,23 @@ async function run(sql, params = []) {
       forRole: params[4] || 'admin'
     });
     writeData('notifications', notifications.slice(0, 50));
+    return;
+  }
+
+  // Messages INSERT
+  if (sql.includes('INSERT INTO messages')) {
+    const messages = readData('messages');
+    messages.push({
+      id: params[0],
+      senderId: params[1],
+      senderName: params[2],
+      senderAvatar: params[3],
+      senderRole: params[4],
+      text: params[5],
+      timestamp: params[6],
+      isNudge: params[7] ? true : false
+    });
+    writeData('messages', messages.slice(-100)); // keep last 100 messages
     return;
   }
 

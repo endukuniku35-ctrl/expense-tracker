@@ -86,6 +86,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/members', require('./routes/members'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/messages', require('./routes/messages'));
 app.use('/api/balance', require('./routes/balance').router);
 
 // Serve login page at root with no-cache
