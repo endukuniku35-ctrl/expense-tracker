@@ -388,9 +388,9 @@ function openPayUpiQrModal(fromMemberId, fromMemberName, toMemberId, toMemberNam
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiDeepLink)}`;
 
   document.getElementById('qrPayAmount').textContent = `₹${amount.toLocaleString('en-IN')}`;
-  document.getElementById('qrReceiverName').textContent = `${toMemberName} (Admin)`;
+  document.getElementById('qrReceiverName').textContent = `Kandukuri Jagan (Admin)`;
   document.getElementById('qrUpiId').textContent = adminUpiId;
-  document.getElementById('upiQrImage').src = qrCodeUrl;
+  document.getElementById('upiQrImage').src = '/images/admin_phonepe_qr.png';
 
   const appLink = document.getElementById('upiAppLaunchBtn');
   if (appLink) appLink.href = upiDeepLink;
