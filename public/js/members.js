@@ -87,12 +87,13 @@ async function loadMembers() {
             <thead><tr>
               <th>Member Name</th>
               <th>Login User ID</th>
+              <th>Password</th>
               <th>Role</th>
               <th>Joined Date</th>
-              <th>Account Status</th>
+              <th>Actions</th>
             </tr></thead>
             <tbody id="adminCredentialsTableBody">
-              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">Loading credentials directory...</td></tr>
+              <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading credentials directory...</td></tr>
             </tbody>
           </table>
         </div>
@@ -321,18 +322,106 @@ async function loadAdminCredentialsDirectory() {
           <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:4px 8px;border-radius:6px;font-weight:700;font-size:14px">${u.userid}</code>
         </td>
         <td>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="password" readonly value="${u.password || ''}" id="pwdInput_${u.userid}" class="form-control-custom" style="width:140px;padding:4px 8px;font-size:13px;font-family:monospace;background:rgba(255,255,255,0.05)" />
+            <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:12px;color:var(--primary)" onclick="togglePasswordView('${u.userid}')" title="Show/Hide Password">
+              <i class="fas fa-eye" id="eyeIcon_${u.userid}"></i>
+            </button>
+          </div>
+        </td>
+        <td>
           ${u.role === 'admin' 
             ? '<span class="badge bg-danger">👑 Administrator</span>' 
             : '<span class="badge bg-secondary">👤 Member</span>'}
         </td>
         <td style="font-size:12px;color:var(--text-muted)">${formatDate(u.joinDate)}</td>
         <td>
-          <span class="badge-paid">🟢 Active Account</span>
+          <button class="btn-primary-custom" style="padding:4px 10px;font-size:12px" onclick="openResetPasswordModal('${u.userid}', '${u.name}')">
+            <i class="fas fa-key me-1"></i>Reset Password
+          </button>
         </td>
       </tr>
     `).join('');
   } else {
-    credBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No member accounts found.</td></tr>`;
+    credBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No member accounts found.</td></tr>`;
+  }
+}
+
+function togglePasswordView(userid) {
+  const pwdInput = document.getElementById(`pwdInput_${userid}`);
+  const eyeIcon = document.getElementById(`eyeIcon_${userid}`);
+  if (pwdInput) {
+    if (pwdInput.type === 'password') {
+      pwdInput.type = 'text';
+      if (eyeIcon) eyeIcon.className = 'fas fa-eye-slash';
+    } else {
+      pwdInput.type = 'password';
+      if (eyeIcon) eyeIcon.className = 'fas fa-eye';
+    }
+  }
+}
+
+function openResetPasswordModal(userid, name) {
+  let modal = document.getElementById('resetPasswordModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'resetPasswordModal';
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:16px">
+          <div class="modal-header">
+            <h5 class="modal-title" style="font-size:16px"><i class="fas fa-key me-2 text-warning"></i>Reset Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" style="padding:20px">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+              Setting new password for <strong id="resetTargetName"></strong> (<code id="resetTargetUserid"></code>):
+            </div>
+            <input type="password" class="form-control-custom" id="resetNewPwd" placeholder="Enter new password" required />
+          </div>
+          <div class="modal-footer gap-2">
+            <button class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn-primary-custom" onclick="submitResetPassword()"><i class="fas fa-save me-1"></i>Save Password</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  document.getElementById('resetTargetName').textContent = name;
+  document.getElementById('resetTargetUserid').textContent = userid;
+  document.getElementById('resetNewPwd').value = '';
+  window.activeResetUserid = userid;
+  new bootstrap.Modal(modal).show();
+}
+
+async function submitResetPassword() {
+  const userid = window.activeResetUserid;
+  const newPassword = document.getElementById('resetNewPwd').value.trim();
+  if (!userid || !newPassword) {
+    showToast('Required', 'Please enter a new password.', 'error');
+    return;
+  }
+
+  showLoader();
+  const res = await api('/api/members/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ userid, newPassword })
+  });
+  hideLoader();
+
+  const modalEl = document.getElementById('resetPasswordModal');
+  if (modalEl) {
+    const instance = bootstrap.Modal.getInstance(modalEl);
+    if (instance) instance.hide();
+  }
+
+  if (res && res.success) {
+    showToast('Password Updated! 🔑', res.message, 'success');
+    loadAdminCredentialsDirectory();
+  } else {
+    showToast('Error', res?.message || 'Failed to update password.', 'error');
   }
 }
 

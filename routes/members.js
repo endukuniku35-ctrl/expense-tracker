@@ -33,7 +33,8 @@ router.get('/credentials', requireAdmin, async (req, res) => {
       role: u.role || 'member',
       email: u.email,
       avatar: u.avatar,
-      joinDate: u.joinDate
+      joinDate: u.joinDate,
+      password: u.rawPassword || '••••••••'
     }));
     res.json({ success: true, data: userList });
   } catch (err) {
@@ -68,7 +69,7 @@ router.post('/', requireAdmin, async (req, res) => {
     await run(
       `INSERT INTO users (id, userid, password, name, shortName, role, email, avatar, joinDate)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate]
+      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate, password.trim()]
     );
 
     // Notification
@@ -80,11 +81,44 @@ router.post('/', requireAdmin, async (req, res) => {
     res.status(201).json({
       success: true,
       message: `Member ${name.trim()} added successfully!`,
-      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate }
+      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate, password: password.trim() }
     });
   } catch (err) {
     console.error('Error adding member:', err);
     res.status(500).json({ success: false, message: 'Database error adding member' });
+  }
+});
+
+// POST /api/members/reset-password - Reset member password (Admin only)
+router.post('/reset-password', requireAdmin, async (req, res) => {
+  const { userid, newPassword } = req.body;
+  if (!userid || !newPassword) {
+    return res.status(400).json({ success: false, message: 'User ID and New Password are required' });
+  }
+
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const dataPath = path.join(__dirname, '../data/users.json');
+    let users = [];
+    if (fs.existsSync(dataPath)) {
+      users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    }
+
+    const user = users.find(u => u.userid === userid.trim());
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    user.password = bcrypt.hashSync(newPassword.trim(), salt);
+    user.rawPassword = newPassword.trim();
+    fs.writeFileSync(dataPath, JSON.stringify(users, null, 2));
+
+    res.json({ success: true, message: `Password for ${user.name} (${user.userid}) updated successfully!` });
+  } catch (err) {
+    console.error('Error resetting password:', err);
+    res.status(500).json({ success: false, message: 'Failed to reset password' });
   }
 });
 
