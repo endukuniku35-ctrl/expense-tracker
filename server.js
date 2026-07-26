@@ -37,15 +37,16 @@ app.use(express.static(path.join(__dirname, 'public'), {
   etag: true
 }));
 
-// Session configuration
+// Session configuration (30-minute inactivity timeout with rolling renewal)
 app.use(session({
   secret: 'curry-expense-tracker-secret-key-2024',
   resave: false,
+  rolling: true, // Renews cookie expiration on active user requests
   saveUninitialized: false,
   cookie: {
     secure: false, // set true in production with HTTPS
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 30 * 60 * 1000 // 30 minutes inactivity timeout
   }
 }));
 

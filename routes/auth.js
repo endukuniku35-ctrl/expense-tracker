@@ -1,7 +1,8 @@
 /**
- * Authentication Routes (SQLite Backend)
+ * Authentication Routes (SQLite & Session Backend)
  * POST /api/auth/login
  * POST /api/auth/logout
+ * POST /api/auth/refresh-session
  * GET  /api/auth/me
  */
 
@@ -63,12 +64,22 @@ router.post('/logout', (req, res) => {
   });
 });
 
+// POST /api/auth/refresh-session - Extend active session
+router.post('/refresh-session', (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ success: false, message: 'Session expired' });
+  }
+  req.session.touch();
+  res.json({ success: true, message: 'Session extended' });
+});
+
 // GET /api/auth/me
 router.get('/me', (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ success: false, message: 'Not authenticated' });
   }
-  res.json({ success: true, user: req.session.user });
+  const maxAge = req.session.cookie.maxAge || 30 * 60 * 1000;
+  res.json({ success: true, user: req.session.user, sessionMaxAge: maxAge });
 });
 
 module.exports = router;

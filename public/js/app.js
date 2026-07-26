@@ -253,7 +253,119 @@ async function initApp() {
   const hash = window.location.hash.replace('#', '') || 'dashboard';
   navigateTo(hash);
 
+  // Initialize Session Timing Controller (30-minute countdown)
+  initSessionTiming(authData.sessionMaxAge);
+
   hideLoader();
+}
+
+// ─── Session Timing Controller ─────────────────────
+let sessionTimerInterval = null;
+let sessionRemainingSec = 1800; // 30 minutes
+let lastActivityTime = Date.now();
+let warnModalInstance = null;
+
+function initSessionTiming(maxAgeMs = 1800000) {
+  sessionRemainingSec = Math.floor((maxAgeMs || 1800000) / 1000);
+
+  if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+  sessionTimerInterval = setInterval(tickSessionTimer, 1000);
+
+  // Listen for active user interactions
+  ['click', 'keydown', 'mousemove', 'scroll'].forEach(evt => {
+    window.addEventListener(evt, onUserActivity, { passive: true });
+  });
+}
+
+function tickSessionTimer() {
+  if (sessionRemainingSec <= 0) {
+    clearInterval(sessionTimerInterval);
+    sessionExpiredLogout();
+    return;
+  }
+
+  sessionRemainingSec--;
+
+  const mins = Math.floor(sessionRemainingSec / 60);
+  const secs = sessionRemainingSec % 60;
+  const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+  const textEl = document.getElementById('sessionTimerText');
+  const badgeEl = document.getElementById('sessionTimerBadge');
+  const iconEl = document.getElementById('sessionTimerIcon');
+
+  if (textEl) textEl.textContent = timeStr;
+
+  if (badgeEl) {
+    if (sessionRemainingSec <= 120) {
+      badgeEl.style.borderColor = 'var(--danger)';
+      badgeEl.style.color = 'var(--danger)';
+      if (iconEl) iconEl.className = 'fas fa-exclamation-triangle text-danger';
+    } else if (sessionRemainingSec <= 300) {
+      badgeEl.style.borderColor = 'var(--warning)';
+      badgeEl.style.color = 'var(--warning)';
+      if (iconEl) iconEl.className = 'fas fa-clock text-warning';
+    } else {
+      badgeEl.style.borderColor = 'var(--glass-border)';
+      badgeEl.style.color = 'var(--text-secondary)';
+      if (iconEl) iconEl.className = 'fas fa-clock text-primary';
+    }
+  }
+
+  // Show warning modal when 2 minutes (120 seconds) remain
+  if (sessionRemainingSec === 120) {
+    const modalEl = document.getElementById('sessionWarnModal');
+    if (modalEl) {
+      warnModalInstance = new bootstrap.Modal(modalEl);
+      warnModalInstance.show();
+    }
+  }
+
+  if (sessionRemainingSec <= 120) {
+    const countdownEl = document.getElementById('sessionWarnCountdown');
+    if (countdownEl) countdownEl.textContent = timeStr;
+  }
+}
+
+async function extendSession(quiet = false) {
+  const res = await api('/api/auth/refresh-session', { method: 'POST' });
+  if (res && res.success) {
+    sessionRemainingSec = 1800; // Reset to 30 mins
+    lastActivityTime = Date.now();
+    if (!quiet) showToast('Session Extended ⏱️', 'Your 30-minute session timer has been reset.', 'success');
+  }
+}
+
+async function extendSessionFromModal() {
+  if (warnModalInstance) {
+    warnModalInstance.hide();
+    warnModalInstance = null;
+  }
+  await extendSession(false);
+}
+
+function onUserActivity() {
+  const now = Date.now();
+  // Automatically extend session in background if active and more than 5 minutes elapsed since last refresh
+  if (now - lastActivityTime > 5 * 60 * 1000 && sessionRemainingSec > 120) {
+    lastActivityTime = now;
+    extendSession(true);
+  }
+}
+
+async function sessionExpiredLogout() {
+  if (warnModalInstance) {
+    warnModalInstance.hide();
+  }
+  showLoader();
+  await api('/api/auth/logout', { method: 'POST' });
+  sessionStorage.clear();
+  window.location.href = '/?expired=true';
+}
+
+function confirmLogout() {
+  if (warnModalInstance) warnModalInstance.hide();
+  showLogoutModal();
 }
 
 // ─── Init on DOMContentLoaded ─────────────────────

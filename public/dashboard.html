@@ -326,6 +326,12 @@
           <div class="search-results" id="searchResults"></div>
         </div>
 
+        <!-- Live Session Timer Badge -->
+        <div id="sessionTimerBadge" style="background:var(--bg-2);border:1px solid var(--glass-border);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s" onclick="extendSession()" title="Click to extend session">
+          <i class="fas fa-clock text-primary" id="sessionTimerIcon"></i>
+          <span id="sessionTimerText">30:00</span>
+        </div>
+
         <!-- Send Telegram Summary Button -->
         <button class="icon-btn" onclick="sendTelegramSummary()" title="Send Summary Report to Telegram" style="color:#0088cc">
           <i class="fab fa-telegram"></i>
@@ -383,6 +389,26 @@
       <span>🍛 Curry Expense Tracker &copy; 2026</span>
       <span>v1.0 &bull; Powered by Node.js + Express</span>
     </footer>
+  </div>
+</div>
+
+<!-- Session Timeout Warning Modal -->
+<div class="modal fade" id="sessionWarnModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="border:1px solid var(--warning)">
+      <div class="modal-header">
+        <h5 class="modal-title text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Session Expiring</h5>
+      </div>
+      <div class="modal-body text-center" style="padding:24px">
+        <div style="font-size:44px;margin-bottom:10px">⏳</div>
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:8px">Your session will expire due to inactivity in:</p>
+        <div style="font-size:28px;font-weight:800;color:var(--danger)" id="sessionWarnCountdown">02:00</div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn-ghost" style="font-size:13px" onclick="confirmLogout()">Logout</button>
+        <button class="btn-primary-custom" style="font-size:13px" onclick="extendSessionFromModal()"><i class="fas fa-sync me-1"></i>Extend Session</button>
+      </div>
+    </div>
   </div>
 </div>
 
