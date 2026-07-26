@@ -151,8 +151,11 @@ window.loadMembers = async function loadMembers() {
         <div class="col-xl-3 col-md-6">
           <div class="payment-card" style="animation-delay:${i*0.1}s;border-top:3px solid ${accentColor}">
             <!-- Avatar + name -->
-            <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-              <div class="avatar ${avatarClass(b.shortName || b.name)}" style="width:56px;height:56px;border-radius:16px;font-size:20px">${b.avatar || '👤'}</div>
+              ${(b.userid === '192472374' || b.role === 'admin') ? `
+                <img src="/images/logo_brand.png" style="width:56px;height:56px;border-radius:16px;object-fit:cover;border:2px solid var(--primary);box-shadow:0 4px 12px rgba(0,0,0,0.15)" />
+              ` : `
+                <div class="avatar ${avatarClass(b.shortName || b.name)}" style="width:56px;height:56px;border-radius:16px;font-size:20px">${b.avatar || '👤'}</div>
+              `}
               <div>
                 <div style="font-size:18px;font-weight:800;color:var(--text-primary)">${b.name}</div>
                 <div style="font-size:12px;color:var(--text-muted)">ID: ${b.userid} ${b.role === 'admin' ? '<span class="badge bg-primary ms-1">Admin</span>' : ''}</div>

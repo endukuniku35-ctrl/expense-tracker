@@ -274,11 +274,23 @@ async function initApp() {
   App.isAdmin = authData.user.role === 'admin';
 
   // Update UI with user info
-  const { name, shortName, avatar, role } = authData.user;
-  document.getElementById('sidebarAvatar').textContent = avatar;
+  const { name, shortName, avatar, role, userid } = authData.user;
+  const userPhoto = (userid === '192472374' || role === 'admin') ? '/images/logo_brand.png' : null;
+
+  const sidebarAv = document.getElementById('sidebarAvatar');
+  if (sidebarAv) {
+    if (userPhoto) sidebarAv.innerHTML = `<img src="${userPhoto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
+    else sidebarAv.textContent = avatar;
+  }
+
   document.getElementById('sidebarName').textContent = name;
   document.getElementById('sidebarRole').textContent = role === 'admin' ? '👑 Administrator' : '👤 Member';
-  document.getElementById('topbarAvatar').textContent = avatar;
+
+  const topbarAv = document.getElementById('topbarAvatar');
+  if (topbarAv) {
+    if (userPhoto) topbarAv.innerHTML = `<img src="${userPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
+    else topbarAv.textContent = avatar;
+  }
   document.getElementById('topbarName').textContent = shortName;
 
   // Show Admin Broadcast link for Admin only
