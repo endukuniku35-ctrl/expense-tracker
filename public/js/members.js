@@ -14,9 +14,9 @@ async function loadMembers() {
             <div>
               <div style="font-weight:700;font-size:15px;color:var(--text-primary)">How the Split Works</div>
               <div style="font-size:13px;color:var(--text-secondary)">
-                Every curry meal is split equally among participating members. 
-                When one person pays the full bill, participating members owe their share back. 
-                <strong>Net Balance</strong> shows who owes whom.
+                Every curry meal is split equally among participating members.
+                When one person pays the full bill, each member owes their share back.
+                Check your card below to see how much you still owe.
               </div>
             </div>
             <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
@@ -43,12 +43,12 @@ async function loadMembers() {
           <table class="custom-table">
             <thead><tr>
               <th>Member</th>
-              <th>Bills Paid <small style="opacity:.6">(as payer)</small></th>
-              <th>Total Fair Share</th>
-              <th>Net Balance</th>
+              <th>Bills Paid</th>
+              <th>Fair Share</th>
+              <th>Amount Due</th>
               <th>Status</th>
-              <th>Meals Count</th>
-              <th>Balance Bar</th>
+              <th>Meals</th>
+              <th>Progress</th>
               <th>Action</th>
             </tr></thead>
             <tbody id="memberTableBody">
@@ -134,16 +134,10 @@ async function loadMembers() {
                 <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Fair Share</div>
                 <div style="font-size:17px;font-weight:800;color:var(--text-secondary)">₹${Math.round(totalShare).toLocaleString('en-IN')}</div>
               </div>
-              <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
-                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Net Balance</div>
-                <div style="font-size:17px;font-weight:800;color:${accentColor}">
-                  ${net >= 0 ? '+' : ''}₹${Math.round(net).toLocaleString('en-IN')}
-                </div>
-              </div>
-              <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
-                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Outstanding</div>
-                <div style="font-size:17px;font-weight:800;color:${isSettled ? '#34a853' : accentColor}">
-                  ${isSettled ? '₹0' : '₹' + Math.round(out).toLocaleString('en-IN')}
+              <div style="background:${isSettled?'rgba(52,168,83,0.1)':isOwes?'rgba(234,67,53,0.1)':'rgba(26,115,232,0.1)'};border-radius:10px;padding:12px;text-align:center;grid-column:span 2">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">${isSettled ? '✅ All Settled' : isOwes ? '🔴 Still Owes' : '💰 To Collect'}</div>
+                <div style="font-size:24px;font-weight:900;color:${accentColor}">
+                  ${isSettled ? 'Nothing to pay!' : '₹' + Math.round(out).toLocaleString('en-IN')}
                 </div>
               </div>
             </div>
@@ -214,7 +208,7 @@ async function loadMembers() {
         <td style="color:var(--text-secondary)">₹${Math.round(b.totalShare || 0).toLocaleString('en-IN')}</td>
         <td>
           <strong style="color:${isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8'}">
-            ${net >= 0 ? '+' : ''}₹${Math.round(net).toLocaleString('en-IN')}
+            ${isSettled ? '✅ ₹0' : isOwes ? '₹' + Math.round(out).toLocaleString('en-IN') : '💰 ₹' + Math.round(out).toLocaleString('en-IN')}
           </strong>
         </td>
         <td>${isSettled
