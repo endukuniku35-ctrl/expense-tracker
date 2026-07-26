@@ -35,9 +35,12 @@ async function loadPayments() {
       <!-- ══ Record a Settlement ══ -->
       <div class="glass-card mb-4">
         <div class="card-header-custom">
-          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Cash / UPI Payment</h3>
-          <div style="font-size:12px;color:var(--text-muted)">After paying via QR or cash, record it here to update balances</div>
+          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Payment
+            ${App.isAdmin ? '' : '<span style="background:rgba(234,67,53,0.1);color:#ea4335;border:1px solid rgba(234,67,53,0.3);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:10px">🔒 Admin Only</span>'}
+          </h3>
+          <div style="font-size:12px;color:var(--text-muted)">Only admin can confirm and record payments</div>
         </div>
+        ${App.isAdmin ? `
         <div class="card-body-custom">
           <div class="row g-3 align-items-end">
             <div class="col-6 col-md-2">
@@ -71,7 +74,17 @@ async function loadPayments() {
             </div>
           </div>
         </div>
-      </div>
+        ` : `
+        <div class="card-body-custom">
+          <div style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(26,115,232,0.06);border-radius:12px;border:1px dashed rgba(26,115,232,0.3)">
+            <div style="font-size:36px">📲</div>
+            <div>
+              <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:4px">Scan the QR above &amp; pay via UPI</div>
+              <div style="font-size:13px;color:var(--text-muted)">After you pay, let <strong>Jagan (Admin)</strong> know — he will confirm and update your balance.</div>
+            </div>
+          </div>
+        </div>
+        `}
 
       <!-- ══ Payment History ══ -->
       <div class="glass-card">
@@ -104,12 +117,31 @@ async function loadPayments() {
 
   const { balances, totalExpenses, perPersonShare, settlements } = data;
 
-  // Populate quick settle select dropdowns
-  const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
+  // Populate quick settle dropdowns — locked to logged-in user
+  const me = App.currentUser;
   const fromEl = document.getElementById('qsFrom');
-  const toEl = document.getElementById('qsTo');
-  if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
-  if (toEl) toEl.innerHTML = `<option value="">-- Who Receives --</option>` + opts;
+  const toEl   = document.getElementById('qsTo');
+  const adminMember = balances.find(b => b.role === 'admin') || balances.find(b => b.userid === '192472374');
+
+  if (App.isAdmin) {
+    // Admin can pick any payer
+    const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
+    if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
+    if (toEl)   toEl.innerHTML   = `<option value="">-- Who Receives --</option>` + opts;
+    if (toEl && adminMember) toEl.value = adminMember.userid;
+  } else {
+    // Non-admin: locked to themselves paying the admin
+    if (fromEl) {
+      fromEl.innerHTML = `<option value="${me.userid}">${me.name}</option>`;
+      fromEl.disabled  = true;
+      fromEl.style.opacity = '0.75';
+    }
+    if (toEl && adminMember) {
+      toEl.innerHTML = `<option value="${adminMember.userid}">${adminMember.name} (Admin)</option>`;
+      toEl.disabled  = true;
+      toEl.style.opacity = '0.75';
+    }
+  }
 
   // ─── Top Summary Cards ────────────────────────────
   const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
@@ -274,7 +306,11 @@ async function loadPayments() {
           </div>
         </div>
 
-        ${isOwes && !isSettled ? `
+        ${isOwes && !isSettled && b.userid === App.currentUser.userid ? `
+          <button class="btn-success-custom w-100" style="padding:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;" onclick="openPayUpiQrModal('${b.userid}','${b.name}','192472374','Jagan',${out})">
+            <i class="fas fa-qrcode"></i> Pay ₹${out.toLocaleString('en-IN')} Now
+          </button>
+        ` : isOwes && !isSettled && App.isAdmin ? `
           <button class="btn-success-custom w-100" style="padding:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;" onclick="openPayUpiQrModal('${b.userid}','${b.name}','192472374','Jagan',${out})">
             <i class="fas fa-qrcode"></i> Pay ₹${out.toLocaleString('en-IN')} Now
           </button>
