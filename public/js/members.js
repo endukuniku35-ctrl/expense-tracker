@@ -164,9 +164,16 @@ async function loadMembers() {
               <span style="font-size:12px;color:var(--text-muted)">${b.expenseCount || 0} meals paid</span>
             </div>
             ${isOwes && !isSettled ? `
-              <button class="btn-success-custom w-100" style="padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(out)})">
-                <i class="fas fa-qrcode"></i> Pay ₹${Math.round(out).toLocaleString('en-IN')} via UPI QR
-              </button>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="btn-success-custom flex-fill" style="padding:8px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:10px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(out)})">
+                  <i class="fas fa-qrcode"></i> Pay ₹${Math.round(out).toLocaleString('en-IN')}
+                </button>
+                ${App.isAdmin ? `
+                  <button class="btn-primary-custom" style="padding:8px 10px;font-size:11px;border-radius:10px" title="Mark fully paid" onclick="quickSettleFull('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(out)})">
+                    <i class="fas fa-check-double me-1"></i>Clear All
+                  </button>
+                ` : ''}
+              </div>
             ` : ''}
           </div>
         </div>`;
@@ -426,5 +433,30 @@ async function deleteSettlement(id) {
   if (res && res.success) {
     showToast('Deleted', 'Settlement removed.', 'success');
     loadMembers();
+  }
+}
+
+async function quickSettleFull(fromMemberId, fromMemberName, toMemberId, toMemberName, amount) {
+  if (!confirm(`Mark ${fromMemberName}'s balance of ₹${amount} as FULLY PAID & SETTLED?`)) return;
+  showLoader();
+  const res = await api('/api/balance/settle', {
+    method: 'POST',
+    body: JSON.stringify({
+      fromMemberId,
+      fromMemberName,
+      toMemberId,
+      toMemberName,
+      amount: parseFloat(amount),
+      date: new Date().toISOString().split('T')[0],
+      notes: 'Full Settlement (Cleared Balance)'
+    })
+  });
+  hideLoader();
+
+  if (res && res.success) {
+    showToast('Balance Fully Cleared! 🎉', `${fromMemberName}'s balance is now ₹0 (Fully Settled).`, 'success');
+    loadMembers();
+  } else {
+    showToast('Error', res?.message || 'Failed to clear balance.', 'error');
   }
 }

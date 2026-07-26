@@ -156,8 +156,8 @@ router.get('/settlements', requireAuth, async (req, res) => {
 
 const { notifySettlement } = require('../telegram');
 
-// POST /api/balance/settle – admin records a cash settlement
-router.post('/settle', requireAdmin, async (req, res) => {
+// POST /api/balance/settle – record a cash / UPI settlement
+router.post('/settle', requireAuth, async (req, res) => {
   const { fromMemberId, fromMemberName, toMemberId, toMemberName, amount, notes, date } = req.body;
 
   if (!fromMemberId || !toMemberId || !amount || parseFloat(amount) <= 0) {
