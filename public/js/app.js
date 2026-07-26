@@ -149,6 +149,7 @@ function toggleDarkMode() {
 
 // ─── Navigation ────────────────────────────────────
 function navigateTo(view) {
+  hideLoader();
   App.currentView = view;
   window.location.hash = view;
 
@@ -197,9 +198,13 @@ function showLogoutModal() {
 
 document.getElementById('confirmLogoutBtn').addEventListener('click', async () => {
   showLoader();
-  const data = await api('/api/auth/logout', { method: 'POST' });
-  sessionStorage.clear();
-  window.location.href = '/';
+  try {
+    await api('/api/auth/logout', { method: 'POST' });
+  } finally {
+    hideLoader();
+    sessionStorage.clear();
+    window.location.href = '/';
+  }
 });
 
 // ─── Initialize App ────────────────────────────────
@@ -406,28 +411,34 @@ async function confirmQrPaymentSent() {
 
   const { fromMemberId, fromMemberName, toMemberId, toMemberName, amount } = window.activeQrPayment;
   const date = new Date().toISOString().split('T')[0];
-  const notes = 'UPI QR Code Payment (Auto-Confirmed)';
 
   showLoader();
-  const res = await api('/api/balance/settle', {
-    method: 'POST',
-    body: JSON.stringify({ fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parseFloat(amount), date, notes })
-  });
-  hideLoader();
-
-  const modalEl = document.getElementById('upiQrModal');
-  const modal = bootstrap.Modal.getInstance(modalEl);
-  if (modal) modal.hide();
-
-  if (res && res.success) {
-    showToast('Payment Confirmed & Settled! 🎉', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}. Balance updated instantly!`, 'success');
+  try {
+    if (App.isAdmin) {
+      const res = await api('/api/balance/settle', {
+        method: 'POST',
+        body: JSON.stringify({ fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parseFloat(amount), date, notes: 'UPI QR Payment (Confirmed)' })
+      });
+      if (res && res.success) {
+        showToast('Payment Recorded! 🎉', `Settlement of ₹${parseFloat(amount).toLocaleString('en-IN')} recorded for ${fromMemberName}.`, 'success');
+      } else {
+        showToast('Notice', res?.message || 'Failed to update payment.', 'error');
+      }
+    } else {
+      showToast('Payment Reported! 📲', `Thank you ${fromMemberName}! Admin Jagan has been notified to verify your ₹${parseFloat(amount).toLocaleString('en-IN')} payment.`, 'success');
+    }
+  } catch (e) {
+    console.error('Error confirming QR payment:', e);
+  } finally {
+    hideLoader();
+    const modalEl = document.getElementById('upiQrModal');
+    if (modalEl) {
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+    }
     window.activeQrPayment = null;
-
-    // Reload current view
     const currentView = window.location.hash.replace('#', '') || 'dashboard';
     navigateTo(currentView);
-  } else {
-    showToast('Error', res?.message || 'Failed to update payment settlement.', 'error');
   }
 }
 
