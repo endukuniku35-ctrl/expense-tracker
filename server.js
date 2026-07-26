@@ -38,9 +38,9 @@ app.use(session({
   }
 }));
 
-// Initialize default data files if they don't exist
-const { initializeData } = require('./data/init');
-initializeData();
+// Initialize SQLite database tables & sample data
+const { initDatabase } = require('./database');
+initDatabase().catch(err => console.error('Database initialization error:', err));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

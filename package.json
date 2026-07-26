@@ -16,12 +16,18 @@
     "express-session": "^1.17.3",
     "json2csv": "^5.0.7",
     "pdfkit": "^0.14.0",
+    "sqlite3": "^6.0.1",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["expense", "tracker", "curry", "nodejs"],
+  "keywords": [
+    "expense",
+    "tracker",
+    "curry",
+    "nodejs"
+  ],
   "author": "Curry Expense Tracker",
   "license": "MIT"
 }

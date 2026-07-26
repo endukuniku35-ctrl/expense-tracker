@@ -1,5 +1,5 @@
 /**
- * Authentication Routes
+ * Authentication Routes (SQLite Backend)
  * POST /api/auth/login
  * POST /api/auth/logout
  * GET  /api/auth/me
@@ -8,52 +8,49 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
-
-const usersFile = path.join(__dirname, '../data/users.json');
-
-function getUsers() {
-  return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
-}
+const { get, all } = require('../database');
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { userid, password } = req.body;
 
   if (!userid || !password) {
     return res.status(400).json({ success: false, message: 'User ID and password are required' });
   }
 
-  const users = getUsers();
-  const user = users.find(u => u.userid === userid.trim());
+  try {
+    const user = await get('SELECT * FROM users WHERE userid = ?', [userid.trim()]);
 
-  if (!user) {
-    return res.status(401).json({ success: false, message: 'Invalid User ID or Password' });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid User ID or Password' });
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid User ID or Password' });
+    }
+
+    // Store user in session (excluding password)
+    req.session.user = {
+      id: user.id,
+      userid: user.userid,
+      name: user.name,
+      shortName: user.shortName,
+      role: user.role,
+      email: user.email,
+      avatar: user.avatar,
+      joinDate: user.joinDate
+    };
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: req.session.user
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ success: false, message: 'Database error during login' });
   }
-
-  const passwordMatch = bcrypt.compareSync(password, user.password);
-  if (!passwordMatch) {
-    return res.status(401).json({ success: false, message: 'Invalid User ID or Password' });
-  }
-
-  // Store user in session (excluding password)
-  req.session.user = {
-    id: user.id,
-    userid: user.userid,
-    name: user.name,
-    shortName: user.shortName,
-    role: user.role,
-    email: user.email,
-    avatar: user.avatar,
-    joinDate: user.joinDate
-  };
-
-  res.json({
-    success: true,
-    message: 'Login successful',
-    user: req.session.user
-  });
 });
 
 // POST /api/auth/logout
