@@ -39,6 +39,12 @@ app.get('/sw.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 
+// Digital Asset Links for Android Native Standalone APK Execution (Hides address bar)
+app.get('/.well-known/assetlinks.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
+});
+
 // Serve static assets with no-cache headers to ensure immediate live updates
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: 0,

@@ -1,0 +1,18 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.onrender.expense_tracker_77br.twa",
+      "sha256_cert_fingerprints": ["2E:CF:F9:8D:BF:22:5A:37:9C:7F:44:1B:9D:32:60:66:A3:A6:D9:C0:36:4B:53:98:17:2B:82:EA:4C:C1:4E:86"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.currytracker.app",
+      "sha256_cert_fingerprints": ["2E:CF:F9:8D:BF:22:5A:37:9C:7F:44:1B:9D:32:60:66:A3:A6:D9:C0:36:4B:53:98:17:2B:82:EA:4C:C1:4E:86"]
+    }
+  }
+]
