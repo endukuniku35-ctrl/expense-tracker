@@ -176,20 +176,21 @@ function navigateTo(view) {
   // Load view
   const content = document.getElementById('viewContent');
   try {
-    const loaderName = 'load' + view.charAt(0).toUpperCase() + view.slice(1);
-    const loaderFn = window[loaderName] || (view === 'payments' ? window.loadPayments : null);
+    const loaders = {
+      dashboard: typeof loadDashboard === 'function' ? loadDashboard : window.loadDashboard,
+      members: typeof loadMembers === 'function' ? loadMembers : window.loadMembers,
+      expenses: typeof loadExpenses === 'function' ? loadExpenses : window.loadExpenses,
+      payments: typeof loadPayments === 'function' ? loadPayments : window.loadPayments,
+      reports: typeof loadReports === 'function' ? loadReports : window.loadReports,
+      charts: typeof loadCharts === 'function' ? loadCharts : window.loadCharts,
+      profile: typeof loadProfile === 'function' ? loadProfile : window.loadProfile
+    };
 
+    const loaderFn = loaders[view] || loaders.dashboard;
     if (typeof loaderFn === 'function') {
       loaderFn();
-    } else {
-      setTimeout(() => {
-        const retryFn = window[loaderName] || window.loadPayments;
-        if (typeof retryFn === 'function') {
-          retryFn();
-        } else if (content) {
-          content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading view... <button class="btn-primary-custom" onclick="navigateTo('${view}')">Reload</button></div>`;
-        }
-      }, 100);
+    } else if (content) {
+      content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading ${view}... <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
     }
   } catch (err) {
     console.error('Error loading view:', view, err);

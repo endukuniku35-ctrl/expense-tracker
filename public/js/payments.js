@@ -126,13 +126,16 @@ async function loadPayments() {
     </div>`;
 
   try {
-    // ─── Parallel Fetching for Blazing Speed ───
-    const [data, expensesRes] = await Promise.all([
-      api('/api/balance'),
-      api('/api/expenses/all')
-    ]);
+    const data = await api('/api/balance');
+    const expensesRes = await api('/api/expenses/all');
 
-    if (!data) return;
+    if (!data || !data.success) {
+      const balEl = document.getElementById('balanceCards');
+      if (balEl) {
+        balEl.innerHTML = `<div class="col-12 text-center" style="padding:30px;color:var(--text-muted)">⚠️ Unable to fetch live balances. <button class="btn-primary-custom" onclick="loadPayments()" style="margin-left:10px">Retry</button></div>`;
+      }
+      return;
+    }
 
     const { balances, totalExpenses, perPersonShare, settlements } = data;
     const expenses = expensesRes?.data || [];
