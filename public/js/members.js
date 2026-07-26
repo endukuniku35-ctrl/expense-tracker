@@ -68,6 +68,36 @@ async function loadMembers() {
           <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
         </div>
       </div>
+
+      ${App.isAdmin ? `
+      <!-- Admin Only: Member Logins & Credentials Directory -->
+      <div class="glass-card mt-4 mb-4" style="border:1px solid rgba(234,67,53,0.3)">
+        <div class="card-header-custom">
+          <h3 class="card-title-custom">
+            <div class="card-title-icon" style="background:rgba(234,67,53,0.1);color:#ea4335"><i class="fas fa-key"></i></div>
+            Registered Member Logins Directory
+            <span style="background:rgba(234,67,53,0.12);color:#ea4335;border:1px solid rgba(234,67,53,0.3);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:10px">🔒 Admin Only - Hidden from users</span>
+          </h3>
+          <button class="btn-primary-custom" onclick="openAddMemberModal()" style="font-size:13px">
+            <i class="fas fa-user-plus me-1"></i>Add New Member Account
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead><tr>
+              <th>Member Name</th>
+              <th>Login User ID</th>
+              <th>Role</th>
+              <th>Joined Date</th>
+              <th>Account Status</th>
+            </tr></thead>
+            <tbody id="adminCredentialsTableBody">
+              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">Loading credentials directory...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      ` : ''}
     </div>`;
 
   try {
@@ -259,10 +289,50 @@ async function loadMembers() {
       : settlements.filter(s => s.fromMemberId === me?.userid || s.toMemberId === me?.userid);
 
     renderSettlements(visibleSettlements);
+
+    // ─── Load Admin Credentials Directory ──────────────
+    if (App.isAdmin) {
+      loadAdminCredentialsDirectory();
+    }
   } catch (err) {
     console.error('Error loading members page:', err);
     const errorHtml = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load data. Please refresh the page.</div>`;
     document.getElementById('memberCards').innerHTML = errorHtml;
+  }
+}
+
+async function loadAdminCredentialsDirectory() {
+  const credBody = document.getElementById('adminCredentialsTableBody');
+  if (!credBody) return;
+  const res = await api('/api/members/credentials');
+  if (res && res.success && Array.isArray(res.data)) {
+    credBody.innerHTML = res.data.map(u => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar ${avatarClass(u.shortName || u.name)}">${u.avatar || '👤'}</div>
+            <div>
+              <div style="font-weight:700;color:var(--text-primary)">${u.name}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${u.email || '-'}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:4px 8px;border-radius:6px;font-weight:700;font-size:14px">${u.userid}</code>
+        </td>
+        <td>
+          ${u.role === 'admin' 
+            ? '<span class="badge bg-danger">👑 Administrator</span>' 
+            : '<span class="badge bg-secondary">👤 Member</span>'}
+        </td>
+        <td style="font-size:12px;color:var(--text-muted)">${formatDate(u.joinDate)}</td>
+        <td>
+          <span class="badge-paid">🟢 Active Account</span>
+        </td>
+      </tr>
+    `).join('');
+  } else {
+    credBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No member accounts found.</td></tr>`;
   }
 }
 

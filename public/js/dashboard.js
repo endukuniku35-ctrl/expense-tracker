@@ -148,12 +148,19 @@ async function loadDashboard() {
   const displayBalances = App.isAdmin ? balances : balances.filter(b => b.userid === me?.userid);
 
   document.getElementById('splitSummary').innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-      <div style="font-size:20px">🍛</div>
-      <div>
-        <div style="font-weight:700;font-size:16px;color:var(--text-primary)">Curry Expense Split Summary</div>
-        <div style="font-size:13px;color:var(--text-secondary)">Expenses are split among participating members (2, 3, or 4 people per meal). Total Curry Bills = <strong>₹${totalExp.toLocaleString('en-IN')}</strong></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:24px">🍛</div>
+        <div>
+          <div style="font-weight:700;font-size:16px;color:var(--text-primary)">Curry Expense Split Summary</div>
+          <div style="font-size:13px;color:var(--text-secondary)">Expenses are split among participating members. Total Curry Bills = <strong>₹${totalExp.toLocaleString('en-IN')}</strong></div>
+        </div>
       </div>
+      ${App.isAdmin ? `
+        <button class="btn-primary-custom" onclick="openAddMemberModal()" style="font-size:13px">
+          <i class="fas fa-user-plus me-1"></i>Add New Member Account
+        </button>
+      ` : ''}
     </div>
     <div class="row g-3">
       ${displayBalances.map(b => {

@@ -21,6 +21,25 @@ router.get('/', requireAuth, async (req, res) => {
     console.error('Error fetching members balance:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch members balance' });
   }
+// GET /api/members/credentials - Get registered logins & credentials (Admin only)
+router.get('/credentials', requireAdmin, async (req, res) => {
+  try {
+    const users = await all('SELECT * FROM users');
+    const userList = (users || []).map(u => ({
+      id: u.id,
+      userid: u.userid,
+      name: u.name,
+      shortName: u.shortName || u.name,
+      role: u.role || 'member',
+      email: u.email,
+      avatar: u.avatar,
+      joinDate: u.joinDate
+    }));
+    res.json({ success: true, data: userList });
+  } catch (err) {
+    console.error('Error fetching member credentials:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch credentials list' });
+  }
 });
 
 // POST /api/members - Add new member (Admin only)

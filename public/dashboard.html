@@ -496,20 +496,62 @@
       </div>
     </div>
   </div>
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:18px">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-plus me-2 text-primary"></i>Add New Member Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:24px">
+        <form id="addMemberForm" onsubmit="event.preventDefault(); submitAddMember();">
+          <div class="mb-3">
+            <label class="form-label-custom">Full Name *</label>
+            <input type="text" class="form-control-custom" id="newMemberName" placeholder="e.g. Ramesh Kumar" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">User ID / Login Username *</label>
+            <input type="text" class="form-control-custom" id="newMemberUserid" placeholder="e.g. 192472399 or ramesh" required />
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Member will use this ID to sign in.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Password *</label>
+            <input type="password" class="form-control-custom" id="newMemberPassword" placeholder="Set a secure password" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Account Role</label>
+            <select class="form-control-custom" id="newMemberRole">
+              <option value="member">👤 Member (Standard Access)</option>
+              <option value="admin">👑 Administrator (Full Control)</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Email (Optional)</label>
+            <input type="email" class="form-control-custom" id="newMemberEmail" placeholder="e.g. ramesh@curry.local" />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer gap-2">
+        <button class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn-primary-custom" onclick="submitAddMember()"><i class="fas fa-check me-1"></i>Create Login Account</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="/js/app.js?v=3.8"></script>
-<script src="/js/dashboard.js?v=3.8"></script>
-<script src="/js/members.js?v=3.8"></script>
-<script src="/js/expenses.js?v=3.8"></script>
-<script src="/js/payments.js?v=3.8"></script>
-<script src="/js/reports.js?v=3.8"></script>
-<script src="/js/charts.js?v=3.8"></script>
-<script src="/js/profile.js?v=3.8"></script>
-<script src="/js/notifications.js?v=3.8"></script>
-<script src="/js/search.js?v=3.8"></script>
+<script src="/js/app.js?v=3.9"></script>
+<script src="/js/dashboard.js?v=3.9"></script>
+<script src="/js/members.js?v=3.9"></script>
+<script src="/js/expenses.js?v=3.9"></script>
+<script src="/js/payments.js?v=3.9"></script>
+<script src="/js/reports.js?v=3.9"></script>
+<script src="/js/charts.js?v=3.9"></script>
+<script src="/js/profile.js?v=3.9"></script>
+<script src="/js/notifications.js?v=3.9"></script>
+<script src="/js/search.js?v=3.9"></script>
 </body>
 </html>
