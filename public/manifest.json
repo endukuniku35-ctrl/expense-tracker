@@ -1,0 +1,50 @@
+{
+  "id": "https://expense-tracker-77br.onrender.com",
+  "name": "Curry Expense Tracker",
+  "short_name": "CurryTracker",
+  "description": "Track, manage, and settle group curry expenses easily with real-time balance calculations, UPI payment integration, and analytics.",
+  "start_url": "/?mode=standalone",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0c29",
+  "theme_color": "#1a73e8",
+  "lang": "en",
+  "categories": ["finance", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Expenses",
+      "short_name": "Expenses",
+      "description": "View and add curry expenses",
+      "url": "/dashboard#expenses",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Payment Status",
+      "short_name": "Payments",
+      "description": "Check member balances and UPI payments",
+      "url": "/dashboard#payments",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

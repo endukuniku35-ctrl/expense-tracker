@@ -21,6 +21,7 @@
     "express-session": "^1.17.3",
     "json2csv": "^5.0.7",
     "pdfkit": "^0.14.0",
+    "pngjs": "^7.0.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
