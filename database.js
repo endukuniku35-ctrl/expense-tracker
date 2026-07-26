@@ -13,21 +13,31 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
+const dbCache = {};
+
 function getFilePath(table) {
   return path.join(dataDir, `${table}.json`);
 }
 
 function readData(table) {
+  if (dbCache[table]) return dbCache[table];
   const filePath = getFilePath(table);
-  if (!fs.existsSync(filePath)) return [];
+  if (!fs.existsSync(filePath)) {
+    dbCache[table] = [];
+    return [];
+  }
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    dbCache[table] = data;
+    return data;
   } catch (e) {
+    dbCache[table] = [];
     return [];
   }
 }
 
 function writeData(table, data) {
+  dbCache[table] = data;
   const filePath = getFilePath(table);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }

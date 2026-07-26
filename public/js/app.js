@@ -12,8 +12,21 @@ const App = {
   darkMode: false
 };
 
-// ─── API Helper ────────────────────────────────────
+// ─── API Helper & Speed Cache ────────────────────────
+const apiCache = new Map();
+
 async function api(url, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = url;
+
+  // Serve instantly from cache if GET request within last 15 seconds
+  if (method === 'GET' && !options.bypassCache) {
+    const cached = apiCache.get(cacheKey);
+    if (cached && (Date.now() - cached.time < 15000)) {
+      return cached.data;
+    }
+  }
+
   try {
     const res = await fetch(url, {
       headers: { 'Content-Type': 'application/json', ...options.headers },
@@ -25,11 +38,22 @@ async function api(url, options = {}) {
       window.location.href = '/';
       return null;
     }
-    return await res.json();
+    const data = await res.json();
+    if (method === 'GET' && data) {
+      apiCache.set(cacheKey, { data, time: Date.now() });
+    } else if (method !== 'GET') {
+      // Invalidate cache on mutations (POST, PUT, DELETE)
+      apiCache.clear();
+    }
+    return data;
   } catch (err) {
     showToast('Connection error', 'Cannot reach the server.', 'error');
     return null;
   }
+}
+
+function clearApiCache() {
+  apiCache.clear();
 }
 
 // ─── Toast Notifications ───────────────────────────
