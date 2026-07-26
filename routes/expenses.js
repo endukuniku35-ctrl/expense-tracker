@@ -1,5 +1,5 @@
 /**
- * Expenses Routes (SQLite Backend)
+ * Expenses Routes
  * GET    /api/expenses        - list all (auth required)
  * POST   /api/expenses        - add new (admin only)
  * PUT    /api/expenses/:id    - update (admin only)
@@ -13,6 +13,17 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, get, run } = require('../database');
 
 const ALL_MEMBERS = ['192472374', '192472343', '192411184', '192411185'];
+
+function parseSplitBetween(val) {
+  if (Array.isArray(val) && val.length > 0) return val;
+  if (typeof val === 'string' && val.trim()) {
+    try {
+      const p = JSON.parse(val);
+      if (Array.isArray(p) && p.length > 0) return p;
+    } catch (e) {}
+  }
+  return ALL_MEMBERS;
+}
 
 async function addNotification(message, type = 'expense') {
   try {
@@ -37,10 +48,10 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     let rows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
     
-    // Parse JSON string splitBetween for each row
-    let expenses = rows.map(r => ({
+    let expenses = (rows || []).map(r => ({
       ...r,
-      splitBetween: r.splitBetween ? JSON.parse(r.splitBetween) : ALL_MEMBERS
+      amount: Number(r.amount || 0),
+      splitBetween: parseSplitBetween(r.splitBetween)
     }));
 
     const { search, month, member, category, sortBy, page = 1, limit = 20 } = req.query;
@@ -101,9 +112,10 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/all', requireAuth, async (req, res) => {
   try {
     const rows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
-    const expenses = rows.map(r => ({
+    const expenses = (rows || []).map(r => ({
       ...r,
-      splitBetween: r.splitBetween ? JSON.parse(r.splitBetween) : ALL_MEMBERS
+      amount: Number(r.amount || 0),
+      splitBetween: parseSplitBetween(r.splitBetween)
     }));
     res.json({ success: true, data: expenses });
   } catch (err) {
@@ -119,10 +131,7 @@ router.post('/', requireAdmin, async (req, res) => {
     return res.status(400).json({ success: false, message: 'Title, amount, paid by, and date are required' });
   }
 
-  const validSplit = (Array.isArray(splitBetween) && splitBetween.length > 0)
-    ? splitBetween
-    : ALL_MEMBERS;
-
+  const validSplit = parseSplitBetween(splitBetween);
   const paidByName = await getMemberName(paidBy);
   const id = uuidv4();
   const now = new Date().toISOString();
@@ -166,7 +175,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
     await addNotification(`New expense added: ${newExpense.title} (₹${newExpense.amount} ÷ ${validSplit.length} members)`, 'expense');
 
-    res.status(201).json({ success: true, message: 'Expense added successfully to backend DB', data: newExpense });
+    res.status(201).json({ success: true, message: 'Expense added successfully', data: newExpense });
   } catch (err) {
     console.error('Error creating expense:', err);
     res.status(500).json({ success: false, message: 'Database error saving expense' });
@@ -184,7 +193,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Expense not found' });
     }
 
-    const currentSplit = existing.splitBetween ? JSON.parse(existing.splitBetween) : ALL_MEMBERS;
+    const currentSplit = parseSplitBetween(existing.splitBetween);
     const validSplit = (Array.isArray(splitBetween) && splitBetween.length > 0)
       ? splitBetween
       : currentSplit;
@@ -197,7 +206,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
       id,
       title: title || existing.title,
       description: description !== undefined ? description : existing.description,
-      amount: amount !== undefined ? parseFloat(amount) : existing.amount,
+      amount: amount !== undefined ? parseFloat(amount) : Number(existing.amount),
       paidBy: newPaidBy,
       paidByName,
       splitBetween: validSplit,
@@ -250,7 +259,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     await run('DELETE FROM expenses WHERE id = ?', [id]);
     await addNotification(`Expense deleted: ${existing.title}`, 'expense');
 
-    res.json({ success: true, message: 'Expense deleted successfully from DB' });
+    res.json({ success: true, message: 'Expense deleted successfully' });
   } catch (err) {
     console.error('Error deleting expense:', err);
     res.status(500).json({ success: false, message: 'Database error deleting expense' });

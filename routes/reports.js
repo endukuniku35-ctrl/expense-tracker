@@ -1,5 +1,5 @@
 /**
- * Reports & Export Routes (SQLite Backend)
+ * Reports & Export Routes (SQLite & JSON Backend)
  * GET /api/reports/monthly   - monthly breakdown
  * GET /api/reports/member    - member-wise report
  * GET /api/reports/category  - category report
@@ -13,11 +13,23 @@ const { all } = require('../database');
 
 const ALL_MEMBER_IDS = ['192472374', '192472343', '192411184', '192411185'];
 
+function parseSplitBetween(val) {
+  if (Array.isArray(val) && val.length > 0) return val;
+  if (typeof val === 'string' && val.trim()) {
+    try {
+      const p = JSON.parse(val);
+      if (Array.isArray(p) && p.length > 0) return p;
+    } catch (e) {}
+  }
+  return ALL_MEMBER_IDS;
+}
+
 async function getExpenses() {
   const rows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
-  return rows.map(r => ({
+  return (rows || []).map(r => ({
     ...r,
-    splitBetween: r.splitBetween ? JSON.parse(r.splitBetween) : ALL_MEMBER_IDS
+    amount: Number(r.amount || 0),
+    splitBetween: parseSplitBetween(r.splitBetween)
   }));
 }
 
