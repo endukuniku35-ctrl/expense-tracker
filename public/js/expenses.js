@@ -457,6 +457,9 @@ async function submitExpense() {
   if (data && data.success) {
     bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
     showToast('Success', id ? 'Expense updated!' : 'Expense added!', 'success');
+    if (typeof triggerPushNotification === 'function') {
+      triggerPushNotification('Curry Tracker 🍛', `New Expense Added: "${body.title}" for ₹${parseFloat(body.amount).toLocaleString('en-IN')}`);
+    }
     fetchExpenses();
   } else {
     showToast('Error', data?.message || 'Failed to save expense.', 'error');

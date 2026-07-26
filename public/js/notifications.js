@@ -1,22 +1,38 @@
 /**
- * notifications.js – Notification & Web Push System for All Users
+ * notifications.js – Notification & Native Mobile System Push System
  */
 
 let seenNotifIds = new Set();
 let isFirstNotifLoad = true;
 
-// Request Web Push Notification permissions automatically
+// Request Web & Android System Push Notification permissions
 function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
+  if ('Notification' in window && Notification.permission !== 'granted') {
     Notification.requestPermission().then(permission => {
       console.log('[Notification] Permission result:', permission);
+      checkNotificationPermissionBanner();
     });
   }
 }
 
-// Trigger native Web / Android PWA Push Notification
+// Check and render notification permission banner if not granted
+function checkNotificationPermissionBanner() {
+  if (!('Notification' in window)) return;
+  const banner = document.getElementById('notifPermBanner');
+  if (!banner) return;
+
+  if (Notification.permission === 'default' || Notification.permission === 'denied') {
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+// Trigger native Web / Android Mobile Push Notification
 function triggerPushNotification(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
+  if (!('Notification' in window)) return;
+
+  if (Notification.permission === 'granted') {
     try {
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.ready.then(reg => {
@@ -24,8 +40,10 @@ function triggerPushNotification(title, body) {
             body: body,
             icon: '/icons/icon-192.png',
             badge: '/icons/icon-192.png',
-            vibrate: [200, 100, 200],
-            tag: 'curry-notif-' + Date.now()
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'curry-notif-' + Date.now(),
+            renotify: true,
+            requireInteraction: true
           });
         });
       } else {
@@ -37,6 +55,8 @@ function triggerPushNotification(title, body) {
     } catch (e) {
       console.log('[Notification] Push error:', e);
     }
+  } else if (Notification.permission === 'default') {
+    requestNotificationPermission();
   }
 }
 
@@ -57,7 +77,7 @@ async function loadNotifications() {
     }
   }
 
-  // Check for new unread notifications to trigger Push Notification
+  // Check for new unread notifications to trigger Mobile System Push Notification
   if (notifications && notifications.length > 0) {
     notifications.forEach(n => {
       if (!n.read && !seenNotifIds.has(n.id)) {
@@ -91,7 +111,7 @@ async function loadNotifications() {
       </div>
       <div style="flex:1;min-width:0">
         <div class="notif-text">${n.message}</div>
-        <div class="notif-time">${timeAgo ? timeAgo(n.timestamp) : n.timestamp}</div>
+        <div class="notif-time">${typeof timeAgo === 'function' ? timeAgo(n.timestamp) : n.timestamp}</div>
       </div>
       ${!n.read ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:4px"></div>` : ''}
     </div>
@@ -114,6 +134,7 @@ async function markAllRead() {
 // Request permission and start 10-second polling loop for all users
 document.addEventListener('DOMContentLoaded', () => {
   requestNotificationPermission();
+  checkNotificationPermissionBanner();
 });
 
 // Auto-refresh notifications every 10 seconds for ALL users

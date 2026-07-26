@@ -492,6 +492,9 @@ async function submitAddMember() {
 
   if (res && res.success) {
     showToast('Member Created 👤', res.message, 'success');
+    if (typeof triggerPushNotification === 'function') {
+      triggerPushNotification('Curry Tracker 👤', `New Member Account Created: ${name} (${userid})`);
+    }
     loadMembers();
   } else {
     showToast('Error', res?.message || 'Failed to add member.', 'error');
