@@ -35,8 +35,9 @@ async function loadReports() {
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label-custom">Export Format</label>
-              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <button class="btn-primary-custom" onclick="sendTelegramSummary()" style="background:linear-gradient(135deg,#0088cc,#00a8ff)">
+                  <i class="fab fa-telegram me-1"></i>Share on Telegram
+                </button>
                 <button class="btn-success-custom" onclick="exportReport('csv')">
                   <i class="fas fa-file-csv me-1"></i>Export CSV
                 </button>

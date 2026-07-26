@@ -92,8 +92,35 @@ router.get('/category', requireAuth, async (req, res) => {
       catMap[e.category].count++;
     });
     res.json({ success: true, data: Object.values(catMap).sort((a, b) => b.total - a.total) });
-  } catch (e) {
-    res.status(500).json({ success: false, message: 'Failed to generate category report' });
+const { computeBalances } = require('./balance');
+const { notifySummaryReport } = require('../telegram');
+
+// POST /api/reports/telegram-summary - send summary to Telegram
+router.post('/telegram-summary', requireAuth, async (req, res) => {
+  try {
+    const expenses = await getExpenses();
+    const { balances } = await computeBalances();
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const stats = {
+      totalExpenses: expenses.reduce((s, e) => s + e.amount, 0),
+      memberCount: 4,
+      todayExpense: expenses.filter(e => e.date === todayStr).reduce((s, e) => s + e.amount, 0),
+      monthExpense: expenses.filter(e => e.date.startsWith(monthStr)).reduce((s, e) => s + e.amount, 0),
+    };
+
+    const sent = await notifySummaryReport(stats, balances);
+    if (sent) {
+      res.json({ success: true, message: 'Summary report sent to Telegram!' });
+    } else {
+      res.status(500).json({ success: false, message: 'Failed to send Telegram message' });
+    }
+  } catch (err) {
+    console.error('Error sending Telegram summary:', err);
+    res.status(500).json({ success: false, message: 'Server error sending Telegram report' });
   }
 });
 

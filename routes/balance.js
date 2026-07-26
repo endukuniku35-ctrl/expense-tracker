@@ -151,6 +151,8 @@ router.get('/settlements', requireAuth, async (req, res) => {
   }
 });
 
+const { notifySettlement } = require('../telegram');
+
 // POST /api/balance/settle – admin records a cash settlement
 router.post('/settle', requireAdmin, async (req, res) => {
   const { fromMemberId, fromMemberName, toMemberId, toMemberName, amount, notes, date } = req.body;
@@ -168,6 +170,8 @@ router.post('/settle', requireAdmin, async (req, res) => {
   const parsedAmount = parseFloat(amount);
 
   try {
+    const settlementData = { id, fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parsedAmount, notes: notes || '', date: settlementDate, createdAt };
+
     await run(
       `INSERT INTO settlements (id, fromMemberId, fromMemberName, toMemberId, toMemberName, amount, notes, date, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -180,7 +184,10 @@ router.post('/settle', requireAdmin, async (req, res) => {
       [uuidv4(), 'payment', `Settlement: ${fromMemberName} paid ₹${parsedAmount} to ${toMemberName}`, createdAt, 'admin']
     );
 
-    res.status(201).json({ success: true, message: 'Settlement recorded in DB', data: { id, fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parsedAmount, notes, date: settlementDate, createdAt } });
+    // Telegram Bot Notification
+    notifySettlement(settlementData).catch(err => console.error('Telegram error:', err));
+
+    res.status(201).json({ success: true, message: 'Settlement recorded in DB', data: settlementData });
   } catch (err) {
     console.error('Error saving settlement:', err);
     res.status(500).json({ success: false, message: 'Database error saving settlement' });

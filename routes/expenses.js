@@ -123,6 +123,8 @@ router.get('/all', requireAuth, async (req, res) => {
   }
 });
 
+const { notifyNewExpense } = require('../telegram');
+
 // POST /api/expenses - add new expense
 router.post('/', requireAdmin, async (req, res) => {
   const { title, description, amount, paidBy, category, date, notes, splitBetween } = req.body;
@@ -174,6 +176,9 @@ router.post('/', requireAdmin, async (req, res) => {
     );
 
     await addNotification(`New expense added: ${newExpense.title} (₹${newExpense.amount} ÷ ${validSplit.length} members)`, 'expense');
+
+    // Notify Telegram Bot
+    notifyNewExpense(newExpense).catch(err => console.error('Telegram error:', err));
 
     res.status(201).json({ success: true, message: 'Expense added successfully', data: newExpense });
   } catch (err) {

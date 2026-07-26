@@ -53,6 +53,17 @@ function showToast(title, message = '', type = 'info', duration = 4000) {
   }, duration);
 }
 
+// ─── Send Telegram Summary Report ─────────────────
+async function sendTelegramSummary() {
+  showToast('Telegram', 'Sending summary report to Telegram...', 'info');
+  const res = await api('/api/reports/telegram-summary', { method: 'POST' });
+  if (res && res.success) {
+    showToast('Sent to Telegram ✈️', 'Summary report shared in Telegram group!', 'success');
+  } else {
+    showToast('Telegram Error', res?.message || 'Failed to send Telegram report.', 'error');
+  }
+}
+
 // ─── Loading Overlay ───────────────────────────────
 function showLoader() { document.getElementById('pageLoader').classList.add('show'); }
 function hideLoader() { document.getElementById('pageLoader').classList.remove('show'); }
