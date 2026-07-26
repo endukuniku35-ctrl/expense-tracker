@@ -10,16 +10,18 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, get, run } = require('../database');
 
-const MEMBERS = [
-  { userid: '192472374', name: 'Jagan',   shortName: 'Jagan',   avatar: 'JK' },
-  { userid: '192472343', name: 'Sagar',   shortName: 'Sagar',   avatar: 'SN' },
-  { userid: '192411184', name: 'Prathap', shortName: 'Prathap', avatar: 'PK' },
-  { userid: '192411185', name: 'Bharath', shortName: 'Bharath', avatar: 'BR' },
-];
+async function getMembers() {
+  const users = await all('SELECT * FROM users');
+  return (users || []).map(u => ({
+    userid: u.userid,
+    name: u.name,
+    shortName: u.shortName || u.name,
+    avatar: u.avatar || (u.shortName ? u.shortName.substring(0, 2).toUpperCase() : 'U'),
+    role: u.role || 'member'
+  }));
+}
 
-const ALL_MEMBER_IDS = MEMBERS.map(m => m.userid);
-
-function parseSplitBetween(val) {
+function parseSplitBetween(val, defaultMemberIds) {
   if (Array.isArray(val) && val.length > 0) return val;
   if (typeof val === 'string' && val.trim()) {
     try {
@@ -27,7 +29,7 @@ function parseSplitBetween(val) {
       if (Array.isArray(p) && p.length > 0) return p;
     } catch (e) {}
   }
-  return ALL_MEMBER_IDS;
+  return defaultMemberIds || ['192472374', '192472343', '192411184', '192411185'];
 }
 
 /**
@@ -35,20 +37,22 @@ function parseSplitBetween(val) {
  */
 async function computeBalances() {
   try {
+    const members = await getMembers();
+    const allMemberIds = members.map(m => m.userid);
     const expRows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
     const setRows = await all('SELECT * FROM settlements ORDER BY date DESC, createdAt DESC');
 
     const expenses = (expRows || []).map(r => ({
       ...r,
       amount: Number(r.amount || 0),
-      splitBetween: parseSplitBetween(r.splitBetween)
+      splitBetween: parseSplitBetween(r.splitBetween, allMemberIds)
     }));
 
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
 
     // Per-member stats
     const balances = {};
-    MEMBERS.forEach(m => {
+    members.forEach(m => {
       balances[m.userid] = {
         ...m,
         totalPaid:     0,   // total bill amount paid as payer
@@ -66,7 +70,7 @@ async function computeBalances() {
 
     // Tally who paid what & calculate dynamic per-meal split
     expenses.forEach(e => {
-      const splitList = parseSplitBetween(e.splitBetween);
+      const splitList = parseSplitBetween(e.splitBetween, allMemberIds);
       const perPersonForMeal = e.amount / splitList.length;
 
       if (balances[e.paidBy]) {
@@ -95,10 +99,11 @@ async function computeBalances() {
     });
 
     // Final balances computation
+    const memberCount = members.length || 1;
     const totalShareSum = Object.values(balances).reduce((s, b) => s + b.totalShare, 0);
-    const perPersonShare = totalShareSum / 4;
+    const perPersonShare = totalShareSum / memberCount;
 
-    MEMBERS.forEach(m => {
+    members.forEach(m => {
       const b = balances[m.userid];
       b.netBalance  = b.totalPaid - b.totalShare;
       if (b.netBalance >= 0) {
@@ -111,8 +116,6 @@ async function computeBalances() {
       b.percentage = b.totalShare > 0
         ? Math.min(100, Math.round((b.totalPaid / b.totalShare) * 100))
         : 0;
-    });
-
     return { balances: Object.values(balances), totalExpenses, perPersonShare, settlements: setRows || [] };
   } catch (err) {
     console.error('❌ CRITICAL ERROR IN computeBalances:', err);

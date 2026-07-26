@@ -291,15 +291,53 @@ document.getElementById('expenseModal').addEventListener('shown.bs.modal', () =>
   updateSplitPreview();
 });
 
+// ─── Dynamic Member Form Population ────────────────
+let globalMembersCache = [];
+
+async function populateExpenseMemberFields() {
+  try {
+    const res = await api('/api/members');
+    if (res && res.success && Array.isArray(res.data)) {
+      globalMembersCache = res.data;
+      res.data.forEach(m => {
+        MEMBER_MAP[m.userid] = m.shortName || m.name;
+      });
+
+      // Update PaidBy Select dropdown
+      const paidByEl = document.getElementById('expPaidBy');
+      if (paidByEl) {
+        const currentVal = paidByEl.value;
+        paidByEl.innerHTML = res.data.map(m => `<option value="${m.userid}">${m.name}</option>`).join('');
+        if (currentVal) paidByEl.value = currentVal;
+      }
+
+      // Update Split Checkboxes
+      const splitBoxWrap = document.getElementById('splitCheckboxesWrap');
+      if (splitBoxWrap) {
+        splitBoxWrap.innerHTML = res.data.map(m => `
+          <label class="form-check-label-custom flex-fill text-center p-2" style="background:var(--bg-2);border-radius:8px;border:1px solid var(--glass-border);font-size:13px;cursor:pointer">
+            <input type="checkbox" class="form-check-input me-1 split-member-check" value="${m.userid}" checked onchange="updateSplitPreview()" />
+            ${m.shortName || m.name}
+          </label>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching members for form:', e);
+  }
+}
+
 // ─── Add Expense ───────────────────────────────────
-function openAddExpense() {
+async function openAddExpense() {
   document.getElementById('expenseModalTitle').innerHTML = '<i class="fas fa-plus-circle me-2 text-primary"></i>Add Expense <small style="font-size:12px;color:var(--text-muted);font-weight:400">(Dynamic Split)</small>';
   document.getElementById('expenseId').value = '';
   document.getElementById('expenseForm').reset();
   document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
 
-  // Check all 4 members by default
-  setSplitPreset([1,1,1,1]);
+  await populateExpenseMemberFields();
+
+  // Check all members by default
+  setSplitPreset([1,1,1,1,1,1,1,1]);
 
   document.getElementById('saveExpenseBtn').innerHTML = '<i class="fas fa-save me-1"></i>Save Expense';
   const p = document.getElementById('splitPreview');

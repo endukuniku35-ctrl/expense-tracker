@@ -1,5 +1,5 @@
 /**
- * payments.js – Payment Status & Tracking (Equal 4-way split model)
+ * payments.js – Live Payment Status & Settlement Tracker
  */
 
 async function loadPayments() {
@@ -9,7 +9,7 @@ async function loadPayments() {
       <!-- Summary -->
       <div class="row g-3 mb-4" id="paymentTopCards">
         <div class="col-12 text-center" style="padding:20px;color:var(--text-muted)">
-          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading...
+          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading payment statistics...
         </div>
       </div>
 
@@ -20,7 +20,7 @@ async function loadPayments() {
             <div class="card-title-icon"><i class="fas fa-utensils"></i></div>
             Per-Meal Split Breakdown
           </h3>
-          <div style="font-size:12px;color:var(--text-muted)">Every meal is shared equally ÷ 4</div>
+          <div style="font-size:12px;color:var(--text-muted)">Live equal split ÷ participating members</div>
         </div>
         <div class="table-responsive" id="mealBreakdownTable">
           <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
@@ -34,11 +34,11 @@ async function loadPayments() {
         </div>
       </div>
 
-      <!-- Settlement Section (Admin) -->
+      <!-- Settlement Record Section (Admin) -->
       ${App.isAdmin ? `
-        <div class="glass-card">
+        <div class="glass-card mb-4">
           <div class="card-header-custom">
-            <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Settlement</h3>
+            <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Settlement Payment</h3>
           </div>
           <div class="card-body-custom">
             <div class="row g-3 align-items-end">
@@ -46,20 +46,12 @@ async function loadPayments() {
                 <label class="form-label-custom">From (Payer)</label>
                 <select class="form-control-custom" id="qsFrom">
                   <option value="">-- Who Pays --</option>
-                  <option value="192472374">Jagan</option>
-                  <option value="192472343">Sagar</option>
-                  <option value="192411184">Prathap</option>
-                  <option value="192411185">Bharath</option>
                 </select>
               </div>
               <div class="col-md-2">
                 <label class="form-label-custom">To (Receiver)</label>
                 <select class="form-control-custom" id="qsTo">
                   <option value="">-- Who Receives --</option>
-                  <option value="192472374">Jagan</option>
-                  <option value="192472343">Sagar</option>
-                  <option value="192411184">Prathap</option>
-                  <option value="192411185">Bharath</option>
                 </select>
               </div>
               <div class="col-md-2">
@@ -72,22 +64,41 @@ async function loadPayments() {
               </div>
               <div class="col-md-2">
                 <label class="form-label-custom">Notes</label>
-                <input type="text" class="form-control-custom" id="qsNotes" placeholder="e.g. UPI payment" />
+                <input type="text" class="form-control-custom" id="qsNotes" placeholder="e.g. Cash / PhonePe" />
               </div>
               <div class="col-md-2">
                 <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:10px">
-                  <i class="fas fa-check me-1"></i>Record
+                  <i class="fas fa-check me-1"></i>Record Payment
                 </button>
               </div>
             </div>
           </div>
         </div>` : ''}
+
+      <!-- Settlement Transaction Log -->
+      <div class="glass-card">
+        <div class="card-header-custom">
+          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-history"></i></div>Payment & Settlement Transactions Log</h3>
+        </div>
+        <div id="paymentHistoryLog">
+          <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
+        </div>
+      </div>
     </div>`;
 
   const data = await api('/api/balance');
   if (!data) return;
 
   const { balances, totalExpenses, perPersonShare, settlements } = data;
+
+  // Populate quick settle select dropdowns
+  if (App.isAdmin) {
+    const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
+    const fromEl = document.getElementById('qsFrom');
+    const toEl = document.getElementById('qsTo');
+    if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
+    if (toEl) toEl.innerHTML = `<option value="">-- Who Receives --</option>` + opts;
+  }
 
   // ─── Top Summary Cards ────────────────────────────
   const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
@@ -103,23 +114,23 @@ async function loadPayments() {
     </div>
     <div class="col-md-3">
       <div class="stat-card green"><div class="stat-icon green"><i class="fas fa-divide"></i></div>
-        <div class="stat-label">Per Person Fair Share</div>
+        <div class="stat-label">Average Per Person Share</div>
         <div class="stat-value" id="ptShare">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-users"></i> ÷ 4 members</div>
+        <div class="stat-change neutral"><i class="fas fa-users"></i> ÷ ${balances.length} members</div>
       </div>
     </div>
     <div class="col-md-3">
       <div class="stat-card red"><div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
         <div class="stat-label">Still Owed</div>
         <div class="stat-value" id="ptOwed">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-clock"></i> To be settled</div>
+        <div class="stat-change neutral"><i class="fas fa-clock"></i> Pending settlements</div>
       </div>
     </div>
     <div class="col-md-3">
       <div class="stat-card purple"><div class="stat-icon purple"><i class="fas fa-check-double"></i></div>
         <div class="stat-label">To Be Received</div>
         <div class="stat-value" id="ptReceive">₹0</div>
-        <div class="stat-change neutral"><i class="fas fa-handshake"></i> Pending collection</div>
+        <div class="stat-change neutral"><i class="fas fa-handshake"></i> Outstanding credit</div>
       </div>
     </div>`;
 
@@ -139,11 +150,11 @@ async function loadPayments() {
       <table class="custom-table">
         <thead><tr>
           <th>Date</th><th>Meal</th><th>Total Bill</th><th>Paid By</th>
-          <th>Jagan's Share</th><th>Sagar's Share</th><th>Prathap's Share</th><th>Bharath's Share</th>
+          ${balances.map(b => `<th>${b.shortName}'s Share</th>`).join('')}
         </tr></thead>
         <tbody>
           ${sorted.map(e => {
-            const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : ['192472374','192472343','192411184','192411185'];
+            const splitList = (Array.isArray(e.splitBetween) && e.splitBetween.length > 0) ? e.splitBetween : balances.map(b => b.userid);
             const count = splitList.length;
             const share = Math.round(e.amount / count);
             const paidById = e.paidBy;
@@ -159,7 +170,8 @@ async function loadPayments() {
                 <div class="avatar ${avatarClass(e.paidByName)}" style="width:26px;height:26px;border-radius:7px;font-size:10px">${e.paidByName.substring(0,2).toUpperCase()}</div>
                 <span style="font-size:13px">${e.paidByName}</span>
               </div></td>
-              ${['192472374','192472343','192411184','192411185'].map(uid => {
+              ${balances.map(b => {
+                const uid = b.userid;
                 const joined = splitList.includes(uid);
                 if (!joined) {
                   return `<td style="text-align:center;color:var(--text-muted);font-size:12px"><em>- (didn't join)</em></td>`;
@@ -242,6 +254,36 @@ async function loadPayments() {
       </div>
     </div>`;
   }).join('');
+
+  // ─── Payment Transactions Log Table ───────────────
+  const logEl = document.getElementById('paymentHistoryLog');
+  if (!settlements || settlements.length === 0) {
+    logEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-title">No payment settlements recorded yet</div><div class="empty-desc">When a member pays cash to settle their share, record it above.</div></div>`;
+  } else {
+    logEl.innerHTML = `
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead><tr><th>Date</th><th>From (Payer)</th><th>To (Receiver)</th><th>Amount Paid</th><th>Notes</th>${App.isAdmin ? '<th>Action</th>' : ''}</tr></thead>
+          <tbody>
+            ${settlements.map(s => `
+              <tr>
+                <td style="color:var(--text-muted);font-size:13px">${formatDate(s.date)}</td>
+                <td><div style="display:flex;align-items:center;gap:8px">
+                  <div class="avatar ${avatarClass(s.fromMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.fromMemberName || '').substring(0,2).toUpperCase()}</div>
+                  ${s.fromMemberName}
+                </div></td>
+                <td><div style="display:flex;align-items:center;gap:8px">
+                  <div class="avatar ${avatarClass(s.toMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.toMemberName || '').substring(0,2).toUpperCase()}</div>
+                  ${s.toMemberName}
+                </div></td>
+                <td><strong style="color:var(--secondary)">₹${(s.amount || 0).toLocaleString('en-IN')}</strong></td>
+                <td style="color:var(--text-muted);font-size:13px">${s.notes || '-'}</td>
+                ${App.isAdmin ? `<td><button class="btn-danger-custom" style="padding:5px 10px;font-size:12px" onclick="deleteSettlementInLog('${s.id}')"><i class="fas fa-trash"></i></button></td>` : ''}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
 }
 
 // ─── Quick Settle ──────────────────────────────────
@@ -265,22 +307,32 @@ async function quickSettle() {
     return;
   }
 
+  showLoader();
   const res = await api('/api/balance/settle', {
     method: 'POST',
     body: JSON.stringify({ fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parseFloat(amount), date, notes }),
   });
+  hideLoader();
 
   if (res && res.success) {
-    showToast('Settlement Recorded ✅', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}`, 'success');
+    showToast('Payment Settlement Recorded ✅', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}`, 'success');
     fromEl.value = ''; toEl.value = '';
     document.getElementById('qsAmount').value = '';
     document.getElementById('qsNotes').value  = '';
     loadPayments();
   } else {
-    showToast('Error', res?.message || 'Failed.', 'error');
+    showToast('Error', res?.message || 'Failed to record settlement.', 'error');
   }
 }
 
-// Keep old stubs for compatibility
-function openPaymentUpdate() {}
-function submitPaymentUpdate() {}
+async function deleteSettlementInLog(id) {
+  if (!confirm('Delete this settlement transaction?')) return;
+  showLoader();
+  const res = await api(`/api/balance/settle/${id}`, { method: 'DELETE' });
+  hideLoader();
+
+  if (res && res.success) {
+    showToast('Deleted', 'Settlement removed.', 'success');
+    loadPayments();
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * members.js – Members View (Equal & Dynamic split model)
+ * members.js – Dynamic Members View & Add Member Controller
  */
 
 async function loadMembers() {
@@ -14,14 +14,13 @@ async function loadMembers() {
             <div>
               <div style="font-weight:700;font-size:15px;color:var(--text-primary)">How the Split Works</div>
               <div style="font-size:13px;color:var(--text-secondary)">
-                Every curry meal is split equally among participating members (2, 3, or 4 people). 
+                Every curry meal is split equally among participating members. 
                 When one person pays the full bill, participating members owe their share back. 
                 <strong>Net Balance</strong> shows who owes whom.
               </div>
             </div>
-            <div style="margin-left:auto;text-align:center;background:var(--surface);border-radius:12px;padding:10px 20px;border:1px solid var(--glass-border)">
-              <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Formula</div>
-              <div style="font-size:13px;font-weight:700;color:var(--primary)">Bill ÷ Participating Members</div>
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+              ${App.isAdmin ? `<button class="btn-primary-custom" onclick="openAddMemberModal()" style="font-size:13px"><i class="fas fa-user-plus me-1"></i>Add New Member</button>` : ''}
             </div>
           </div>
         </div>
@@ -38,6 +37,7 @@ async function loadMembers() {
       <div class="glass-card">
         <div class="card-header-custom">
           <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-table"></i></div>Member Balance Sheet</h3>
+          ${App.isAdmin ? `<button class="btn-primary-custom" onclick="openAddMemberModal()" style="font-size:13px"><i class="fas fa-user-plus me-1"></i>Add Member</button>` : ''}
         </div>
         <div class="table-responsive">
           <table class="custom-table">
@@ -61,7 +61,7 @@ async function loadMembers() {
       <div class="glass-card mt-4">
         <div class="card-header-custom">
           <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Settlement History</h3>
-          ${App.isAdmin ? `<button class="btn-primary-custom" onclick="openSettleModal()" style="font-size:13px"><i class="fas fa-plus me-1"></i>Record Settlement</button>` : ''}
+          ${App.isAdmin ? `<button class="btn-success-custom" onclick="openSettleModal()" style="font-size:13px"><i class="fas fa-plus me-1"></i>Record Settlement</button>` : ''}
         </div>
         <div id="settlementList">
           <div style="padding:32px;text-align:center;color:var(--text-muted)">Loading...</div>
@@ -91,6 +91,9 @@ async function loadMembers() {
     const perPersonShare = data.perPersonShare || 0;
     const settlements = data.settlements || [];
 
+    // Store balances globally for settlement modal
+    window.currentBalances = balances;
+
     // ─── Member Cards ─────────────────────────────────
     const cardsEl = document.getElementById('memberCards');
     cardsEl.innerHTML = balances.map((b, i) => {
@@ -111,7 +114,7 @@ async function loadMembers() {
               <div class="avatar ${avatarClass(b.shortName || b.name)}" style="width:56px;height:56px;border-radius:16px;font-size:20px">${b.avatar || '👤'}</div>
               <div>
                 <div style="font-size:18px;font-weight:800;color:var(--text-primary)">${b.name}</div>
-                <div style="font-size:12px;color:var(--text-muted)">ID: ${b.userid}</div>
+                <div style="font-size:12px;color:var(--text-muted)">ID: ${b.userid} ${b.role === 'admin' ? '<span class="badge bg-primary ms-1">Admin</span>' : ''}</div>
               </div>
             </div>
 
@@ -213,9 +216,9 @@ async function loadMembers() {
       <tr style="background:var(--bg-2);font-weight:700">
         <td>TOTAL</td>
         <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
-        <td>₹${Math.round(perPersonShare * 4).toLocaleString('en-IN')}</td>
+        <td>₹${Math.round(perPersonShare * balances.length).toLocaleString('en-IN')}</td>
         <td colspan="4" style="color:var(--text-muted);font-size:13px">
-          Dynamic member split calculation active
+          ${balances.length} Members Registered
         </td>
       </tr>`;
 
@@ -235,31 +238,75 @@ function renderSettlements(settlements) {
     return;
   }
   el.innerHTML = `
-    <table class="custom-table">
-      <thead><tr><th>Date</th><th>From</th><th>To</th><th>Amount</th><th>Notes</th>${App.isAdmin ? '<th>Action</th>' : ''}</tr></thead>
-      <tbody>
-        ${settlements.map(s => `
-          <tr>
-            <td style="color:var(--text-muted);font-size:13px">${formatDate(s.date)}</td>
-            <td><div style="display:flex;align-items:center;gap:8px">
-              <div class="avatar ${avatarClass(s.fromMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.fromMemberName || '').substring(0,2).toUpperCase()}</div>
-              ${s.fromMemberName}
-            </div></td>
-            <td><div style="display:flex;align-items:center;gap:8px">
-              <div class="avatar ${avatarClass(s.toMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.toMemberName || '').substring(0,2).toUpperCase()}</div>
-              ${s.toMemberName}
-            </div></td>
-            <td><strong style="color:var(--secondary)">₹${(s.amount || 0).toLocaleString('en-IN')}</strong></td>
-            <td style="color:var(--text-muted);font-size:13px">${s.notes || '-'}</td>
-            ${App.isAdmin ? `<td><button class="btn-danger-custom" style="padding:5px 10px;font-size:12px" onclick="deleteSettlement('${s.id}')"><i class="fas fa-trash"></i></button></td>` : ''}
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead><tr><th>Date</th><th>From</th><th>To</th><th>Amount Paid</th><th>Notes</th>${App.isAdmin ? '<th>Action</th>' : ''}</tr></thead>
+        <tbody>
+          ${settlements.map(s => `
+            <tr>
+              <td style="color:var(--text-muted);font-size:13px">${formatDate(s.date)}</td>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="avatar ${avatarClass(s.fromMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.fromMemberName || '').substring(0,2).toUpperCase()}</div>
+                ${s.fromMemberName}
+              </div></td>
+              <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="avatar ${avatarClass(s.toMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.toMemberName || '').substring(0,2).toUpperCase()}</div>
+                ${s.toMemberName}
+              </div></td>
+              <td><strong style="color:var(--secondary)">₹${(s.amount || 0).toLocaleString('en-IN')}</strong></td>
+              <td style="color:var(--text-muted);font-size:13px">${s.notes || '-'}</td>
+              ${App.isAdmin ? `<td><button class="btn-danger-custom" style="padding:5px 10px;font-size:12px" onclick="deleteSettlement('${s.id}')"><i class="fas fa-trash"></i></button></td>` : ''}
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ─── Add Member Modal Controller ──────────────────
+function openAddMemberModal() {
+  document.getElementById('addMemberForm').reset();
+  const modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
+  modal.show();
+}
+
+async function submitAddMember() {
+  const userid  = document.getElementById('newMemberUserid').value.trim();
+  const name    = document.getElementById('newMemberName').value.trim();
+  const password = document.getElementById('newMemberPassword').value.trim();
+  const role    = document.getElementById('newMemberRole').value;
+  const email   = document.getElementById('newMemberEmail').value.trim();
+
+  if (!userid || !name || !password) {
+    showToast('Required Fields', 'User ID, Full Name, and Password are required.', 'error');
+    return;
+  }
+
+  showLoader();
+  const res = await api('/api/members', {
+    method: 'POST',
+    body: JSON.stringify({ userid, name, password, role, email })
+  });
+  hideLoader();
+
+  const modalEl = document.getElementById('addMemberModal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) modal.hide();
+
+  if (res && res.success) {
+    showToast('Member Created 👤', res.message, 'success');
+    loadMembers();
+  } else {
+    showToast('Error', res?.message || 'Failed to add member.', 'error');
+  }
 }
 
 // ─── Settlement Modal ──────────────────────────────
 function openSettleModal() {
   let modal = document.getElementById('settleModal');
+  const members = window.currentBalances || [];
+
+  const memberOpts = members.map(m => `<option value="${m.userid}" data-name="${m.name}">${m.name} (${m.userid})</option>`).join('');
+
   if (!modal) {
     modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -269,7 +316,7 @@ function openSettleModal() {
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-handshake me-2 text-success"></i>Record Settlement</h5>
+            <h5 class="modal-title"><i class="fas fa-handshake me-2 text-success"></i>Record Settlement Payment</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -281,20 +328,14 @@ function openSettleModal() {
               <label class="form-label-custom">Who Paid (From) *</label>
               <select class="form-control-custom" id="settleFrom">
                 <option value="">-- Select Member --</option>
-                <option value="192472374" data-name="Jagan">Jagan</option>
-                <option value="192472343" data-name="Sagar">Sagar</option>
-                <option value="192411184" data-name="Prathap">Prathap</option>
-                <option value="192411185" data-name="Bharath">Bharath</option>
+                ${memberOpts}
               </select>
             </div>
             <div class="mb-3">
               <label class="form-label-custom">Paid To (To) *</label>
               <select class="form-control-custom" id="settleTo">
                 <option value="">-- Select Member --</option>
-                <option value="192472374" data-name="Jagan">Jagan</option>
-                <option value="192472343" data-name="Sagar">Sagar</option>
-                <option value="192411184" data-name="Prathap">Prathap</option>
-                <option value="192411185" data-name="Bharath">Bharath</option>
+                ${memberOpts}
               </select>
             </div>
             <div class="mb-3">
@@ -307,7 +348,7 @@ function openSettleModal() {
             </div>
             <div class="mb-3">
               <label class="form-label-custom">Notes</label>
-              <input type="text" class="form-control-custom" id="settleNotes" placeholder="e.g. Cash payment via UPI" />
+              <input type="text" class="form-control-custom" id="settleNotes" placeholder="e.g. Cash payment via GPay/PhonePe" />
             </div>
           </div>
           <div class="modal-footer gap-2">
@@ -317,6 +358,9 @@ function openSettleModal() {
         </div>
       </div>`;
     document.body.appendChild(modal);
+  } else {
+    document.getElementById('settleFrom').innerHTML = `<option value="">-- Select Member --</option>` + memberOpts;
+    document.getElementById('settleTo').innerHTML   = `<option value="">-- Select Member --</option>` + memberOpts;
   }
   document.getElementById('settleDate').value = new Date().toISOString().split('T')[0];
   new bootstrap.Modal(modal).show();
@@ -326,9 +370,9 @@ async function submitSettlement() {
   const fromEl = document.getElementById('settleFrom');
   const toEl   = document.getElementById('settleTo');
   const fromMemberId   = fromEl.value;
-  const fromMemberName = fromEl.options[fromEl.selectedIndex]?.text || '';
+  const fromMemberName = fromEl.options[fromEl.selectedIndex]?.text.split(' (')[0] || '';
   const toMemberId     = toEl.value;
-  const toMemberName   = toEl.options[toEl.selectedIndex]?.text || '';
+  const toMemberName   = toEl.options[toEl.selectedIndex]?.text.split(' (')[0] || '';
   const amount         = document.getElementById('settleAmount').value;
   const date           = document.getElementById('settleDate').value;
   const notes          = document.getElementById('settleNotes').value;
@@ -342,14 +386,18 @@ async function submitSettlement() {
     return;
   }
 
+  showLoader();
   const res = await api('/api/balance/settle', {
     method: 'POST',
     body: JSON.stringify({ fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parseFloat(amount), date, notes }),
   });
+  hideLoader();
 
-  bootstrap.Modal.getInstance(document.getElementById('settleModal')).hide();
+  const modalInstance = bootstrap.Modal.getInstance(document.getElementById('settleModal'));
+  if (modalInstance) modalInstance.hide();
+
   if (res && res.success) {
-    showToast('Settlement Recorded', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}`, 'success');
+    showToast('Settlement Recorded 🤝', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}`, 'success');
     loadMembers();
   } else {
     showToast('Error', res?.message || 'Failed to record settlement.', 'error');
@@ -358,7 +406,10 @@ async function submitSettlement() {
 
 async function deleteSettlement(id) {
   if (!confirm('Delete this settlement record?')) return;
+  showLoader();
   const res = await api(`/api/balance/settle/${id}`, { method: 'DELETE' });
+  hideLoader();
+
   if (res && res.success) {
     showToast('Deleted', 'Settlement removed.', 'success');
     loadMembers();

@@ -167,6 +167,25 @@ async function run(sql, params = []) {
     return;
   }
 
+  // Users INSERT
+  if (sql.includes('INSERT INTO users')) {
+    const users = readData('users');
+    const newUser = {
+      id: params[0],
+      userid: params[1],
+      password: params[2],
+      name: params[3],
+      shortName: params[4],
+      role: params[5] || 'member',
+      email: params[6] || `${params[1]}@curry.local`,
+      avatar: params[7] || params[4].substring(0, 2).toUpperCase(),
+      joinDate: params[8] || new Date().toISOString().split('T')[0]
+    };
+    users.push(newUser);
+    writeData('users', users);
+    return;
+  }
+
   // Notifications UPDATE (mark read)
   if (sql.includes('UPDATE notifications SET read = 1 WHERE id')) {
     const notifications = readData('notifications');

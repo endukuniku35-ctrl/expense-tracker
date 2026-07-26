@@ -220,6 +220,53 @@
   </div>
 </div>
 
+<!-- Add Member Modal (Admin only) -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-plus me-2 text-primary"></i>Add New Member</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addMemberForm" onsubmit="event.preventDefault(); submitAddMember();">
+          <div class="mb-3">
+            <label class="form-label-custom">User ID *</label>
+            <input type="text" class="form-control-custom" id="newMemberUserid" placeholder="e.g. 192499999" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Full Name *</label>
+            <input type="text" class="form-control-custom" id="newMemberName" placeholder="e.g. Ramesh Kumar" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Password *</label>
+            <input type="password" class="form-control-custom" id="newMemberPassword" placeholder="Set login password" required />
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-custom">Role</label>
+              <select class="form-control-custom" id="newMemberRole">
+                <option value="member" selected>Member (Read-only)</option>
+                <option value="admin">Administrator (Full Access)</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom">Email (Optional)</label>
+              <input type="email" class="form-control-custom" id="newMemberEmail" placeholder="email@curry.local" />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer gap-2">
+        <button class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn-primary-custom" onclick="submitAddMember()">
+          <i class="fas fa-user-plus me-1"></i>Create Member
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- App Layout -->
 <div class="app-layout">
 
