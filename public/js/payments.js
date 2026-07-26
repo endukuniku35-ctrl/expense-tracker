@@ -34,46 +34,45 @@ async function loadPayments() {
         </div>
       </div>
 
-      <!-- Settlement Record Section (Admin) -->
-      ${App.isAdmin ? `
-        <div class="glass-card mb-4">
-          <div class="card-header-custom">
-            <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record a Settlement Payment</h3>
-          </div>
-          <div class="card-body-custom">
-            <div class="row g-3 align-items-end">
-              <div class="col-md-2">
-                <label class="form-label-custom">From (Payer)</label>
-                <select class="form-control-custom" id="qsFrom">
-                  <option value="">-- Who Pays --</option>
-                </select>
-              </div>
-              <div class="col-md-2">
-                <label class="form-label-custom">To (Receiver)</label>
-                <select class="form-control-custom" id="qsTo">
-                  <option value="">-- Who Receives --</option>
-                </select>
-              </div>
-              <div class="col-md-2">
-                <label class="form-label-custom">Amount (₹)</label>
-                <input type="number" class="form-control-custom" id="qsAmount" placeholder="e.g. 500" min="1" />
-              </div>
-              <div class="col-md-2">
-                <label class="form-label-custom">Date</label>
-                <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
-              </div>
-              <div class="col-md-2">
-                <label class="form-label-custom">Notes</label>
-                <input type="text" class="form-control-custom" id="qsNotes" placeholder="e.g. Cash / PhonePe" />
-              </div>
-              <div class="col-md-2">
-                <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:10px">
-                  <i class="fas fa-check me-1"></i>Record Payment
-                </button>
-              </div>
+      <!-- Settlement Record Section -->
+      <div class="glass-card mb-4">
+        <div class="card-header-custom">
+          <h3 class="card-title-custom"><div class="card-title-icon"><i class="fas fa-handshake"></i></div>Record / Submit a Payment Settlement</h3>
+        </div>
+        <div class="card-body-custom">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label-custom">From (Payer)</label>
+              <select class="form-control-custom" id="qsFrom">
+                <option value="">-- Who Pays --</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label-custom">To (Receiver)</label>
+              <select class="form-control-custom" id="qsTo">
+                <option value="">-- Who Receives --</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label-custom">Amount (₹)</label>
+              <input type="number" class="form-control-custom" id="qsAmount" placeholder="e.g. 500" min="1" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label-custom">Date</label>
+              <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label-custom">Notes</label>
+              <input type="text" class="form-control-custom" id="qsNotes" placeholder="e.g. Cash / PhonePe" />
+            </div>
+            <div class="col-md-2">
+              <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:10px">
+                <i class="fas fa-check me-1"></i>Record Payment
+              </button>
             </div>
           </div>
-        </div>` : ''}
+        </div>
+      </div>
 
       <!-- Settlement Transaction Log -->
       <div class="glass-card">
@@ -92,13 +91,11 @@ async function loadPayments() {
   const { balances, totalExpenses, perPersonShare, settlements } = data;
 
   // Populate quick settle select dropdowns
-  if (App.isAdmin) {
-    const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
-    const fromEl = document.getElementById('qsFrom');
-    const toEl = document.getElementById('qsTo');
-    if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
-    if (toEl) toEl.innerHTML = `<option value="">-- Who Receives --</option>` + opts;
-  }
+  const opts = balances.map(b => `<option value="${b.userid}">${b.name}</option>`).join('');
+  const fromEl = document.getElementById('qsFrom');
+  const toEl = document.getElementById('qsTo');
+  if (fromEl) fromEl.innerHTML = `<option value="">-- Who Pays --</option>` + opts;
+  if (toEl) toEl.innerHTML = `<option value="">-- Who Receives --</option>` + opts;
 
   // ─── Top Summary Cards ────────────────────────────
   const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
