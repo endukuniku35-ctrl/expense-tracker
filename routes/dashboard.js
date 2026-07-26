@@ -62,7 +62,7 @@ router.get('/stats', requireAuth, async (req, res) => {
         totalExpenses,
         perPersonShare: Math.round(perPersonShare),
         totalOwed,
-        memberCount: 4,
+        memberCount: balances.length || 4,
         todayExpense,
         monthExpense,
         expenseCount: expenses.length,

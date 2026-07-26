@@ -150,7 +150,7 @@ async function loadPayments() {
       <table class="custom-table">
         <thead><tr>
           <th>Date</th><th>Meal</th><th>Total Bill</th><th>Paid By</th>
-          ${balances.map(b => `<th>${b.shortName}'s Share</th>`).join('')}
+          ${balances.map(b => `<th style="text-align:center">${b.shortName}'s Share</th>`).join('')}
         </tr></thead>
         <tbody>
           ${sorted.map(e => {
