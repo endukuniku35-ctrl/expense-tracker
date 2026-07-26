@@ -6,6 +6,7 @@
   <title>Curry Expense Tracker – Dashboard</title>
   <!-- PWA Meta & Play Store Packaging -->
   <link rel="manifest" href="/manifest.json" />
+  <link rel="serviceworker" type="application/javascript" href="/sw.js" />
   <meta name="theme-color" content="#1a73e8" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -22,6 +23,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css?v=3.0" />
+  <script src="/js/register-sw.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

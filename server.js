@@ -31,6 +31,14 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Explicit Service Worker Route for PWA / PWABuilder compliance
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+
 // Serve static assets with no-cache headers to ensure immediate live updates
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: 0,
