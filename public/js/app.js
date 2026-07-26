@@ -175,15 +175,22 @@ function navigateTo(view) {
 
   // Load view
   const content = document.getElementById('viewContent');
-  switch (view) {
-    case 'dashboard': loadDashboard(); break;
-    case 'members': loadMembers(); break;
-    case 'expenses': loadExpenses(); break;
-    case 'payments': loadPayments(); break;
-    case 'reports': loadReports(); break;
-    case 'charts': loadCharts(); break;
-    case 'profile': loadProfile(); break;
-    default: loadDashboard();
+  try {
+    switch (view) {
+      case 'dashboard': if (typeof loadDashboard === 'function') loadDashboard(); break;
+      case 'members': if (typeof loadMembers === 'function') loadMembers(); break;
+      case 'expenses': if (typeof loadExpenses === 'function') loadExpenses(); break;
+      case 'payments': if (typeof loadPayments === 'function') loadPayments(); else if (window.loadPayments) window.loadPayments(); break;
+      case 'reports': if (typeof loadReports === 'function') loadReports(); break;
+      case 'charts': if (typeof loadCharts === 'function') loadCharts(); break;
+      case 'profile': if (typeof loadProfile === 'function') loadProfile(); break;
+      default: if (typeof loadDashboard === 'function') loadDashboard();
+    }
+  } catch (err) {
+    console.error('Error loading view:', view, err);
+    if (content) {
+      content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load ${view}. <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
+    }
   }
 
   // Close sidebar on mobile

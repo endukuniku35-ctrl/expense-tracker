@@ -1,7 +1,10 @@
 /**
  * payments.js – Live Payment Status & Settlement Tracker
- */async function loadPayments() {
+ */
+
+async function loadPayments() {
   const content = document.getElementById('viewContent');
+  if (!content) return;
   content.innerHTML = `
     <div style="animation:fadeInUp 0.4s ease">
       <!-- ══ PhonePe QR Code Quick Pay Banner ══ -->
@@ -421,3 +424,6 @@ async function deleteSettlementInLog(id) {
     loadPayments();
   }
 }
+
+// Explicitly register on window
+window.loadPayments = loadPayments;
