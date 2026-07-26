@@ -49,9 +49,10 @@ async function loadMembers() {
               <th>Status</th>
               <th>Meals Count</th>
               <th>Balance Bar</th>
+              <th>Action</th>
             </tr></thead>
             <tbody id="memberTableBody">
-              <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</td></tr>
             </tbody>
           </table>
         </div>
@@ -213,6 +214,13 @@ async function loadMembers() {
             <span style="font-size:11px;color:var(--text-muted)">${barPct}%</span>
           </div>
         </td>
+        <td>
+          ${isOwes && !isSettled ? `
+            <button class="btn-success-custom" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(out)})">
+              <i class="fas fa-qrcode"></i> Pay ₹${Math.round(out)}
+            </button>
+          ` : `<span style="font-size:12px;color:var(--secondary);font-weight:600"><i class="fas fa-check-circle me-1"></i>Settled</span>`}
+        </td>
       </tr>`;
     }).join('');
 
@@ -222,7 +230,7 @@ async function loadMembers() {
         <td>TOTAL</td>
         <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
         <td>₹${Math.round(perPersonShare * balances.length).toLocaleString('en-IN')}</td>
-        <td colspan="4" style="color:var(--text-muted);font-size:13px">
+        <td colspan="5" style="color:var(--text-muted);font-size:13px">
           ${balances.length} Members Registered
         </td>
       </tr>`;

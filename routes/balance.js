@@ -105,17 +105,17 @@ async function computeBalances() {
 
     members.forEach(m => {
       const b = balances[m.userid];
-      b.netBalance  = b.totalPaid - b.totalShare;
-      if (b.netBalance >= 0) {
-        b.outstanding = Math.max(0, b.netBalance - b.settledIn);
-        b.status = b.outstanding <= 0 ? 'settled' : 'to-receive';
-      } else {
-        b.outstanding = Math.max(0, Math.abs(b.netBalance) - b.settledOut);
-        b.status = b.outstanding <= 0 ? 'settled' : 'owes';
-      }
+      b.initialNet  = b.totalPaid - b.totalShare;
+      // Post-settlement effective balance
+      b.netBalance  = Math.round((b.totalPaid + b.settledOut) - (b.totalShare + b.settledIn));
+      b.outstanding = Math.abs(b.netBalance);
+      b.status      = b.outstanding <= 0 ? 'settled' : (b.netBalance < 0 ? 'owes' : 'to-receive');
+
+      const totalPaidWithSettlements = b.totalPaid + b.settledOut;
       b.percentage = b.totalShare > 0
-        ? Math.min(100, Math.round((b.totalPaid / b.totalShare) * 100))
+        ? Math.min(100, Math.round((totalPaidWithSettlements / b.totalShare) * 100))
         : 0;
+    });
     return { balances: Object.values(balances), totalExpenses, perPersonShare, settlements: setRows || [] };
   } catch (err) {
     console.error('❌ CRITICAL ERROR IN computeBalances:', err);
