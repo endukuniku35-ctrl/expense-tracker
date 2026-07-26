@@ -317,21 +317,20 @@ async function initApp() {
   hideLoader();
 }
 
-// ─── Session Timing Controller (1-Minute Inactivity, Hidden UI) ─────────────────────
+// ─── Session Controller (7-Day Rolling Session, Hidden UI) ─────────────────────
 let sessionTimerInterval = null;
-let sessionRemainingSec = 60; // 1 minute max
+let sessionRemainingSec = 7 * 24 * 3600; // 7 days
 let lastActivityTime = Date.now();
 
-function initSessionTiming(maxAgeMs = 60000) {
-  sessionRemainingSec = Math.floor((maxAgeMs || 60000) / 1000);
-  if (sessionRemainingSec > 60) sessionRemainingSec = 60; // Cap at 1 minute max
+function initSessionTiming(maxAgeMs = 604800000) {
+  sessionRemainingSec = Math.floor((maxAgeMs || 604800000) / 1000);
 
   // Ensure timer badge is hidden from UI
   const badgeEl = document.getElementById('sessionTimerBadge');
   if (badgeEl) badgeEl.style.display = 'none';
 
   if (sessionTimerInterval) clearInterval(sessionTimerInterval);
-  sessionTimerInterval = setInterval(tickSessionTimer, 1000);
+  sessionTimerInterval = setInterval(tickSessionTimer, 10000);
 
   // Listen for active user interactions to silently renew session
   ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(evt => {
@@ -345,21 +344,21 @@ function tickSessionTimer() {
     sessionExpiredLogout();
     return;
   }
-  sessionRemainingSec--;
+  sessionRemainingSec -= 10;
 }
 
 async function extendSession(quiet = true) {
   const res = await api('/api/auth/refresh-session', { method: 'POST' });
   if (res && res.success) {
-    sessionRemainingSec = 60; // Reset to 1 minute max
+    sessionRemainingSec = 7 * 24 * 3600; // Reset to 7 days
     lastActivityTime = Date.now();
   }
 }
 
 function onUserActivity() {
   const now = Date.now();
-  // Silently refresh 1-minute session on user activity if 15 seconds have passed
-  if (now - lastActivityTime > 15 * 1000) {
+  // Silently refresh session on user activity if 10 minutes have passed
+  if (now - lastActivityTime > 10 * 60 * 1000) {
     lastActivityTime = now;
     extendSession(true);
   }
