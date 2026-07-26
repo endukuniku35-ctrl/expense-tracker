@@ -74,16 +74,18 @@ app.use('/api/members', require('./routes/members'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/balance', require('./routes/balance').router);
 
-// Serve login page at root
+// Serve login page at root with no-cache
 app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Serve dashboard for authenticated users
+// Serve dashboard for authenticated users with no-cache
 app.get('/dashboard', (req, res) => {
   if (!req.session.user) {
     return res.redirect('/');
   }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
