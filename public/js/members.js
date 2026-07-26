@@ -266,7 +266,11 @@ window.loadMembers = async function loadMembers() {
             <button class="btn-success-custom" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:4px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(out)})">
               <i class="fas fa-qrcode"></i> Pay ₹${Math.round(out)}
             </button>
-          ` : `<span style="font-size:12px;color:var(--secondary);font-weight:600"><i class="fas fa-check-circle me-1"></i>Settled</span>`}
+          ` : isSettled ? `
+            <span style="font-size:12px;color:var(--secondary);font-weight:600"><i class="fas fa-check-circle me-1"></i>Settled</span>
+          ` : `
+            <span style="font-size:12px;color:var(--primary);font-weight:700;background:rgba(26,115,232,0.1);padding:4px 10px;border-radius:12px;border:1px solid rgba(26,115,232,0.3)"><i class="fas fa-hand-holding-usd me-1"></i>To Collect</span>
+          `}
         </td>
       </tr>`;
     }).join('');
