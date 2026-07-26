@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curry Expense Tracker – Login</title>
+  <meta name="description" content="Login to Curry Expense Tracker – Track curry expenses among four members securely." />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --secondary: #34a853;
+      --accent: #fbbc04;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Animated particles canvas */
+    #particles {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Floating shapes */
+    .shape {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      animation: float 12s ease-in-out infinite;
+      z-index: 0;
+    }
+    .shape-1 { width: 400px; height: 400px; background: #1a73e8; top: -100px; left: -100px; animation-delay: 0s; }
+    .shape-2 { width: 300px; height: 300px; background: #34a853; bottom: -100px; right: -50px; animation-delay: -4s; }
+    .shape-3 { width: 200px; height: 200px; background: #ea4335; top: 50%; left: 50%; animation-delay: -8s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    /* Login wrapper */
+    .login-wrapper {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 460px;
+      padding: 20px;
+    }
+
+    /* Glassmorphism card */
+    .login-card {
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-area {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #1a73e8, #34a853);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 32px rgba(26, 115, 232, 0.4);
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 8px 32px rgba(26, 115, 232, 0.4); }
+      50% { box-shadow: 0 8px 48px rgba(26, 115, 232, 0.7); }
+    }
+
+    .logo-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+
+    .logo-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 400;
+    }
+
+    .form-label {
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      color: #fff;
+      padding: 12px 16px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(26,115,232,0.7);
+      box-shadow: 0 0 0 3px rgba(26,115,232,0.2);
+      color: #fff;
+      outline: none;
+    }
+
+    .form-control::placeholder { color: rgba(255,255,255,0.3); }
+
+    .input-group-text {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-right: none;
+      color: rgba(255,255,255,0.5);
+      border-radius: 12px 0 0 12px;
+    }
+
+    .input-group .form-control {
+      border-left: none;
+      border-radius: 0 12px 12px 0;
+    }
+
+    .input-group .form-control:focus {
+      border-left: none;
+    }
+
+    .toggle-password {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-left: none;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      border-radius: 0 12px 12px 0;
+      padding: 0 14px;
+      transition: color 0.2s;
+    }
+
+    .toggle-password:hover { color: rgba(255,255,255,0.9); }
+
+    .btn-login {
+      background: linear-gradient(135deg, #1a73e8, #34a853);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 13px;
+      width: 100%;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(26,115,232,0.5);
+    }
+
+    .btn-login:active { transform: translateY(0); }
+
+    .btn-login .spinner-border {
+      width: 18px; height: 18px;
+      border-width: 2px;
+    }
+
+    .alert-error {
+      background: rgba(234,67,53,0.15);
+      border: 1px solid rgba(234,67,53,0.4);
+      border-radius: 10px;
+      color: #ff8a80;
+      padding: 12px 16px;
+      font-size: 14px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .footer-text {
+      text-align: center;
+      color: rgba(255,255,255,0.25);
+      font-size: 12px;
+      margin-top: 28px;
+    }
+
+    /* Quick login pills */
+    .quick-login {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .quick-pill {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 5px 14px;
+      transition: all 0.2s;
+    }
+
+    .quick-pill:hover {
+      background: rgba(26,115,232,0.25);
+      border-color: rgba(26,115,232,0.5);
+      color: #fff;
+    }
+
+    .quick-label {
+      text-align: center;
+      color: rgba(255,255,255,0.3);
+      font-size: 11px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 480px) {
+      .login-card { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background shapes -->
+  <div class="shape shape-1"></div>
+  <div class="shape shape-2"></div>
+  <div class="shape shape-3"></div>
+  <canvas id="particles"></canvas>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="logo-area">
+        <div class="logo-icon">🍛</div>
+        <h1 class="logo-title">Curry Expense Tracker</h1>
+        <p class="logo-subtitle">Track. Manage. Settle.</p>
+      </div>
+
+      <!-- Error Alert -->
+      <div class="alert-error" id="loginError">
+        <i class="fas fa-exclamation-circle"></i>
+        <span id="loginErrorMsg">Invalid credentials</span>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="userid">
+            <i class="fas fa-id-badge me-1"></i> User ID
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-user"></i></span>
+            <input type="text" class="form-control" id="userid" name="userid"
+              placeholder="Enter your User ID" required autocomplete="username" />
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label" for="password">
+            <i class="fas fa-lock me-1"></i> Password
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-key"></i></span>
+            <input type="password" class="form-control" id="password" name="password"
+              placeholder="Enter your password" required autocomplete="current-password" />
+            <button type="button" class="toggle-password" id="togglePwd" title="Toggle password">
+              <i class="fas fa-eye" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span id="loginBtnText"><i class="fas fa-sign-in-alt me-2"></i>Sign In</span>
+          <span id="loginBtnSpinner" class="d-none">
+            <span class="spinner-border spinner-border-sm me-2"></span>Signing in...
+          </span>
+        </button>
+      </form>
+
+      <div class="quick-label">Quick Demo Login</div>
+      <div class="quick-login">
+        <span class="quick-pill" onclick="quickLogin('192472374','kandukurijagan@14062020')">👑 Jagan (Admin)</span>
+        <span class="quick-pill" onclick="quickLogin('192472343','nallamalasagar')">Sagar</span>
+        <span class="quick-pill" onclick="quickLogin('192411184','prathap')">Prathap</span>
+        <span class="quick-pill" onclick="quickLogin('192411185','bharath')">Bharath</span>
+      </div>
+    </div>
+
+    <p class="footer-text">
+      &copy; 2026 Curry Expense Tracker &bull; Secure &bull; v1.0
+    </p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Particle animation
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    class Particle {
+      constructor() { this.reset(); }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2.5 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.6;
+        this.speedY = (Math.random() - 0.5) * 0.6;
+        this.opacity = Math.random() * 0.6 + 0.2;
+        this.color = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335'][Math.floor(Math.random() * 4)];
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.opacity;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Toggle password visibility
+    document.getElementById('togglePwd').addEventListener('click', () => {
+      const pwd = document.getElementById('password');
+      const icon = document.getElementById('eyeIcon');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        pwd.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    });
+
+    function quickLogin(uid, pwd) {
+      document.getElementById('userid').value = uid;
+      document.getElementById('password').value = pwd;
+      document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+    }
+
+    // Login form submit
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userid = document.getElementById('userid').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl = document.getElementById('loginError');
+      const errMsg = document.getElementById('loginErrorMsg');
+
+      if (!userid || !password) {
+        errMsg.textContent = 'Please enter your User ID and password.';
+        errEl.style.display = 'flex';
+        return;
+      }
+
+      // Show loading
+      document.getElementById('loginBtnText').classList.add('d-none');
+      document.getElementById('loginBtnSpinner').classList.remove('d-none');
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userid, password }),
+          credentials: 'include'
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          // Store user info and redirect
+          sessionStorage.setItem('currentUser', JSON.stringify(data.user));
+          window.location.href = '/dashboard';
+        } else {
+          errMsg.textContent = data.message || 'Invalid credentials. Please try again.';
+          errEl.style.display = 'flex';
+          document.getElementById('password').value = '';
+        }
+      } catch (err) {
+        errMsg.textContent = 'Connection error. Please ensure the server is running.';
+        errEl.style.display = 'flex';
+      } finally {
+        document.getElementById('loginBtnText').classList.remove('d-none');
+        document.getElementById('loginBtnSpinner').classList.add('d-none');
+      }
+    });
+
+    // Check if already logged in
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.success) window.location.href = '/dashboard'; })
+      .catch(() => {});
+  </script>
+</body>
+</html>
