@@ -10,6 +10,8 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, get, run } = require('../database');
 
+const MEMBERS = ['192472374', '192472343', '192411184', '192411185'];
+
 async function getMembers() {
   const users = await all('SELECT * FROM users');
   return (users || []).map(u => ({
@@ -29,7 +31,7 @@ function parseSplitBetween(val, defaultMemberIds) {
       if (Array.isArray(p) && p.length > 0) return p;
     } catch (e) {}
   }
-  return defaultMemberIds || ['192472374', '192472343', '192411184', '192411185'];
+  return defaultMemberIds || MEMBERS;
 }
 
 /**

@@ -1,10 +1,9 @@
 services:
   - type: web
-    name: curry-expense-tracker
-    env: node
-    plan: free
+    name: expense-tracker
+    runtime: node
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production

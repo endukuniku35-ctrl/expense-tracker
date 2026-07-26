@@ -92,6 +92,11 @@ router.get('/category', requireAuth, async (req, res) => {
       catMap[e.category].count++;
     });
     res.json({ success: true, data: Object.values(catMap).sort((a, b) => b.total - a.total) });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Failed to generate category report' });
+  }
+});
+
 const { computeBalances } = require('./balance');
 const { notifySummaryReport } = require('../telegram');
 
