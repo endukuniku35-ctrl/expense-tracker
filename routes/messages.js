@@ -90,4 +90,55 @@ router.post('/nudge', requireAuth, async (req, res) => {
   }
 });
 
+// POST Admin Broadcast message to all members
+router.post('/broadcast', requireAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Only Admin can send broadcast announcements' });
+    }
+
+    const { type, subject, text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Broadcast text is required' });
+    }
+
+    const iconMap = {
+      urgent: '🚨',
+      curry: '🍛',
+      announcement: '📢'
+    };
+    const icon = iconMap[type] || '📢';
+    const broadcastSubject = subject ? `[${subject}] ` : '';
+    const fullMessage = `${icon} OFFICIAL ANNOUNCEMENT ${broadcastSubject}: ${text.trim()}`;
+
+    const msgObj = {
+      id: 'msg_bcast_' + Date.now(),
+      senderId: req.user.userid,
+      senderName: 'ADMIN ' + (req.user.name || req.user.shortName),
+      senderAvatar: '👑',
+      senderRole: 'admin',
+      text: fullMessage,
+      timestamp: new Date().toISOString(),
+      isNudge: true,
+      isBroadcast: true
+    };
+
+    await run(
+      'INSERT INTO messages (id, senderId, senderName, senderAvatar, senderRole, text, timestamp, isNudge) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [msgObj.id, msgObj.senderId, msgObj.senderName, msgObj.senderAvatar, msgObj.senderRole, msgObj.text, msgObj.timestamp, 1]
+    );
+
+    // Add high-priority notification to notifications.json for all members
+    await run(
+      'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
+      ['notif_bcast_' + Date.now(), 'broadcast', fullMessage, msgObj.timestamp, 'all']
+    );
+
+    res.json({ success: true, message: 'Broadcast announcement sent to all members successfully!', data: msgObj });
+  } catch (e) {
+    console.error('Error sending broadcast:', e);
+    res.status(500).json({ success: false, message: 'Failed to send broadcast' });
+  }
+});
+
 module.exports = router;

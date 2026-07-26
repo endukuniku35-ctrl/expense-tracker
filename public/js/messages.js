@@ -1,5 +1,5 @@
 /**
- * messages.js – Roommate Chat & Payment Reminders
+ * messages.js – Roommate Chat & Admin Broadcast Center
  */
 
 let lastMsgId = null;
@@ -33,9 +33,9 @@ async function loadChatMessages() {
       return `
         <div style="align-self:center;max-width:85%;background:rgba(26,115,232,0.1);border:1px solid rgba(26,115,232,0.3);border-radius:14px;padding:12px 16px;text-align:center;font-size:13px;color:var(--text-primary);box-shadow:0 4px 12px rgba(0,0,0,0.1)">
           <div style="font-weight:700;color:var(--primary);margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:6px">
-            <i class="fas fa-bell text-warning"></i> ${m.senderName} sent a Payment Reminder
+            <i class="fas fa-bell text-warning"></i> ${m.senderName} sent an Announcement / Reminder
           </div>
-          <div>${m.text}</div>
+          <div>${escapeHtml(m.text)}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:6px">${timeStr}</div>
         </div>
       `;
@@ -135,6 +135,84 @@ async function submitPaymentNudge() {
     await loadChatMessages();
   } else {
     showToast('Error', res?.message || 'Failed to send reminder', 'danger');
+  }
+}
+
+// ─── Admin Broadcast Controller ─────────────────────
+
+async function loadAdminBroadcasts() {
+  const data = await api('/api/messages');
+  if (!data || !data.data) return;
+
+  const broadcasts = data.data.filter(m => m.isBroadcast || m.isNudge);
+  const log = document.getElementById('broadcastHistoryLog');
+  if (!log) return;
+
+  if (broadcasts.length === 0) {
+    log.innerHTML = `
+      <div style="text-align:center;color:var(--text-muted);padding:32px">
+        <i class="fas fa-bullhorn" style="font-size:32px;margin-bottom:8px;display:block;opacity:0.4"></i>
+        No broadcasts sent yet.
+      </div>
+    `;
+    return;
+  }
+
+  log.innerHTML = `
+    <div class="table-responsive">
+      <table class="table table-custom">
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Type / Icon</th>
+            <th>Broadcast Message</th>
+            <th>Sender</th>
+            <th>Recipients</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${broadcasts.reverse().map(b => `
+            <tr>
+              <td style="font-size:12px;white-space:nowrap">${timeAgo ? timeAgo(b.timestamp) : new Date(b.timestamp).toLocaleString()}</td>
+              <td><span class="badge bg-primary" style="font-size:11px">${b.senderAvatar || '📢'} Broadcast</span></td>
+              <td style="font-weight:600">${escapeHtml(b.text)}</td>
+              <td><span class="badge bg-secondary">${b.senderName}</span></td>
+              <td><span class="badge bg-success">All 6 Members</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function submitAdminBroadcast() {
+  const typeSelect = document.getElementById('bcastType');
+  const subjectInput = document.getElementById('bcastSubject');
+  const textInput = document.getElementById('bcastText');
+
+  if (!textInput || !textInput.value.trim()) {
+    showToast('Empty Message', 'Please enter broadcast message text', 'warning');
+    return;
+  }
+
+  const type = typeSelect ? typeSelect.value : 'announcement';
+  const subject = subjectInput ? subjectInput.value.trim() : '';
+  const text = textInput.value.trim();
+
+  textInput.value = '';
+  if (subjectInput) subjectInput.value = '';
+
+  const res = await api('/api/messages/broadcast', {
+    method: 'POST',
+    body: JSON.stringify({ type, subject, text })
+  });
+
+  if (res && res.success) {
+    showToast('Broadcast Sent! 📢', 'Official announcement broadcasted to all 6 members.', 'success', 4000);
+    await loadAdminBroadcasts();
+  } else {
+    showToast('Error', res?.message || 'Failed to send broadcast', 'danger');
   }
 }
 

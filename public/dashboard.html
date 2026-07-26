@@ -363,6 +363,12 @@
           <span>Roommate Chat</span>
         </a>
       </div>
+      <div class="nav-item-wrapper" id="adminBroadcastNavItem" style="display:none">
+        <a class="nav-link-custom" data-view="broadcast" onclick="navigateTo('broadcast')">
+          <i class="fas fa-bullhorn nav-icon text-warning"></i>
+          <span>Admin Broadcast</span>
+        </a>
+      </div>
 
       <div class="nav-group-label">Analytics</div>
 
@@ -584,6 +590,63 @@
                   <i class="fas fa-paper-plane me-1"></i>Send
                 </button>
               </form>
+            </div>
+          </div>
+        <!-- Admin Broadcast Center View (Admin Only) -->
+        <div class="view-section" id="view-broadcast">
+          <div class="glass-card mb-4">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom">
+                <div class="card-title-icon" style="background:rgba(234,67,53,0.15);color:#ea4335"><i class="fas fa-bullhorn"></i></div>
+                Admin Broadcast Center
+              </h3>
+              <div style="font-size:12px;color:var(--text-muted)">Send instant official announcements and push notifications to all 6 roommates</div>
+            </div>
+
+            <div style="padding:24px">
+              <form id="broadcastForm" onsubmit="event.preventDefault(); submitAdminBroadcast();">
+                <div class="row g-3 mb-3">
+                  <div class="col-md-4">
+                    <label class="form-label-custom">Announcement Type *</label>
+                    <select class="form-control-custom" id="bcastType" required>
+                      <option value="announcement">📢 General Announcement</option>
+                      <option value="urgent">🚨 Urgent Payment Clearance Notice</option>
+                      <option value="curry">🍛 Curry / Grocery Update</option>
+                    </select>
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label-custom">Subject / Headline (Optional)</label>
+                    <input type="text" class="form-control-custom" id="bcastSubject" placeholder="e.g. Dues Clearance Reminder / Sunday Menu" />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label-custom">Announcement Message *</label>
+                  <textarea class="form-control-custom" id="bcastText" rows="4" placeholder="Write your official message to all members here..." required></textarea>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+                  <div style="font-size:12px;color:var(--text-muted)">
+                    <i class="fas fa-paper-plane me-1 text-primary"></i> This will immediately alert all members on web and Android app.
+                  </div>
+                  <button type="submit" class="btn-primary-custom" style="padding:10px 28px">
+                    <i class="fas fa-bullhorn me-2"></i>Send Broadcast Announcement
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Broadcast History -->
+          <div class="glass-card mb-4">
+            <div class="card-header-custom">
+              <h3 class="card-title-custom">
+                <div class="card-title-icon"><i class="fas fa-history"></i></div>
+                Sent Broadcast History
+              </h3>
+            </div>
+            <div id="broadcastHistoryLog" style="padding:20px">
+              <div style="text-align:center;color:var(--text-muted)">Loading broadcast history...</div>
             </div>
           </div>
         </div>

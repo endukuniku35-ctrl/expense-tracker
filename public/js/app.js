@@ -189,6 +189,7 @@ function navigateTo(view) {
     expenses: { title: 'Expenses', breadcrumb: 'Expense Management' },
     payments: { title: 'Payment Status', breadcrumb: 'Track Payments' },
     chat: { title: 'Roommate Chat', breadcrumb: 'Group Messages & Reminders' },
+    broadcast: { title: 'Admin Broadcast', breadcrumb: 'Send Announcements & Alerts' },
     reports: { title: 'Reports', breadcrumb: 'Analytics & Reports' },
     charts: { title: 'Charts', breadcrumb: 'Visual Analytics' },
     profile: { title: 'Profile', breadcrumb: 'Account Settings' },
@@ -206,6 +207,7 @@ function navigateTo(view) {
     expenses: window.loadExpenses,
     payments: window.loadPayments,
     chat: window.loadChatMessages,
+    broadcast: window.loadAdminBroadcasts,
     reports: window.loadReports,
     charts: window.loadCharts,
     profile: window.loadProfile
@@ -278,6 +280,12 @@ async function initApp() {
   document.getElementById('sidebarRole').textContent = role === 'admin' ? '👑 Administrator' : '👤 Member';
   document.getElementById('topbarAvatar').textContent = avatar;
   document.getElementById('topbarName').textContent = shortName;
+
+  // Show Admin Broadcast link for Admin only
+  const bcastNav = document.getElementById('adminBroadcastNavItem');
+  if (bcastNav) {
+    bcastNav.style.display = App.isAdmin ? 'block' : 'none';
+  }
 
   // Show notifications bell for ALL logged-in users (Admin + Members)
   const notifWrap = document.getElementById('notifWrap');
