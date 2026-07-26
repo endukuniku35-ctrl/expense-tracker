@@ -202,7 +202,7 @@ async function loadPayments() {
     const settledOut = b.settledOut || 0;
     const settledIn  = b.settledIn || 0;
 
-    // Effective Net Balance after settlements
+    // Effective balance after settlements
     const net = Math.round((totalPaid + settledOut) - (totalShare + settledIn));
     const out = Math.abs(net);
     const isOwes = net < 0;
@@ -210,18 +210,6 @@ async function loadPayments() {
     const pct = perPersonShare > 0 ? Math.min(100, Math.round(((totalPaid + settledOut) / perPersonShare) * 100)) : 0;
 
     return `<div class="col-xl-3 col-md-6">
-      <div class="payment-card" style="animation-delay:${i*0.1}s">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div class="avatar ${avatarClass(b.shortName)}" style="width:46px;height:46px;border-radius:14px;font-size:16px">${b.avatar}</div>
-            <div>
-              <div style="font-weight:700;font-size:16px;color:var(--text-primary)">${b.shortName}</div>
-              <div style="font-size:11px;color:var(--text-muted)">${b.expenseCount} meals paid</div>
-            </div>
-          </div>
-          ${isSettled
-            ? `<span class="badge-paid">✅ Settled</span>`
-            : isOwes
               ? `<span class="badge-pending">🔴 Owes</span>`
               : `<span class="badge-partial" style="background:rgba(26,115,232,.1);color:var(--primary);border-color:rgba(26,115,232,.3)">💰 Credit</span>`
           }
@@ -235,31 +223,46 @@ async function loadPayments() {
           <div style="background:var(--bg-2);border-radius:9px;padding:10px;text-align:center">
             <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">Fair Share</div>
             <div style="font-size:15px;font-weight:700;color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</div>
+      <div class="payment-card" style="animation-delay:${i*0.1}s;">
+        <!-- Member header -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <div class="avatar ${avatarClass(b.shortName)}" style="width:52px;height:52px;border-radius:14px;font-size:18px;">${b.avatar}</div>
+          <div>
+            <div style="font-weight:800;font-size:17px;color:var(--text-primary);">${b.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${b.mealsCount||0} meal${(b.mealsCount||0)!==1?'s':''}</div>
           </div>
         </div>
 
-        <div style="background:${isOwes ? 'rgba(234,67,53,0.08)' : isSettled ? 'rgba(52,168,83,0.08)' : 'rgba(26,115,232,0.08)'};border-radius:10px;padding:12px;margin-bottom:14px;text-align:center">
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Net Balance</div>
-          <div style="font-size:22px;font-weight:800;color:${isOwes ? 'var(--danger)' : isSettled ? 'var(--secondary)' : 'var(--primary)'}">
-            ${net >= 0 ? '+' : ''}₹${Math.round(net).toLocaleString('en-IN')}
-          </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">
-            ${isSettled ? 'All square! 🎉' : isOwes ? `Outstanding: ₹${Math.round(out).toLocaleString('en-IN')}` : `To collect: ₹${Math.round(out).toLocaleString('en-IN')}`}
-          </div>
+        <!-- BIG CLEAR STATUS -->
+        <div style="border-radius:14px;padding:20px 12px;text-align:center;margin-bottom:14px;background:${isSettled?'rgba(52,168,83,0.1)':isOwes?'rgba(234,67,53,0.08)':'rgba(26,115,232,0.08)'};">
+          ${isSettled ? `
+            <div style="font-size:32px;margin-bottom:6px;">✅</div>
+            <div style="font-size:20px;font-weight:800;color:#34a853;">All Settled!</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Nothing to pay 🎉</div>
+          ` : isOwes ? `
+            <div style="font-size:12px;color:#ea4335;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Still Owes</div>
+            <div style="font-size:36px;font-weight:900;color:#ea4335;">₹${out.toLocaleString('en-IN')}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Share ₹${Math.round(totalShare)} · Paid ₹${(totalPaid+settledOut).toLocaleString('en-IN')}</div>
+          ` : `
+            <div style="font-size:12px;color:#1a73e8;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">To Collect</div>
+            <div style="font-size:36px;font-weight:900;color:#1a73e8;">₹${out.toLocaleString('en-IN')}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Paid ₹${totalPaid.toLocaleString('en-IN')} of total bills</div>
+          `}
         </div>
 
-        <div style="margin-bottom:6px">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
-            <span style="color:var(--text-muted)">Paid ${pct}% of fair share</span>
+        <!-- Progress -->
+        <div style="margin-bottom:${isOwes&&!isSettled?'12px':'0px'};">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:5px;">
+            <span>Payment progress</span><span>${pct}%</span>
           </div>
-          <div class="progress-custom" style="height:9px">
-            <div class="progress-fill ${pct < 50 ? 'danger' : pct < 100 ? 'warning' : ''}" style="width:${Math.min(pct, 100)}%"></div>
+          <div class="progress-custom" style="height:8px;">
+            <div class="progress-fill ${pct<50?'danger':pct<100?'warning':''}" style="width:${Math.min(pct,100)}%;"></div>
           </div>
         </div>
 
         ${isOwes && !isSettled ? `
-          <button class="btn-success-custom w-100 mt-2" style="padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(b.outstanding)})">
-            <i class="fas fa-qrcode"></i> Pay ₹${Math.round(b.outstanding).toLocaleString('en-IN')} via UPI QR
+          <button class="btn-success-custom w-100" style="padding:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;" onclick="openPayUpiQrModal('${b.userid}','${b.name}','192472374','Jagan',${out})">
+            <i class="fas fa-qrcode"></i> Pay ₹${out.toLocaleString('en-IN')} Now
           </button>
         ` : ''}
       </div>
