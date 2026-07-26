@@ -247,7 +247,13 @@ function goPage(p) {
 function setSplitPreset(pattern) {
   const checks = document.querySelectorAll('.split-member-check');
   checks.forEach((chk, idx) => {
-    chk.checked = !!pattern[idx];
+    if (typeof pattern === 'boolean') {
+      chk.checked = pattern;
+    } else if (Array.isArray(pattern)) {
+      chk.checked = idx < pattern.length ? !!pattern[idx] : true;
+    } else {
+      chk.checked = true;
+    }
   });
   updateSplitPreview();
 }
@@ -310,23 +316,48 @@ async function populateExpenseMemberFields() {
         MEMBER_MAP[m.userid] = m.shortName || m.name;
       });
 
+      // Update Member Filter dropdown on expenses table
+      const expMemberFilter = document.getElementById('expMember');
+      if (expMemberFilter) {
+        const curFilt = expMemberFilter.value;
+        expMemberFilter.innerHTML = '<option value="">All Members</option>' + 
+          res.data.map(m => `<option value="${m.userid}">${m.shortName || m.name}</option>`).join('');
+        expMemberFilter.value = curFilt;
+      }
+
       // Update PaidBy Select dropdown
       const paidByEl = document.getElementById('expPaidBy');
       if (paidByEl) {
         const currentVal = paidByEl.value;
         paidByEl.innerHTML = res.data.map(m => `<option value="${m.userid}">${m.name}</option>`).join('');
-        if (currentVal) paidByEl.value = currentVal;
+        
+        // Default Payer is Kandukuri Jagan ('192472374') unless editing
+        const jaganExists = res.data.some(m => m.userid === '192472374');
+        if (currentVal && res.data.some(m => m.userid === currentVal)) {
+          paidByEl.value = currentVal;
+        } else if (jaganExists) {
+          paidByEl.value = '192472374';
+        }
       }
 
-      // Update Split Checkboxes
+      // Update Split Checkboxes for ALL members dynamically
       const splitBoxWrap = document.getElementById('splitCheckboxesWrap');
       if (splitBoxWrap) {
         splitBoxWrap.innerHTML = res.data.map(m => `
-          <label class="form-check-label-custom flex-fill text-center p-2" style="background:var(--bg-2);border-radius:8px;border:1px solid var(--glass-border);font-size:13px;cursor:pointer">
-            <input type="checkbox" class="form-check-input me-1 split-member-check" value="${m.userid}" checked onchange="updateSplitPreview()" />
-            ${m.shortName || m.name}
+          <label class="form-check-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;background:var(--bg-2);padding:8px 12px;border-radius:8px;border:1px solid var(--glass-border)">
+            <input type="checkbox" class="split-member-check" value="${m.userid}" checked onchange="updateSplitPreview()" />
+            <span>${m.shortName || m.name}</span>
           </label>
         `).join('');
+      }
+
+      // Update Preset Buttons dynamically
+      const presetWrap = document.getElementById('splitPresetButtonsWrap');
+      if (presetWrap) {
+        presetWrap.innerHTML = `
+          <button type="button" class="btn-ghost" style="padding:3px 10px;font-size:11px" onclick="setSplitPreset(true)">All ${res.data.length} Members</button>
+          <button type="button" class="btn-ghost" style="padding:3px 10px;font-size:11px" onclick="setSplitPreset(false)">Clear All</button>
+        `;
       }
     }
   } catch (e) {
@@ -343,8 +374,14 @@ async function openAddExpense() {
 
   await populateExpenseMemberFields();
 
+  // Explicitly set default Payer to Kandukuri Jagan (192472374)
+  const paidByEl = document.getElementById('expPaidBy');
+  if (paidByEl && Array.from(paidByEl.options).some(opt => opt.value === '192472374')) {
+    paidByEl.value = '192472374';
+  }
+
   // Check all members by default
-  setSplitPreset([1,1,1,1,1,1,1,1]);
+  setSplitPreset(true);
 
   document.getElementById('saveExpenseBtn').innerHTML = '<i class="fas fa-save me-1"></i>Save Expense';
   const p = document.getElementById('splitPreview');
