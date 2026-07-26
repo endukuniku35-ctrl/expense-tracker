@@ -61,8 +61,8 @@ async function markAllRead() {
 }
 
 // Auto-refresh notifications every 30 seconds for admin
-if (App && App.isAdmin) {
+if (typeof App !== 'undefined' && App && App.isAdmin) {
   setInterval(() => {
-    if (App.isAdmin) loadNotifications();
+    if (typeof App !== 'undefined' && App.isAdmin) loadNotifications();
   }, 30000);
 }
