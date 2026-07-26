@@ -277,17 +277,23 @@ async function initApp() {
   document.getElementById('topbarAvatar').textContent = avatar;
   document.getElementById('topbarName').textContent = shortName;
 
-  // Show notifications bell for admin
-  if (App.isAdmin) {
-    document.getElementById('notifWrap').style.display = 'flex';
-    loadNotifications();
-    // Set up notif button
-    document.getElementById('notifBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.getElementById('notifDropdown').classList.toggle('show');
-    });
+  // Show notifications bell for ALL logged-in users (Admin + Members)
+  const notifWrap = document.getElementById('notifWrap');
+  if (notifWrap) {
+    notifWrap.style.display = 'flex';
+    if (typeof loadNotifications === 'function') loadNotifications();
+    const notifBtn = document.getElementById('notifBtn');
+    if (notifBtn) {
+      notifBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const dropdown = document.getElementById('notifDropdown');
+        if (dropdown) dropdown.classList.toggle('show');
+        if (typeof requestNotificationPermission === 'function') requestNotificationPermission();
+      });
+    }
     document.addEventListener('click', () => {
-      document.getElementById('notifDropdown').classList.remove('show');
+      const dropdown = document.getElementById('notifDropdown');
+      if (dropdown) dropdown.classList.remove('show');
     });
   }
 

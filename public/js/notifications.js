@@ -1,6 +1,44 @@
 /**
- * notifications.js – Notification System (Admin only)
+ * notifications.js – Notification & Web Push System for All Users
  */
+
+let seenNotifIds = new Set();
+let isFirstNotifLoad = true;
+
+// Request Web Push Notification permissions automatically
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      console.log('[Notification] Permission result:', permission);
+    });
+  }
+}
+
+// Trigger native Web / Android PWA Push Notification
+function triggerPushNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(title, {
+            body: body,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            vibrate: [200, 100, 200],
+            tag: 'curry-notif-' + Date.now()
+          });
+        });
+      } else {
+        new Notification(title, {
+          body: body,
+          icon: '/icons/icon-192.png'
+        });
+      }
+    } catch (e) {
+      console.log('[Notification] Push error:', e);
+    }
+  }
+}
 
 async function loadNotifications() {
   const data = await api('/api/notifications');
@@ -10,21 +48,32 @@ async function loadNotifications() {
 
   // Update badge
   const badge = document.getElementById('notifCount');
-  if (unreadCount > 0) {
-    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
-    badge.style.display = 'flex';
-  } else {
-    badge.style.display = 'none';
+  if (badge) {
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 
-  // Also update sidebar badge
-  const sidebarNavItem = document.querySelector('.nav-link-custom[data-view="dashboard"]');
-  if (sidebarNavItem && unreadCount > 0) {
-    // Update notification count in nav if needed
+  // Check for new unread notifications to trigger Push Notification
+  if (notifications && notifications.length > 0) {
+    notifications.forEach(n => {
+      if (!n.read && !seenNotifIds.has(n.id)) {
+        if (!isFirstNotifLoad) {
+          triggerPushNotification('Curry Tracker 🍛', n.message);
+        }
+        seenNotifIds.add(n.id);
+      }
+    });
   }
+  isFirstNotifLoad = false;
 
   // Render notifications list
   const list = document.getElementById('notifList');
+  if (!list) return;
+
   if (!notifications || notifications.length === 0) {
     list.innerHTML = `
       <div style="padding:32px;text-align:center;color:var(--text-muted)">
@@ -35,14 +84,14 @@ async function loadNotifications() {
     return;
   }
 
-  list.innerHTML = notifications.slice(0, 10).map(n => `
+  list.innerHTML = notifications.slice(0, 15).map(n => `
     <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}')">
-      <div class="notif-icon-wrap ${n.type}">
+      <div class="notif-icon-wrap ${n.type || 'info'}">
         <i class="fas ${n.type === 'expense' ? 'fa-receipt' : n.type === 'payment' ? 'fa-wallet' : 'fa-bell'}"></i>
       </div>
       <div style="flex:1;min-width:0">
         <div class="notif-text">${n.message}</div>
-        <div class="notif-time">${timeAgo(n.timestamp)}</div>
+        <div class="notif-time">${timeAgo ? timeAgo(n.timestamp) : n.timestamp}</div>
       </div>
       ${!n.read ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:4px"></div>` : ''}
     </div>
@@ -57,12 +106,19 @@ async function markRead(id) {
 async function markAllRead() {
   await api('/api/notifications/mark-all-read', { method: 'PUT' });
   await loadNotifications();
-  showToast('Done', 'All notifications marked as read.', 'success', 2000);
+  if (typeof showToast === 'function') {
+    showToast('Done', 'All notifications marked as read.', 'success', 2000);
+  }
 }
 
-// Auto-refresh notifications every 30 seconds for admin
-if (typeof App !== 'undefined' && App && App.isAdmin) {
-  setInterval(() => {
-    if (typeof App !== 'undefined' && App.isAdmin) loadNotifications();
-  }, 30000);
-}
+// Request permission and start 10-second polling loop for all users
+document.addEventListener('DOMContentLoaded', () => {
+  requestNotificationPermission();
+});
+
+// Auto-refresh notifications every 10 seconds for ALL users
+setInterval(() => {
+  if (typeof App !== 'undefined' && App && App.user) {
+    loadNotifications();
+  }
+}, 10000);
