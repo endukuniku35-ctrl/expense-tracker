@@ -213,4 +213,21 @@ router.delete('/settle/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/balance/clear-all – wipe all expense & settlement data (ADMIN ONLY)
+router.post('/clear-all', requireAdmin, async (req, res) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const dataDir = path.join(__dirname, '../data');
+    fs.writeFileSync(path.join(dataDir, 'expenses.json'), '[]');
+    fs.writeFileSync(path.join(dataDir, 'settlements.json'), '[]');
+    fs.writeFileSync(path.join(dataDir, 'notifications.json'), '[]');
+    fs.writeFileSync(path.join(dataDir, 'payments.json'), '[]');
+    res.json({ success: true, message: 'All website expenses and settlement data deleted successfully.' });
+  } catch (err) {
+    console.error('Error clearing data:', err);
+    res.status(500).json({ success: false, message: 'Failed to clear data' });
+  }
+});
+
 module.exports = { router, computeBalances, MEMBERS };

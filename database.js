@@ -219,30 +219,11 @@ async function initDatabase() {
   }
 
   // Check expenses
-  const expenses = readData('expenses');
-  if (expenses.length === 0) {
-    const all4 = ['192472374', '192472343', '192411184', '192411185'];
-    const sampleExpenses = [
-      { id: 'exp1', title: 'Chicken Curry', description: 'Lunch - Chicken curry for the team', amount: 320, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Lunch', date: '2026-07-01', notes: 'Restaurant - Spice Garden', status: 'active', createdAt: '2026-07-01T12:00:00Z', updatedAt: '2026-07-01T12:00:00Z' },
-      { id: 'exp2', title: 'Mutton Biryani', description: 'Dinner - Mutton biryani special', amount: 560, paidBy: '192472343', paidByName: 'Sagar', splitBetween: all4, category: 'Dinner', date: '2026-07-03', notes: 'Ordered from Biryani House', status: 'active', createdAt: '2026-07-03T19:30:00Z', updatedAt: '2026-07-03T19:30:00Z' },
-      { id: 'exp3', title: 'Veg Curry + Rice', description: 'Lunch - Veg curry and rice', amount: 240, paidBy: '192411184', paidByName: 'Prathap', splitBetween: all4, category: 'Lunch', date: '2026-07-05', notes: 'Canteen lunch', status: 'active', createdAt: '2026-07-05T13:00:00Z', updatedAt: '2026-07-05T13:00:00Z' },
-      { id: 'exp4', title: 'Fish Curry', description: 'Dinner - Fresh fish curry', amount: 480, paidBy: '192411185', paidByName: 'Bharath', splitBetween: all4, category: 'Dinner', date: '2026-07-07', notes: 'Fish market purchase', status: 'active', createdAt: '2026-07-07T20:00:00Z', updatedAt: '2026-07-07T20:00:00Z' },
-      { id: 'exp5', title: 'Dal Tadka + Roti', description: 'Lunch - Dal tadka with rotis', amount: 180, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Lunch', date: '2026-07-10', notes: 'Home cooked', status: 'active', createdAt: '2026-07-10T13:30:00Z', updatedAt: '2026-07-10T13:30:00Z' },
-      { id: 'exp6', title: 'Paneer Butter Masala', description: 'Special dinner', amount: 420, paidBy: '192472343', paidByName: 'Sagar', splitBetween: all4, category: 'Dinner', date: '2026-07-12', notes: 'Weekend treat', status: 'active', createdAt: '2026-07-12T20:30:00Z', updatedAt: '2026-07-12T20:30:00Z' },
-      { id: 'exp7', title: 'Egg Curry', description: 'Breakfast - Egg curry', amount: 160, paidBy: '192411184', paidByName: 'Prathap', splitBetween: all4, category: 'Breakfast', date: '2026-07-14', notes: 'Morning meal', status: 'active', createdAt: '2026-07-14T08:00:00Z', updatedAt: '2026-07-14T08:00:00Z' },
-      { id: 'exp8', title: 'Prawn Masala', description: 'Special - Prawn masala curry', amount: 640, paidBy: '192411185', paidByName: 'Bharath', splitBetween: all4, category: 'Dinner', date: '2026-07-16', notes: 'Celebration dinner', status: 'active', createdAt: '2026-07-16T20:00:00Z', updatedAt: '2026-07-16T20:00:00Z' },
-      { id: 'exp9', title: 'Mixed Veg Curry', description: 'Lunch - Mixed veg curry', amount: 200, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Lunch', date: '2026-07-18', notes: 'Healthy lunch', status: 'active', createdAt: '2026-07-18T13:00:00Z', updatedAt: '2026-07-18T13:00:00Z' },
-      { id: 'exp10', title: 'Chicken Tikka Masala', description: 'Dinner - Tikka masala', amount: 500, paidBy: '192472343', paidByName: 'Sagar', splitBetween: all4, category: 'Dinner', date: '2026-07-20', notes: 'Curry Corner', status: 'active', createdAt: '2026-07-20T19:00:00Z', updatedAt: '2026-07-20T19:00:00Z' },
-      { id: 'exp11', title: 'Rajma Chawal', description: 'Lunch - Rajma rice', amount: 220, paidBy: '192411184', paidByName: 'Prathap', splitBetween: all4, category: 'Lunch', date: '2026-07-22', notes: 'Home cooked', status: 'active', createdAt: '2026-07-22T13:00:00Z', updatedAt: '2026-07-22T13:00:00Z' },
-      { id: 'exp12', title: 'Lamb Rogan Josh', description: 'Special dinner', amount: 720, paidBy: '192411185', paidByName: 'Bharath', splitBetween: all4, category: 'Dinner', date: '2026-07-24', notes: 'Kashmir Kitchen', status: 'active', createdAt: '2026-07-24T20:30:00Z', updatedAt: '2026-07-24T20:30:00Z' },
-      { id: 'exp13', title: 'Sambar + Idli', description: 'Breakfast - South Indian', amount: 140, paidBy: '192472374', paidByName: 'Jagan', splitBetween: all4, category: 'Breakfast', date: '2026-07-26', notes: 'Morning breakfast', status: 'active', createdAt: '2026-07-26T08:00:00Z', updatedAt: '2026-07-26T08:00:00Z' }
-    ];
-    writeData('expenses', sampleExpenses);
-    console.log('  ✅ Initialized default expenses');
+  if (!fs.existsSync(getFilePath('expenses'))) {
+    writeData('expenses', []);
   }
 
   // Check settlements
-  const settlements = readData('settlements');
   if (!fs.existsSync(getFilePath('settlements'))) {
     writeData('settlements', []);
   }
