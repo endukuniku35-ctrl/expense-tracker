@@ -1,5 +1,5 @@
 /**
- * members.js – Members View (Equal 4-way split model)
+ * members.js – Members View (Equal & Dynamic split model)
  */
 
 async function loadMembers() {
@@ -14,14 +14,14 @@ async function loadMembers() {
             <div>
               <div style="font-weight:700;font-size:15px;color:var(--text-primary)">How the Split Works</div>
               <div style="font-size:13px;color:var(--text-secondary)">
-                Every curry meal is shared by <strong>all 4 members equally</strong>. 
-                When one person pays the full bill, the other 3 owe their share back. 
+                Every curry meal is split equally among participating members (2, 3, or 4 people). 
+                When one person pays the full bill, participating members owe their share back. 
                 <strong>Net Balance</strong> shows who owes whom.
               </div>
             </div>
             <div style="margin-left:auto;text-align:center;background:var(--surface);border-radius:12px;padding:10px 20px;border:1px solid var(--glass-border)">
               <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Formula</div>
-              <div style="font-size:13px;font-weight:700;color:var(--primary)">Total ÷ 4 = Per Person</div>
+              <div style="font-size:13px;font-weight:700;color:var(--primary)">Bill ÷ Participating Members</div>
             </div>
           </div>
         </div>
@@ -30,7 +30,7 @@ async function loadMembers() {
       <!-- Member Cards -->
       <div class="row g-3 mb-4" id="memberCards">
         <div class="col-12 text-center" style="padding:40px;color:var(--text-muted)">
-          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading...
+          <div class="loader-spinner" style="margin:0 auto 12px"></div>Loading members balance...
         </div>
       </div>
 
@@ -44,10 +44,10 @@ async function loadMembers() {
             <thead><tr>
               <th>Member</th>
               <th>Bills Paid <small style="opacity:.6">(as payer)</small></th>
-              <th>Fair Share <small style="opacity:.6">(÷4)</small></th>
+              <th>Total Fair Share</th>
               <th>Net Balance</th>
               <th>Status</th>
-              <th>Expense Count</th>
+              <th>Meals Count</th>
               <th>Balance Bar</th>
             </tr></thead>
             <tbody id="memberTableBody">
@@ -69,135 +69,163 @@ async function loadMembers() {
       </div>
     </div>`;
 
-  const data = await api('/api/balance');
-  if (!data) return;
+  try {
+    const data = await api('/api/balance');
 
-  const { balances, totalExpenses, perPersonShare, settlements } = data;
+    if (!data || !data.success || !Array.isArray(data.balances)) {
+      const errorHtml = `
+        <div style="padding:40px;text-align:center;color:var(--text-muted)">
+          <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+          <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px">Failed to load member balance data</div>
+          <div style="font-size:13px;margin-bottom:16px">The server could not process the request.</div>
+          <button class="btn-primary-custom" onclick="loadMembers()"><i class="fas fa-sync me-1"></i>Retry Loading</button>
+        </div>`;
+      document.getElementById('memberCards').innerHTML = errorHtml;
+      document.getElementById('memberTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center">${errorHtml}</td></tr>`;
+      document.getElementById('settlementList').innerHTML = errorHtml;
+      return;
+    }
 
-  // ─── Member Cards ─────────────────────────────────
-  const cardsEl = document.getElementById('memberCards');
-  cardsEl.innerHTML = balances.map((b, i) => {
-    const isOwes    = b.netBalance < 0;
-    const isSettled = b.outstanding <= 0;
-    const pct = perPersonShare > 0 ? Math.min(100, Math.round((b.totalPaid / perPersonShare) * 100)) : 0;
-    const accentColor = isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8';
+    const balances = data.balances || [];
+    const totalExpenses = data.totalExpenses || 0;
+    const perPersonShare = data.perPersonShare || 0;
+    const settlements = data.settlements || [];
 
-    return `
-      <div class="col-xl-3 col-md-6">
-        <div class="payment-card" style="animation-delay:${i*0.1}s;border-top:3px solid ${accentColor}">
-          <!-- Avatar + name -->
-          <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-            <div class="avatar ${avatarClass(b.shortName)}" style="width:56px;height:56px;border-radius:16px;font-size:20px">${b.avatar}</div>
+    // ─── Member Cards ─────────────────────────────────
+    const cardsEl = document.getElementById('memberCards');
+    cardsEl.innerHTML = balances.map((b, i) => {
+      const net = b.netBalance || 0;
+      const out = b.outstanding || 0;
+      const isOwes = net < 0;
+      const isSettled = out <= 0;
+      const totalPaid = b.totalPaid || 0;
+      const totalShare = b.totalShare || 0;
+      const pct = totalShare > 0 ? Math.min(100, Math.round((totalPaid / totalShare) * 100)) : 0;
+      const accentColor = isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8';
+
+      return `
+        <div class="col-xl-3 col-md-6">
+          <div class="payment-card" style="animation-delay:${i*0.1}s;border-top:3px solid ${accentColor}">
+            <!-- Avatar + name -->
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+              <div class="avatar ${avatarClass(b.shortName || b.name)}" style="width:56px;height:56px;border-radius:16px;font-size:20px">${b.avatar || '👤'}</div>
+              <div>
+                <div style="font-size:18px;font-weight:800;color:var(--text-primary)">${b.name}</div>
+                <div style="font-size:12px;color:var(--text-muted)">ID: ${b.userid}</div>
+              </div>
+            </div>
+
+            <!-- Key numbers -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+              <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Bills Paid</div>
+                <div style="font-size:17px;font-weight:800;color:var(--primary)">₹${totalPaid.toLocaleString('en-IN')}</div>
+              </div>
+              <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Fair Share</div>
+                <div style="font-size:17px;font-weight:800;color:var(--text-secondary)">₹${Math.round(totalShare).toLocaleString('en-IN')}</div>
+              </div>
+              <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Net Balance</div>
+                <div style="font-size:17px;font-weight:800;color:${accentColor}">
+                  ${net >= 0 ? '+' : ''}₹${Math.round(net).toLocaleString('en-IN')}
+                </div>
+              </div>
+              <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
+                <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Outstanding</div>
+                <div style="font-size:17px;font-weight:800;color:${isSettled ? '#34a853' : accentColor}">
+                  ${isSettled ? '₹0' : '₹' + Math.round(out).toLocaleString('en-IN')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress: bills paid vs fair share -->
+            <div style="margin-bottom:14px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+                <span style="color:var(--text-muted)">Paid vs Share (${pct}%)</span>
+              </div>
+              <div class="progress-custom" style="height:10px">
+                <div class="progress-fill ${pct < 50 ? 'danger' : pct < 100 ? 'warning' : ''}" style="width:${Math.min(pct, 100)}%"></div>
+              </div>
+            </div>
+
+            <!-- Status badge -->
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              ${isSettled
+                ? `<span class="badge-paid">✅ Settled</span>`
+                : isOwes
+                  ? `<span class="badge-pending">🔴 Owes ₹${Math.round(out).toLocaleString('en-IN')}</span>`
+                  : `<span style="background:rgba(26,115,232,0.12);color:var(--primary);border:1px solid rgba(26,115,232,0.3);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">💰 Receive ₹${Math.round(out).toLocaleString('en-IN')}</span>`
+              }
+              <span style="font-size:12px;color:var(--text-muted)">${b.expenseCount || 0} meals paid</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // ─── Table ────────────────────────────────────────
+    const tbody = document.getElementById('memberTableBody');
+    tbody.innerHTML = balances.map(b => {
+      const net = b.netBalance || 0;
+      const out = b.outstanding || 0;
+      const isOwes = net < 0;
+      const isSettled = out <= 0;
+      const maxAbs = Math.max(...balances.map(x => Math.abs(x.netBalance || 0)), 1);
+      const barPct = Math.round((Math.abs(net) / maxAbs) * 100);
+
+      return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar ${avatarClass(b.shortName || b.name)}">${b.avatar || '👤'}</div>
             <div>
-              <div style="font-size:18px;font-weight:800;color:var(--text-primary)">${b.name}</div>
-              <div style="font-size:12px;color:var(--text-muted)">ID: ${b.userid}</div>
+              <div style="font-weight:600">${b.name}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${b.userid}</div>
             </div>
           </div>
-
-          <!-- Key numbers -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Bills Paid</div>
-              <div style="font-size:17px;font-weight:800;color:var(--primary)">₹${b.totalPaid.toLocaleString('en-IN')}</div>
+        </td>
+        <td><strong style="color:var(--primary)">₹${(b.totalPaid || 0).toLocaleString('en-IN')}</strong></td>
+        <td style="color:var(--text-secondary)">₹${Math.round(b.totalShare || 0).toLocaleString('en-IN')}</td>
+        <td>
+          <strong style="color:${isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8'}">
+            ${net >= 0 ? '+' : ''}₹${Math.round(net).toLocaleString('en-IN')}
+          </strong>
+        </td>
+        <td>${isSettled
+          ? `<span class="badge-paid">✅ Settled</span>`
+          : isOwes
+            ? `<span class="badge-pending">🔴 Owes ₹${Math.round(out).toLocaleString('en-IN')}</span>`
+            : `<span class="badge-partial" style="background:rgba(26,115,232,0.1);color:var(--primary);border-color:rgba(26,115,232,.3)">💰 To receive</span>`
+        }</td>
+        <td><span class="badge-cat">${b.mealsCount || b.expenseCount || 0} meals</span></td>
+        <td style="min-width:130px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="progress-custom" style="flex:1">
+              <div class="progress-fill ${isOwes ? 'danger' : ''}" style="width:${barPct}%;background:${isOwes?'var(--danger)':'var(--primary)'}"></div>
             </div>
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Fair Share</div>
-              <div style="font-size:17px;font-weight:800;color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</div>
-            </div>
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Net Balance</div>
-              <div style="font-size:17px;font-weight:800;color:${accentColor}">
-                ${b.netBalance >= 0 ? '+' : ''}₹${Math.round(b.netBalance).toLocaleString('en-IN')}
-              </div>
-            </div>
-            <div style="background:var(--bg-2);border-radius:10px;padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px">Outstanding</div>
-              <div style="font-size:17px;font-weight:800;color:${isSettled ? '#34a853' : accentColor}">
-                ${isSettled ? '₹0' : '₹' + Math.round(b.outstanding).toLocaleString('en-IN')}
-              </div>
-            </div>
+            <span style="font-size:11px;color:var(--text-muted)">${barPct}%</span>
           </div>
+        </td>
+      </tr>`;
+    }).join('');
 
-          <!-- Progress: bills paid vs fair share -->
-          <div style="margin-bottom:14px">
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
-              <span style="color:var(--text-muted)">Contribution vs share (${pct}%)</span>
-            </div>
-            <div class="progress-custom" style="height:10px">
-              <div class="progress-fill ${pct < 50 ? 'danger' : pct < 100 ? 'warning' : ''}" style="width:${Math.min(pct, 100)}%"></div>
-            </div>
-          </div>
+    // ─── Totals footer ────────────────────────────────
+    tbody.innerHTML += `
+      <tr style="background:var(--bg-2);font-weight:700">
+        <td>TOTAL</td>
+        <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
+        <td>₹${Math.round(perPersonShare * 4).toLocaleString('en-IN')}</td>
+        <td colspan="4" style="color:var(--text-muted);font-size:13px">
+          Dynamic member split calculation active
+        </td>
+      </tr>`;
 
-          <!-- Status badge -->
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            ${isSettled
-              ? `<span class="badge-paid">✅ Settled</span>`
-              : isOwes
-                ? `<span class="badge-pending">🔴 Owes ₹${Math.round(b.outstanding).toLocaleString('en-IN')}</span>`
-                : `<span style="background:rgba(26,115,232,0.12);color:var(--primary);border:1px solid rgba(26,115,232,0.3);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">💰 Receive ₹${Math.round(b.outstanding).toLocaleString('en-IN')}</span>`
-            }
-            <span style="font-size:12px;color:var(--text-muted)">${b.expenseCount} meals paid</span>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-
-  // ─── Table ────────────────────────────────────────
-  const tbody = document.getElementById('memberTableBody');
-  tbody.innerHTML = balances.map(b => {
-    const isOwes    = b.netBalance < 0;
-    const isSettled = b.outstanding <= 0;
-    const maxAbs    = Math.max(...balances.map(x => Math.abs(x.netBalance)));
-    const barPct    = maxAbs > 0 ? Math.round((Math.abs(b.netBalance) / maxAbs) * 100) : 0;
-
-    return `<tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar ${avatarClass(b.shortName)}">${b.avatar}</div>
-          <div>
-            <div style="font-weight:600">${b.name}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${b.userid}</div>
-          </div>
-        </div>
-      </td>
-      <td><strong style="color:var(--primary)">₹${b.totalPaid.toLocaleString('en-IN')}</strong></td>
-      <td style="color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</td>
-      <td>
-        <strong style="color:${isSettled ? '#34a853' : isOwes ? '#ea4335' : '#1a73e8'}">
-          ${b.netBalance >= 0 ? '+' : ''}₹${Math.round(b.netBalance).toLocaleString('en-IN')}
-        </strong>
-      </td>
-      <td>${isSettled
-        ? `<span class="badge-paid">✅ Settled</span>`
-        : isOwes
-          ? `<span class="badge-pending">🔴 Owes ₹${Math.round(b.outstanding).toLocaleString('en-IN')}</span>`
-          : `<span class="badge-partial" style="background:rgba(26,115,232,0.1);color:var(--primary);border-color:rgba(26,115,232,.3)">💰 To receive</span>`
-      }</td>
-      <td><span class="badge-cat">${b.expenseCount} meals</span></td>
-      <td style="min-width:130px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="progress-custom" style="flex:1">
-            <div class="progress-fill ${isOwes ? 'danger' : ''}" style="width:${barPct}%;background:${isOwes?'var(--danger)':'var(--primary)'}"></div>
-          </div>
-          <span style="font-size:11px;color:var(--text-muted)">${barPct}%</span>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  // ─── Totals footer ────────────────────────────────
-  tbody.innerHTML += `
-    <tr style="background:var(--bg-2);font-weight:700">
-      <td>TOTAL</td>
-      <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
-      <td>₹${Math.round(perPersonShare).toLocaleString('en-IN')}</td>
-      <td colspan="4" style="color:var(--text-muted);font-size:13px">
-        ${totalExpenses.toLocaleString('en-IN')} ÷ 4 = ₹${Math.round(perPersonShare).toLocaleString('en-IN')} per person
-      </td>
-    </tr>`;
-
-  // ─── Settlements ──────────────────────────────────
-  renderSettlements(settlements);
+    // ─── Settlements ──────────────────────────────────
+    renderSettlements(settlements);
+  } catch (err) {
+    console.error('Error loading members page:', err);
+    const errorHtml = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load data. Please refresh the page.</div>`;
+    document.getElementById('memberCards').innerHTML = errorHtml;
+  }
 }
 
 function renderSettlements(settlements) {
@@ -214,14 +242,14 @@ function renderSettlements(settlements) {
           <tr>
             <td style="color:var(--text-muted);font-size:13px">${formatDate(s.date)}</td>
             <td><div style="display:flex;align-items:center;gap:8px">
-              <div class="avatar ${avatarClass(s.fromMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${s.fromMemberName.substring(0,2).toUpperCase()}</div>
+              <div class="avatar ${avatarClass(s.fromMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.fromMemberName || '').substring(0,2).toUpperCase()}</div>
               ${s.fromMemberName}
             </div></td>
             <td><div style="display:flex;align-items:center;gap:8px">
-              <div class="avatar ${avatarClass(s.toMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${s.toMemberName.substring(0,2).toUpperCase()}</div>
+              <div class="avatar ${avatarClass(s.toMemberName)}" style="width:30px;height:30px;border-radius:8px;font-size:11px">${(s.toMemberName || '').substring(0,2).toUpperCase()}</div>
               ${s.toMemberName}
             </div></td>
-            <td><strong style="color:var(--secondary)">₹${s.amount.toLocaleString('en-IN')}</strong></td>
+            <td><strong style="color:var(--secondary)">₹${(s.amount || 0).toLocaleString('en-IN')}</strong></td>
             <td style="color:var(--text-muted);font-size:13px">${s.notes || '-'}</td>
             ${App.isAdmin ? `<td><button class="btn-danger-custom" style="padding:5px 10px;font-size:12px" onclick="deleteSettlement('${s.id}')"><i class="fas fa-trash"></i></button></td>` : ''}
           </tr>`).join('')}
@@ -231,7 +259,6 @@ function renderSettlements(settlements) {
 
 // ─── Settlement Modal ──────────────────────────────
 function openSettleModal() {
-  // Create modal dynamically if not exists
   let modal = document.getElementById('settleModal');
   if (!modal) {
     modal = document.createElement('div');
