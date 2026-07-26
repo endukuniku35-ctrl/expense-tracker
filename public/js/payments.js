@@ -254,38 +254,9 @@
             </tr>
           </tfoot>
         </table>`;
-    }>${e.paidByName.substring(0,2).toUpperCase()}</div>
-                <span style="font-size:13px">${e.paidByName}</span>
-              </div></td>
-              ${balances.map(b => {
-                const uid = b.userid;
-                const joined = splitList.includes(uid);
-                if (!joined) {
-                  return `<td style="text-align:center;color:var(--text-muted);font-size:12px"><em>- (didn't join)</em></td>`;
-                }
-                return `<td style="text-align:center">
-                  <span style="font-size:13px;font-weight:600;color:${uid === paidById ? 'var(--secondary)' : 'var(--danger)'}">
-                    ₹${share.toLocaleString('en-IN')}
-                  </span>
-                  ${uid === paidById ? `<div style="font-size:10px;color:var(--secondary)">✅ paid</div>` : `<div style="font-size:10px;color:var(--danger)">owes</div>`}
-                </td>`;
-              }).join('')}
-            </tr>`;
-          }).join('')}
-        </tbody>
-        <tfoot>
-          <tr style="background:var(--bg-2);font-weight:700">
-            <td colspan="2">TOTAL</td>
-            <td style="color:var(--primary)">₹${totalExpenses.toLocaleString('en-IN')}</td>
-            <td></td>
-            ${balances.map(b => `<td style="text-align:center;color:var(--text-secondary)">₹${Math.round(b.totalShare).toLocaleString('en-IN')}</td>`).join('')}
-          </tr>
-        </tfoot>
-      </table>`;
-  }
+    }
 
   // ─── Balance Cards ────────────────────────────────
-  const me = App.currentUser;
   const displayBalances = App.isAdmin ? balances : balances.filter(b => b.userid === me?.userid);
   const balEl = document.getElementById('balanceCards');
   balEl.innerHTML = displayBalances.map((b, i) => {
