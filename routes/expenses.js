@@ -29,7 +29,7 @@ async function addNotification(message, type = 'expense') {
   try {
     await run(
       'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
-      [uuidv4(), type, message, new Date().toISOString(), 'admin']
+      [uuidv4(), type, message, new Date().toISOString(), 'all']
     );
   } catch (e) {
     console.error('Error adding notification:', e);

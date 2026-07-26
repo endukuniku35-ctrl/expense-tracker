@@ -87,6 +87,7 @@ window.loadPayments = async function loadPayments() {
   }
 
   // Populate record payment form according to role
+  // Populate record payment form according to role
   const recordBody = document.getElementById('recordPaymentBody');
   if (recordBody) {
     if (App.isAdmin) {
@@ -109,7 +110,7 @@ window.loadPayments = async function loadPayments() {
             <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
           </div>
           <div class="col-12 col-md-2">
-            <label class="form-label-custom">Notes</label>
+            <label class="form-label-custom">Notes / Method</label>
             <input type="text" class="form-control-custom" id="qsNotes" placeholder="PhonePe / Cash" />
           </div>
           <div class="col-12 col-md-2">
@@ -119,12 +120,34 @@ window.loadPayments = async function loadPayments() {
           </div>
         </div>`;
     } else {
+      const myId = App.currentUser?.userid || '';
+      const myName = App.currentUser?.name || App.currentUser?.shortName || 'Member';
       recordBody.innerHTML = `
-        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:rgba(26,115,232,0.06);border-radius:12px;border:1px dashed rgba(26,115,232,0.3)">
-          <div style="font-size:36px">📲</div>
-          <div>
-            <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:4px">Scan the QR above &amp; pay via UPI</div>
-            <div style="font-size:13px;color:var(--text-muted)">After you pay, let <strong>Jagan (Admin)</strong> know — he will confirm and update your balance.</div>
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-3">
+            <label class="form-label-custom">Payer (You)</label>
+            <select class="form-control-custom" id="qsFrom" disabled>
+              <option value="${myId}" selected>${myName} (${myId})</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label-custom">Paid To</label>
+            <select class="form-control-custom" id="qsTo">
+              <option value="192472374" selected>Kandukuri Jagan (Admin)</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label-custom">Amount (₹)</label>
+            <input type="number" class="form-control-custom" id="qsAmount" placeholder="Enter amount" min="1" required />
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label-custom">Date</label>
+            <input type="date" class="form-control-custom" id="qsDate" value="${new Date().toISOString().split('T')[0]}" />
+          </div>
+          <div class="col-12 col-md-2">
+            <button class="btn-success-custom" onclick="quickSettle()" style="width:100%;padding:11px;font-weight:700">
+              <i class="fas fa-paper-plane me-1"></i>Submit Payment
+            </button>
           </div>
         </div>`;
     }
@@ -412,9 +435,15 @@ async function quickSettle() {
 
   if (res && res.success) {
     showToast('Payment Settlement Recorded ✅', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}`, 'success');
-    fromEl.value = ''; toEl.value = '';
-    document.getElementById('qsAmount').value = '';
-    document.getElementById('qsNotes').value  = '';
+    if (typeof triggerPushNotification === 'function') {
+      triggerPushNotification('💰 Payment Recorded', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}`);
+    }
+    if (fromEl && !fromEl.disabled) fromEl.value = '';
+    if (toEl && !toEl.disabled) toEl.value = '';
+    const amtEl = document.getElementById('qsAmount');
+    if (amtEl) amtEl.value = '';
+    const notesEl = document.getElementById('qsNotes');
+    if (notesEl) notesEl.value = '';
     loadPayments();
   } else {
     showToast('Error', res?.message || 'Failed to record settlement.', 'error');
@@ -429,6 +458,9 @@ async function deleteSettlementInLog(id) {
 
   if (res && res.success) {
     showToast('Deleted', 'Settlement removed.', 'success');
+    if (typeof triggerPushNotification === 'function') {
+      triggerPushNotification('🔄 Settlement Removed', 'A settlement transaction was deleted');
+    }
     loadPayments();
   }
 }

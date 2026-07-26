@@ -158,9 +158,14 @@ router.get('/settlements', requireAuth, async (req, res) => {
 
 const { notifySettlement } = require('../telegram');
 
-// POST /api/balance/settle – record a cash / UPI settlement (ADMIN ONLY)
-router.post('/settle', requireAdmin, async (req, res) => {
+// POST /api/balance/settle – record a cash / UPI settlement (ALL AUTHENTICATED MEMBERS)
+router.post('/settle', requireAuth, async (req, res) => {
   const { fromMemberId, fromMemberName, toMemberId, toMemberName, amount, notes, date } = req.body;
+
+  // Non-admins can only record settlements from themselves
+  if (req.user.role !== 'admin' && fromMemberId !== req.user.userid) {
+    return res.status(403).json({ success: false, message: 'You can only record payment settlements for your own account' });
+  }
 
   if (!fromMemberId || !toMemberId || !amount || parseFloat(amount) <= 0) {
     return res.status(400).json({ success: false, message: 'from, to, and amount are required' });
@@ -186,7 +191,7 @@ router.post('/settle', requireAdmin, async (req, res) => {
     // Notification
     await run(
       `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
-      [uuidv4(), 'payment', `Settlement: ${fromMemberName} paid ₹${parsedAmount} to ${toMemberName}`, createdAt, 'admin']
+      [uuidv4(), 'payment', `Settlement: ${fromMemberName} paid ₹${parsedAmount} to ${toMemberName}`, createdAt, 'all']
     );
 
     // Telegram Bot Notification

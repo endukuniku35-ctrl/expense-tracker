@@ -77,7 +77,7 @@ router.post('/', requireAdmin, async (req, res) => {
     // Notification
     await run(
       `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
-      [uuidv4(), 'system', `New member added: ${name.trim()} (${userid.trim()})`, new Date().toISOString(), 'admin']
+      [uuidv4(), 'system', `New member added: ${name.trim()} (${userid.trim()})`, new Date().toISOString(), 'all']
     );
 
     res.status(201).json({
