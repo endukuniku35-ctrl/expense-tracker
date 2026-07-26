@@ -2,7 +2,7 @@
  * charts.js – Charts View with Chart.js
  */
 
-async function loadCharts() {
+window.loadCharts = async function loadCharts() {
   const content = document.getElementById('viewContent');
   content.innerHTML = `
     <div style="animation:fadeInUp 0.4s ease">

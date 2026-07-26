@@ -2,7 +2,7 @@
  * dashboard.js – Dashboard View (Dynamic 2, 3, or 4 member split model)
  */
 
-async function loadDashboard() {
+window.loadDashboard = async function loadDashboard() {
   const content = document.getElementById('viewContent');
   content.innerHTML = `<div style="opacity:0;animation:fadeInUp 0.4s ease forwards">
     <div class="row g-3 mb-4" id="statsGrid">

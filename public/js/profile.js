@@ -2,7 +2,7 @@
  * profile.js – Profile View
  */
 
-function loadProfile() {
+window.loadProfile = function loadProfile() {
   const content = document.getElementById('viewContent');
   const user = App.currentUser;
   if (!user) return;

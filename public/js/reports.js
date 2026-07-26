@@ -2,7 +2,7 @@
  * reports.js – Reports & Export View
  */
 
-async function loadReports() {
+window.loadReports = async function loadReports() {
   const content = document.getElementById('viewContent');
   const now = new Date();
   const defaultYear = now.getFullYear();

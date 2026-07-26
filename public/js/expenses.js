@@ -20,7 +20,7 @@ const MEMBER_MAP = {
   '192411185': 'Bharath'
 };
 
-async function loadExpenses() {
+window.loadExpenses = async function loadExpenses() {
   const content = document.getElementById('viewContent');
   const isAdmin = App.isAdmin;
 

@@ -2,7 +2,7 @@
  * payments.js – Live Payment Status & Settlement Tracker
  */
 
-async function loadPayments() {
+window.loadPayments = async function loadPayments() {
   const content = document.getElementById('viewContent');
   if (!content) return;
   content.innerHTML = `

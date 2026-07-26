@@ -2,7 +2,7 @@
  * members.js – Dynamic Members View & Add Member Controller
  */
 
-async function loadMembers() {
+window.loadMembers = async function loadMembers() {
   const content = document.getElementById('viewContent');
   content.innerHTML = `
     <div style="animation:fadeInUp 0.4s ease">

@@ -175,28 +175,28 @@ function navigateTo(view) {
 
   // Load view
   const content = document.getElementById('viewContent');
-  try {
-    const loaders = {
-      dashboard: typeof loadDashboard === 'function' ? loadDashboard : window.loadDashboard,
-      members: typeof loadMembers === 'function' ? loadMembers : window.loadMembers,
-      expenses: typeof loadExpenses === 'function' ? loadExpenses : window.loadExpenses,
-      payments: typeof loadPayments === 'function' ? loadPayments : window.loadPayments,
-      reports: typeof loadReports === 'function' ? loadReports : window.loadReports,
-      charts: typeof loadCharts === 'function' ? loadCharts : window.loadCharts,
-      profile: typeof loadProfile === 'function' ? loadProfile : window.loadProfile
-    };
+  const loaders = {
+    dashboard: window.loadDashboard,
+    members: window.loadMembers,
+    expenses: window.loadExpenses,
+    payments: window.loadPayments,
+    reports: window.loadReports,
+    charts: window.loadCharts,
+    profile: window.loadProfile
+  };
 
-    const loaderFn = loaders[view] || loaders.dashboard;
-    if (typeof loaderFn === 'function') {
+  const loaderFn = loaders[view] || window.loadDashboard;
+  if (typeof loaderFn === 'function') {
+    try {
       loaderFn();
-    } else if (content) {
-      content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading ${view}... <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
+    } catch (err) {
+      console.error('Error executing loader for view ' + view + ':', err);
+      if (content) {
+        content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">Error loading ${view}. <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
+      }
     }
-  } catch (err) {
-    console.error('Error loading view:', view, err);
-    if (content) {
-      content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Failed to load ${view}. <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
-    }
+  } else if (content) {
+    content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading ${view}... <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
   }
 
   // Close sidebar on mobile
