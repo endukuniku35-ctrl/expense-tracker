@@ -34,11 +34,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve static assets with no-cache headers to ensure immediate live updates
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: 0,
-  etag: true,
+  etag: false,
   setHeaders: (res, path) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    res.setHeader('Clear-Site-Data', '"cache"');
   }
 }));
 
