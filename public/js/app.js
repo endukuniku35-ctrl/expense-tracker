@@ -381,7 +381,7 @@ window.addEventListener('hashchange', () => {
 window.activeQrPayment = null;
 
 function openPayUpiQrModal(fromMemberId, fromMemberName, toMemberId, toMemberName, amount) {
-  const adminUpiId = localStorage.getItem('admin_upi_id') || '192472374@ybl';
+  const adminUpiId = localStorage.getItem('admin_upi_id') || '8367047947@ybl';
   window.activeQrPayment = { fromMemberId, fromMemberName, toMemberId, toMemberName, amount };
 
   const upiDeepLink = `upi://pay?pa=${adminUpiId}&pn=${encodeURIComponent(toMemberName)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Curry Expense Settlement')}`;
