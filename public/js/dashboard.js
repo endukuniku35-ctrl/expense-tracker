@@ -154,7 +154,7 @@ async function loadDashboard() {
     </div>
     <div class="row g-3">
       ${balances.map(b => {
-        const isOwes = b.netBalance < 0;
+        const isOwes = (b.outstanding > 0) && (b.netBalance < 0 || b.totalPaid <= b.totalShare);
         const isSettled = b.outstanding <= 0;
         return `
           <div class="col-xl-3 col-md-6">
