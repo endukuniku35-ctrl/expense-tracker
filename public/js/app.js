@@ -377,6 +377,60 @@ window.addEventListener('hashchange', () => {
   navigateTo(view);
 });
 
+// ─── UPI QR Payment Controller ─────────────────────
+window.activeQrPayment = null;
+
+function openPayUpiQrModal(fromMemberId, fromMemberName, toMemberId, toMemberName, amount) {
+  const adminUpiId = localStorage.getItem('admin_upi_id') || '192472374@ybl';
+  window.activeQrPayment = { fromMemberId, fromMemberName, toMemberId, toMemberName, amount };
+
+  const upiDeepLink = `upi://pay?pa=${adminUpiId}&pn=${encodeURIComponent(toMemberName)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Curry Expense Settlement')}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiDeepLink)}`;
+
+  document.getElementById('qrPayAmount').textContent = `₹${amount.toLocaleString('en-IN')}`;
+  document.getElementById('qrReceiverName').textContent = `${toMemberName} (Admin)`;
+  document.getElementById('qrUpiId').textContent = adminUpiId;
+  document.getElementById('upiQrImage').src = qrCodeUrl;
+
+  const appLink = document.getElementById('upiAppLaunchBtn');
+  if (appLink) appLink.href = upiDeepLink;
+
+  const modalEl = document.getElementById('upiQrModal');
+  if (modalEl) {
+    new bootstrap.Modal(modalEl).show();
+  }
+}
+
+async function confirmQrPaymentSent() {
+  if (!window.activeQrPayment) return;
+
+  const { fromMemberId, fromMemberName, toMemberId, toMemberName, amount } = window.activeQrPayment;
+  const date = new Date().toISOString().split('T')[0];
+  const notes = 'UPI QR Code Payment (Auto-Confirmed)';
+
+  showLoader();
+  const res = await api('/api/balance/settle', {
+    method: 'POST',
+    body: JSON.stringify({ fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parseFloat(amount), date, notes })
+  });
+  hideLoader();
+
+  const modalEl = document.getElementById('upiQrModal');
+  const modal = bootstrap.Modal.getInstance(modalEl);
+  if (modal) modal.hide();
+
+  if (res && res.success) {
+    showToast('Payment Confirmed & Settled! 🎉', `${fromMemberName} paid ₹${parseFloat(amount).toLocaleString('en-IN')} to ${toMemberName}. Balance updated instantly!`, 'success');
+    window.activeQrPayment = null;
+
+    // Reload current view
+    const currentView = window.location.hash.replace('#', '') || 'dashboard';
+    navigateTo(currentView);
+  } else {
+    showToast('Error', res?.message || 'Failed to update payment settlement.', 'error');
+  }
+}
+
 // Animate stat values
 function animateCounter(element, target, prefix = '', suffix = '') {
   const duration = 1200;

@@ -152,8 +152,8 @@ async function loadMembers() {
               </div>
             </div>
 
-            <!-- Status badge -->
-            <div style="display:flex;justify-content:space-between;align-items:center">
+            <!-- Status badge & QR Pay Button -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${isOwes && !isSettled ? '10px' : '0'}">
               ${isSettled
                 ? `<span class="badge-paid">✅ Settled</span>`
                 : isOwes
@@ -162,6 +162,11 @@ async function loadMembers() {
               }
               <span style="font-size:12px;color:var(--text-muted)">${b.expenseCount || 0} meals paid</span>
             </div>
+            ${isOwes && !isSettled ? `
+              <button class="btn-success-custom w-100" style="padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(out)})">
+                <i class="fas fa-qrcode"></i> Pay ₹${Math.round(out).toLocaleString('en-IN')} via UPI QR
+              </button>
+            ` : ''}
           </div>
         </div>`;
     }).join('');

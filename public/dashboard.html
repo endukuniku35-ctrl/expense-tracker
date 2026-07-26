@@ -267,6 +267,43 @@
   </div>
 </div>
 
+<!-- UPI QR Code Payment Modal -->
+<div class="modal fade" id="upiQrModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center" style="border-radius:24px">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-qrcode me-2 text-primary"></i>Pay via UPI QR</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:20px 24px">
+        <div style="background:linear-gradient(135deg,rgba(26,115,232,0.08),rgba(52,168,83,0.08));border-radius:14px;padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px">Amount to Pay</div>
+          <div style="font-size:26px;font-weight:800;color:var(--primary)" id="qrPayAmount">₹0</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">Paying to: <strong id="qrReceiverName">Jagan (Admin)</strong></div>
+        </div>
+
+        <!-- Live QR Code Image -->
+        <div style="background:#fff;padding:12px;border-radius:16px;display:inline-block;box-shadow:0 4px 16px rgba(0,0,0,0.1);margin-bottom:14px">
+          <img id="upiQrImage" src="" alt="UPI QR Code" style="width:190px;height:190px;display:block" />
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px" id="qrUpiText">
+          UPI ID: <strong id="qrUpiId" style="color:var(--text-primary)">192472374@ybl</strong>
+        </div>
+
+        <!-- Direct App Launch Button for Mobile -->
+        <a id="upiAppLaunchBtn" href="#" class="btn-success-custom w-100 mb-2" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;text-decoration:none">
+          <i class="fas fa-mobile-alt"></i> Open GPay / PhonePe / Paytm
+        </a>
+
+        <button class="btn-primary-custom w-100" onclick="confirmQrPaymentSent()" style="padding:10px;font-size:13px">
+          <i class="fas fa-check-circle me-1"></i> I Have Paid – Update Balance Now
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- App Layout -->
 <div class="app-layout">
 

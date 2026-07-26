@@ -251,6 +251,12 @@ async function loadPayments() {
             <div class="progress-fill ${pct < 50 ? 'danger' : pct < 100 ? 'warning' : ''}" style="width:${Math.min(pct, 100)}%"></div>
           </div>
         </div>
+
+        ${isOwes && !isSettled ? `
+          <button class="btn-success-custom w-100 mt-2" style="padding:8px 12px;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px" onclick="openPayUpiQrModal('${b.userid}', '${b.name}', '192472374', 'Jagan', ${Math.round(b.outstanding)})">
+            <i class="fas fa-qrcode"></i> Pay ₹${Math.round(b.outstanding).toLocaleString('en-IN')} via UPI QR
+          </button>
+        ` : ''}
       </div>
     </div>`;
   }).join('');
