@@ -179,20 +179,32 @@ function triggerPushNotification(title, body) {
     showToast(title, body, 'info', 4000);
   }
 
-  const baseUrl = window.location.origin;
-  const iconUrl = `${baseUrl}/icons/icon-192.png`;
-  const notificationUrl = `${baseUrl}/dashboard.html#chat`;
+  const iconUrl = 'https://expense-tracker-77br.onrender.com/icons/icon-192.png';
 
   // 1. Direct Browser System Notification
   try {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification(title || 'Curry Tracker 🍛', {
-        body: body || 'New notification alert!',
-        icon: iconUrl,
-        badge: iconUrl,
-        vibrate: [300, 100, 300],
-        tag: 'curry-direct-' + Date.now()
-      });
+    if (typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        new Notification(title || 'Curry Tracker 🍛', {
+          body: body || 'New notification alert!',
+          icon: iconUrl,
+          badge: iconUrl,
+          vibrate: [300, 100, 300],
+          tag: 'curry-direct-' + Date.now()
+        });
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') {
+            new Notification(title || 'Curry Tracker 🍛', {
+              body: body || 'New notification alert!',
+              icon: iconUrl,
+              badge: iconUrl,
+              vibrate: [300, 100, 300],
+              tag: 'curry-direct-' + Date.now()
+            });
+          }
+        }).catch(() => {});
+      }
     }
   } catch (e) {}
 
@@ -208,7 +220,7 @@ function triggerPushNotification(title, body) {
             vibrate: [300, 100, 300],
             tag: 'curry-sw-' + Date.now(),
             renotify: true,
-            data: { url: notificationUrl }
+            data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
           }).catch(() => {});
         }
       }).catch(() => {});

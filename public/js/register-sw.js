@@ -16,6 +16,7 @@ function urlBase64ToUint8Array(base64String) {
 
 window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     const vapidRes = await fetch('/api/notifications/vapid-key').then(r => r.json());
@@ -25,30 +26,42 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
     let sub = await reg.pushManager.getSubscription();
 
     if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: keyArray
-      }).catch(async () => {
-        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+        if (Notification.permission === 'default') {
           const perm = await Notification.requestPermission().catch(() => 'denied');
-          if (perm === 'granted') {
-            return reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: keyArray
-            }).catch(() => null);
+          if (perm !== 'granted') {
+            console.log('[PWA] Push permission not granted during auto-register:', perm);
+            return;
           }
+        } else {
+          console.log('[PWA] Push permission blocked. Cannot auto-subscribe.');
+          return;
         }
-        return null;
-      });
+      }
+
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: keyArray
+        });
+      } catch (err) {
+        console.error('[PWA] Auto push subscribe failed:', err);
+        return;
+      }
     }
 
     if (sub) {
-      await fetch('/api/notifications/subscribe', {
+      const res = await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...sub.toJSON(), userid: 'device_' + Date.now() })
       });
-      console.log('[PWA] Device Push Registered Successfully 24/7!');
+      const data = await res.json().catch(() => null);
+      if (data && data.success) {
+        console.log('[PWA] Device Push Registered Successfully 24/7!');
+      } else {
+        console.error('[PWA] Auto-register subscription save failed:', data);
+      }
     }
   } catch (e) {
     console.log('[PWA] Auto-push notice:', e);
@@ -56,7 +69,7 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
 };
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
+  window.addEventListener('load', async function() {
     if (navigator.serviceWorker.getRegistrations) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         for (let reg of registrations) {
@@ -64,12 +77,13 @@ if ('serviceWorker' in navigator) {
         }
       }).catch(() => {});
     }
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(function() {
-        window.autoRegisterDevicePush();
-      })
-      .catch(function(err) {
-        console.error('[PWA] ServiceWorker registration failed:', err);
-      });
+
+    try {
+      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      await navigator.serviceWorker.ready;
+      await window.autoRegisterDevicePush();
+    } catch (err) {
+      console.error('[PWA] ServiceWorker registration failed:', err);
+    }
   });
 }
