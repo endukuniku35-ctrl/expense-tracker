@@ -84,10 +84,9 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
 
   try {
     if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-      if (!isManualClick) return;
-      const perm = await Notification.requestPermission();
+      const perm = await Notification.requestPermission().catch(() => 'denied');
       if (perm === 'denied') {
-        if (typeof showToast === 'function') {
+        if (isManualClick && typeof showToast === 'function') {
           showToast('Permission Blocked 🔒', 'Tap Tune/Lock icon to left of URL -> Permissions -> Notifications -> ALLOW', 'warning', 8000);
         }
         return;
