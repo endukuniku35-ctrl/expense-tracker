@@ -10,6 +10,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { getMembers } = require('./balance');
 const { all, get, run } = require('../database');
 
 const ALL_MEMBERS = ['192472374', '192472343', '192411184', '192411185'];
@@ -43,16 +44,20 @@ async function getMemberName(userid) {
   } catch (e) { return userid; }
 }
 
-// GET /api/expenses - list with optional filters
+// GET /api/expenses - list with optional filters for group members
 router.get('/', requireAuth, async (req, res) => {
   try {
+    const groupMembers = await getMembers(req.session?.user);
+    const groupMemberIds = groupMembers.map(m => m.userid);
     let rows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
     
-    let expenses = (rows || []).map(r => ({
-      ...r,
-      amount: Number(r.amount || 0),
-      splitBetween: parseSplitBetween(r.splitBetween)
-    }));
+    let expenses = (rows || [])
+      .map(r => ({
+        ...r,
+        amount: Number(r.amount || 0),
+        splitBetween: parseSplitBetween(r.splitBetween)
+      }))
+      .filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
 
     const { search, month, member, category, sortBy, page = 1, limit = 20 } = req.query;
 
@@ -108,15 +113,19 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/expenses/all - all without pagination (for exports)
+// GET /api/expenses/all - all without pagination (for exports) for group members
 router.get('/all', requireAuth, async (req, res) => {
   try {
+    const groupMembers = await getMembers(req.session?.user);
+    const groupMemberIds = groupMembers.map(m => m.userid);
     const rows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
-    const expenses = (rows || []).map(r => ({
-      ...r,
-      amount: Number(r.amount || 0),
-      splitBetween: parseSplitBetween(r.splitBetween)
-    }));
+    const expenses = (rows || [])
+      .map(r => ({
+        ...r,
+        amount: Number(r.amount || 0),
+        splitBetween: parseSplitBetween(r.splitBetween)
+      }))
+      .filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
     res.json({ success: true, data: expenses });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch expenses' });

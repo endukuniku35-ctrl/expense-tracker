@@ -1,7 +1,6 @@
 /**
  * routes/balance.js (SQLite & JSON Backend)
- * Core logic: curry expenses split among participating members (2, 3, or 4 people).
- * One person pays the full bill → participating members split the cost equally.
+ * Core logic: curry expenses split among participating members of each group.
  */
 
 const express = require('express');
@@ -12,15 +11,32 @@ const { all, get, run } = require('../database');
 
 const MEMBERS = ['192472374', '192472343', '192411184', '192411185'];
 
-async function getMembers() {
+async function getMembers(currentUser) {
   const users = await all('SELECT * FROM users');
-  return (users || []).map(u => ({
+  let userList = (users || []).map(u => ({
     userid: u.userid,
     name: u.name,
     shortName: u.shortName || u.name,
     avatar: u.avatar || (u.shortName ? u.shortName.substring(0, 2).toUpperCase() : 'U'),
-    role: u.role || 'member'
+    role: u.role || 'member',
+    createdBy: u.createdBy || '192472374',
+    createdByName: u.createdByName || 'Jagan (Main Admin)'
   }));
+
+  if (currentUser) {
+    const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.userid === '192472374';
+    if (!isSuperAdmin) {
+      // Secondary admin or member: find the group admin ID
+      const adminId = currentUser.role === 'admin' ? currentUser.userid : (currentUser.createdBy || '192472374');
+      userList = userList.filter(u => u.userid === adminId || u.createdBy === adminId);
+    } else {
+      // Main Super Admin Jagan: show Jagan's group members
+      const adminId = '192472374';
+      userList = userList.filter(u => u.userid === adminId || u.createdBy === adminId || !u.createdBy);
+    }
+  }
+
+  return userList;
 }
 
 function parseSplitBetween(val, defaultMemberIds) {
@@ -35,22 +51,25 @@ function parseSplitBetween(val, defaultMemberIds) {
 }
 
 /**
- * Compute the full balance sheet from expenses + settlements
+ * Compute the full balance sheet from expenses + settlements for the requesting user's group
  */
-async function computeBalances() {
+async function computeBalances(currentUser) {
   try {
-    const members = await getMembers();
-    const allMemberIds = members.map(m => m.userid);
+    const members = await getMembers(currentUser);
+    const groupMemberIds = members.map(m => m.userid);
     const expRows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
     const setRows = await all('SELECT * FROM settlements ORDER BY date DESC, createdAt DESC');
 
-    const expenses = (expRows || []).map(r => ({
-      ...r,
-      amount: Number(r.amount || 0),
-      splitBetween: parseSplitBetween(r.splitBetween, allMemberIds)
-    }));
+    const expenses = (expRows || [])
+      .map(r => ({
+        ...r,
+        amount: Number(r.amount || 0),
+        splitBetween: parseSplitBetween(r.splitBetween, groupMemberIds)
+      }))
+      .filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
 
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+    const perPersonShare = members.length > 0 ? (totalExpenses / members.length) : 0;
 
     // Per-member stats
     const balances = {};
@@ -72,20 +91,21 @@ async function computeBalances() {
 
     // Tally who paid what & calculate dynamic per-meal split
     expenses.forEach(e => {
-      const splitList = parseSplitBetween(e.splitBetween, allMemberIds);
-      const perPersonForMeal = e.amount / splitList.length;
+      const splitList = parseSplitBetween(e.splitBetween, groupMemberIds).filter(uid => groupMemberIds.includes(uid));
+      const effectiveSplitList = splitList.length > 0 ? splitList : groupMemberIds;
+      const perPersonForMeal = e.amount / effectiveSplitList.length;
 
       if (balances[e.paidBy]) {
         balances[e.paidBy].totalPaid    += e.amount;
         balances[e.paidBy].expenseCount += 1;
         balances[e.paidBy].expenses.push({
           ...e,
-          splitCount: splitList.length,
+          splitCount: effectiveSplitList.length,
           perPersonShare: perPersonForMeal
         });
       }
 
-      splitList.forEach(uid => {
+      effectiveSplitList.forEach(uid => {
         if (balances[uid]) {
           balances[uid].totalShare += perPersonForMeal;
           balances[uid].mealsCount += 1;
@@ -94,21 +114,16 @@ async function computeBalances() {
     });
 
     // Settlements
-    (setRows || []).forEach(s => {
+    const groupSettlements = (setRows || []).filter(s => groupMemberIds.includes(s.fromMemberId) || groupMemberIds.includes(s.toMemberId));
+    groupSettlements.forEach(s => {
       const amt = Number(s.amount || 0);
       if (balances[s.fromMemberId]) balances[s.fromMemberId].settledOut += amt;
       if (balances[s.toMemberId])   balances[s.toMemberId].settledIn   += amt;
     });
 
-    // Final balances computation
-    const memberCount = members.length || 1;
-    const totalShareSum = Object.values(balances).reduce((s, b) => s + b.totalShare, 0);
-    const perPersonShare = totalShareSum / memberCount;
-
-    members.forEach(m => {
-      const b = balances[m.userid];
+    // Finalize balance & status
+    Object.values(balances).forEach(b => {
       b.initialNet  = b.totalPaid - b.totalShare;
-      // Post-settlement effective balance
       b.netBalance  = Math.round((b.totalPaid + b.settledOut) - (b.totalShare + b.settledIn));
       b.outstanding = Math.abs(b.netBalance);
       b.status      = b.outstanding <= 0 ? 'settled' : (b.netBalance < 0 ? 'owes' : 'to-receive');
@@ -118,17 +133,18 @@ async function computeBalances() {
         ? Math.min(100, Math.round((totalPaidWithSettlements / b.totalShare) * 100))
         : 0;
     });
-    return { balances: Object.values(balances), totalExpenses, perPersonShare, settlements: setRows || [] };
+
+    return { balances: Object.values(balances), totalExpenses, perPersonShare, settlements: groupSettlements };
   } catch (err) {
     console.error('❌ CRITICAL ERROR IN computeBalances:', err);
     throw err;
   }
 }
 
-// GET /api/balance  – full balance sheet
+// GET /api/balance  – full balance sheet for user group
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const data = await computeBalances();
+    const data = await computeBalances(req.session?.user);
     res.json({ success: true, ...data });
   } catch (err) {
     console.error('Error in /api/balance:', err);
@@ -139,39 +155,32 @@ router.get('/', requireAuth, async (req, res) => {
 // GET /api/balance/summary – quick summary
 router.get('/summary', requireAuth, async (req, res) => {
   try {
-    const { balances, totalExpenses, perPersonShare } = await computeBalances();
+    const { balances, totalExpenses, perPersonShare } = await computeBalances(req.session?.user);
     res.json({ success: true, balances, totalExpenses, perPersonShare });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch balance summary' });
   }
 });
 
-// GET /api/balance/settlements – all settlements
+// GET /api/balance/settlements – all settlements for user group
 router.get('/settlements', requireAuth, async (req, res) => {
   try {
+    const members = await getMembers(req.session?.user);
+    const groupMemberIds = members.map(m => m.userid);
     const settlements = await all('SELECT * FROM settlements ORDER BY date DESC, createdAt DESC');
-    res.json({ success: true, data: settlements || [] });
+    const groupSettlements = (settlements || []).filter(s => groupMemberIds.includes(s.fromMemberId) || groupMemberIds.includes(s.toMemberId));
+    res.json({ success: true, data: groupSettlements });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch settlements' });
   }
 });
 
-const { notifySettlement } = require('../telegram');
-
-// POST /api/balance/settle – record a cash / UPI settlement (ALL AUTHENTICATED MEMBERS)
+// POST /api/balance/settle – record a settlement payment
 router.post('/settle', requireAuth, async (req, res) => {
   const { fromMemberId, fromMemberName, toMemberId, toMemberName, amount, notes, date } = req.body;
 
-  // Non-admins can only record settlements from themselves
-  if (req.user.role !== 'admin' && fromMemberId !== req.user.userid) {
-    return res.status(403).json({ success: false, message: 'You can only record payment settlements for your own account' });
-  }
-
   if (!fromMemberId || !toMemberId || !amount || parseFloat(amount) <= 0) {
     return res.status(400).json({ success: false, message: 'from, to, and amount are required' });
-  }
-  if (fromMemberId === toMemberId) {
-    return res.status(400).json({ success: false, message: 'From and To member cannot be the same' });
   }
 
   const id = uuidv4();
@@ -180,59 +189,37 @@ router.post('/settle', requireAuth, async (req, res) => {
   const parsedAmount = parseFloat(amount);
 
   try {
-    const settlementData = { id, fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parsedAmount, notes: notes || '', date: settlementDate, createdAt };
-
     await run(
       `INSERT INTO settlements (id, fromMemberId, fromMemberName, toMemberId, toMemberName, amount, notes, date, createdAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [id, fromMemberId, fromMemberName, toMemberId, toMemberName, parsedAmount, notes || '', settlementDate, createdAt]
     );
 
-    // Notification
+    const message = `💸 Payment Recorded: ${fromMemberName} paid ₹${parsedAmount.toLocaleString('en-IN')} to ${toMemberName}`;
     await run(
       `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
-      [uuidv4(), 'payment', `Settlement: ${fromMemberName} paid ₹${parsedAmount} to ${toMemberName}`, createdAt, 'all']
+      [uuidv4(), 'payment', message, createdAt, 'all']
     );
 
-    // Telegram Bot Notification
-    notifySettlement(settlementData).catch(err => console.error('Telegram error:', err));
-
-    res.status(201).json({ success: true, message: 'Settlement recorded in DB', data: settlementData });
+    res.status(201).json({
+      success: true,
+      message: `Settlement recorded: ₹${parsedAmount} from ${fromMemberName} to ${toMemberName}`,
+      data: { id, fromMemberId, fromMemberName, toMemberId, toMemberName, amount: parsedAmount, notes, date: settlementDate, createdAt }
+    });
   } catch (err) {
-    console.error('Error saving settlement:', err);
-    res.status(500).json({ success: false, message: 'Database error saving settlement' });
+    console.error('Error recording settlement:', err);
+    res.status(500).json({ success: false, message: 'Failed to record settlement' });
   }
 });
 
-// DELETE /api/balance/settle/:id – remove a settlement (admin)
+// DELETE /api/balance/settle/:id – delete settlement transaction
 router.delete('/settle/:id', requireAdmin, async (req, res) => {
-  const { id } = req.params;
   try {
-    const existing = await get('SELECT * FROM settlements WHERE id = ?', [id]);
-    if (!existing) return res.status(404).json({ success: false, message: 'Settlement not found' });
-
-    await run('DELETE FROM settlements WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Settlement deleted from DB' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Database error deleting settlement' });
+    await run('DELETE FROM settlements WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Settlement record deleted' });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Failed to delete settlement' });
   }
 });
 
-// POST /api/balance/clear-all – wipe all expense & settlement data (ADMIN ONLY)
-router.post('/clear-all', requireAdmin, async (req, res) => {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const dataDir = path.join(__dirname, '../data');
-    fs.writeFileSync(path.join(dataDir, 'expenses.json'), '[]');
-    fs.writeFileSync(path.join(dataDir, 'settlements.json'), '[]');
-    fs.writeFileSync(path.join(dataDir, 'notifications.json'), '[]');
-    fs.writeFileSync(path.join(dataDir, 'payments.json'), '[]');
-    res.json({ success: true, message: 'All website expenses and settlement data deleted successfully.' });
-  } catch (err) {
-    console.error('Error clearing data:', err);
-    res.status(500).json({ success: false, message: 'Failed to clear data' });
-  }
-});
-
-module.exports = { router, computeBalances, MEMBERS };
+module.exports = { router, computeBalances, getMembers };

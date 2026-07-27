@@ -33,8 +33,10 @@ async function getExpenses() {
 // GET /api/dashboard/stats
 router.get('/stats', requireAuth, async (req, res) => {
   try {
-    const expenses = await getExpenses();
-    const { balances, totalExpenses, perPersonShare } = await computeBalances();
+    const { balances, totalExpenses, perPersonShare } = await computeBalances(req.session?.user);
+    const groupMemberIds = balances.map(b => b.userid);
+    const allExpenses = await getExpenses();
+    const expenses = allExpenses.filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
 
     const now = new Date();
     const todayStr  = now.toISOString().split('T')[0];
@@ -79,8 +81,10 @@ router.get('/stats', requireAuth, async (req, res) => {
 // GET /api/dashboard/charts
 router.get('/charts', requireAuth, async (req, res) => {
   try {
-    const expenses = await getExpenses();
-    const { balances } = await computeBalances();
+    const { balances } = await computeBalances(req.session?.user);
+    const groupMemberIds = balances.map(b => b.userid);
+    const allExpenses = await getExpenses();
+    const expenses = allExpenses.filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
 
     // Category breakdown
     const categoryMap = {};

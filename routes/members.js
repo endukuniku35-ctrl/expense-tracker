@@ -65,7 +65,7 @@ router.post('/create-admin', requireSuperAdmin, async (req, res) => {
 // GET /api/members - List members and their balance sheets
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { balances, totalExpenses, perPersonShare } = await computeBalances();
+    const { balances, totalExpenses, perPersonShare } = await computeBalances(req.session?.user);
     res.json({ success: true, data: balances, totalExpenses, perPersonShare });
   } catch (err) {
     console.error('Error fetching members balance:', err);
