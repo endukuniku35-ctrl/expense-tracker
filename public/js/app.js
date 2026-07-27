@@ -297,7 +297,7 @@ async function initApp() {
 
   const sidebarAv = document.getElementById('sidebarAvatar');
   if (sidebarAv) {
-    if (userPhoto) sidebarAv.innerHTML = `<img src="${userPhoto}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
+    if (userPhoto) sidebarAv.innerHTML = `<img src="${userPhoto}" onerror="this.onerror=null;this.parentElement.textContent='${avatar}'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
     else sidebarAv.textContent = avatar;
   }
 
@@ -306,7 +306,7 @@ async function initApp() {
 
   const topbarAv = document.getElementById('topbarAvatar');
   if (topbarAv) {
-    if (userPhoto) topbarAv.innerHTML = `<img src="${userPhoto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
+    if (userPhoto) topbarAv.innerHTML = `<img src="${userPhoto}" onerror="this.onerror=null;this.parentElement.textContent='${avatar}'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
     else topbarAv.textContent = avatar;
   }
   document.getElementById('topbarName').textContent = shortName;
