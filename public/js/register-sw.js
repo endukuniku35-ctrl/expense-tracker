@@ -14,37 +14,50 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const vapidRes = await fetch('/api/notifications/vapid-key').then(r => r.json());
+    if (!vapidRes || !vapidRes.publicKey) return;
+
+    const keyArray = urlBase64ToUint8Array(vapidRes.publicKey);
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: keyArray
+      }).catch(async () => {
+        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+          await Notification.requestPermission();
+        }
+        return reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: keyArray
+        });
+      });
+    }
+
+    if (sub) {
+      await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...sub.toJSON(), userid: 'device_' + Date.now() })
+      });
+      console.log('[PWA] Device Push Registered 24/7!');
+    }
+  } catch (e) {
+    console.log('[PWA] Auto-push notice:', e);
+  }
+};
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(function(reg) {
         console.log('[PWA] ServiceWorker registered with scope:', reg.scope);
-        
-        // Auto-subscribe fresh VAPID Push on opening app / APK without requiring login
-        if ('PushManager' in window && reg.pushManager) {
-          fetch('/api/notifications/vapid-key')
-            .then(res => res.json())
-            .then(async data => {
-              if (data && data.publicKey) {
-                const keyArray = urlBase64ToUint8Array(data.publicKey);
-                let existingSub = await reg.pushManager.getSubscription();
-                if (existingSub) {
-                  await existingSub.unsubscribe().catch(() => {});
-                }
-                const newSub = await reg.pushManager.subscribe({
-                  userVisibleOnly: true,
-                  applicationServerKey: keyArray
-                });
-                return fetch('/api/notifications/subscribe', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ ...newSub.toJSON(), userid: 'unauthenticated_apk' })
-                });
-              }
-            })
-            .then(() => console.log('[PWA] Fresh VAPID Push Subscribed 24/7'))
-            .catch(err => console.log('[PWA] VAPID Sub notice:', err));
-        }
+        window.autoRegisterDevicePush();
       })
       .catch(function(err) {
         console.error('[PWA] ServiceWorker registration failed:', err);

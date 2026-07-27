@@ -1,6 +1,6 @@
 /**
  * push_service.js – Multi-Device VAPID Web Push Notification Engine
- * Uses valid P-256 VAPID keys for 100% Google FCM / Android OS background push delivery.
+ * Sends push notifications concurrently via Promise.allSettled to all devices.
  */
 
 const webPush = require('web-push');
@@ -22,7 +22,6 @@ try {
     vapidKeys.publicKey,
     vapidKeys.privateKey
   );
-  console.log('[VAPID] Web Push Crypto details configured successfully.');
 } catch (e) {
   console.error('[VAPID] Key setup error:', e);
 }
@@ -52,6 +51,7 @@ function saveSubscription(sub, userid = 'guest') {
     subs.push(entry);
   }
   fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
+  console.log(`[PushService] Saved subscription for user: ${userid}. Total devices: ${subs.length}`);
 }
 
 async function sendPushToAllSubscribers(title, message, targetUserid = 'all', url = '/dashboard.html#chat') {
@@ -64,7 +64,6 @@ async function sendPushToAllSubscribers(title, message, targetUserid = 'all', ur
     url: url || '/dashboard.html#chat'
   });
 
-  const remainingSubs = [];
   const pushOptions = {
     TTL: 86400,
     urgency: 'high',
@@ -73,17 +72,22 @@ async function sendPushToAllSubscribers(title, message, targetUserid = 'all', ur
     }
   };
 
-  for (const sub of subs) {
+  const remainingSubs = [];
+
+  // Broadcast to all registered device endpoints in parallel
+  const sendPromises = subs.map(async (sub) => {
     try {
       await webPush.sendNotification(sub, payload, pushOptions);
       remainingSubs.push(sub);
     } catch (err) {
-      console.log('[VAPID] Send result code:', err.statusCode || err.message);
+      console.log(`[VAPID Push] Error sending to ${sub.userid}:`, err.statusCode || err.message);
       if (err.statusCode !== 410 && err.statusCode !== 404) {
         remainingSubs.push(sub);
       }
     }
-  }
+  });
+
+  await Promise.allSettled(sendPromises);
 
   if (remainingSubs.length !== subs.length) {
     fs.writeFileSync(subFile, JSON.stringify(remainingSubs, null, 2));
