@@ -205,7 +205,9 @@ function navigateTo(view) {
     inventory: { title: 'Household Inventory', breadcrumb: 'Grocery Depletion Tracker' },
     attendance: { title: 'Meal Attendance', breadcrumb: 'Daily Meal Matrix' },
     groups: { title: 'Multi-House Groups', breadcrumb: 'Flats & Hostel Directory' },
-    audit: { title: 'System Audit Logs', breadcrumb: 'Activity History & Tracking' }
+    audit: { title: 'System Audit Logs', breadcrumb: 'Activity History & Tracking' },
+    community: { title: 'Community Hub', breadcrumb: 'Polls, Groceries & Help' },
+    calendar: { title: 'Expense Calendar', breadcrumb: 'Monthly Calendar View' }
   };
 
   const info = titles[view] || { title: view, breadcrumb: '' };
@@ -228,7 +230,9 @@ function navigateTo(view) {
     inventory: window.loadInventoryView,
     attendance: window.loadAttendanceView,
     groups: window.loadGroupsView,
-    audit: window.loadAuditView
+    audit: window.loadAuditView,
+    community: window.loadCommunityView,
+    calendar: window.loadCalendarView
   };
 
   const loaderFn = loaders[view] || window.loadDashboard;

@@ -95,6 +95,8 @@ app.use('/api/audit', require('./routes/audit'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/groups', require('./routes/groups'));
+app.use('/api/community', require('./routes/community'));
+app.use('/api/calendar', require('./routes/calendar'));
 
 // Serve login page at root with no-cache
 app.get('/', (req, res) => {
