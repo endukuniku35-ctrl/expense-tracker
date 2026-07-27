@@ -329,6 +329,8 @@ async function loadAdminCredentialsDirectory() {
           ? '<span class="badge bg-purple" style="background:#7c4dff;color:#fff;font-weight:700">🛡️ Secondary Group Admin</span>' 
           : '<span class="badge bg-secondary">👤 Member</span>';
 
+      const isSuperAdminUser = App.currentUser?.role === 'super_admin' || App.currentUser?.userid === '192472374';
+
       return `
         <tr>
           <td>
@@ -337,6 +339,9 @@ async function loadAdminCredentialsDirectory() {
               <div>
                 <div style="font-weight:700;color:var(--text-primary)">${u.name}</div>
                 <div style="font-size:11px;color:var(--text-muted)">${u.email || (u.userid + '@curry.local')}</div>
+                <div style="font-size:10.5px;color:var(--primary);margin-top:2px">
+                  <i class="fas fa-user-check me-1"></i>Added by: <strong>${u.createdByName || 'Main Admin Jagan'}</strong>
+                </div>
               </div>
             </div>
           </td>
@@ -354,9 +359,16 @@ async function loadAdminCredentialsDirectory() {
           <td>${roleBadge}</td>
           <td style="font-size:12px;color:var(--text-muted);white-space:nowrap">${formatDate(u.joinDate)}</td>
           <td>
-            <button class="btn-primary-custom" style="padding:4px 10px;font-size:12px" onclick="openResetPasswordModal('${u.userid}', '${u.name}')">
-              <i class="fas fa-key me-1"></i>Reset Password
-            </button>
+            <div style="display:flex;gap:6px">
+              <button class="btn-primary-custom" style="padding:4px 10px;font-size:12px" onclick="openResetPasswordModal('${u.userid}', '${u.name}')">
+                <i class="fas fa-key me-1"></i>Reset Password
+              </button>
+              ${(u.userid !== '192472374' && isSuperAdminUser) ? `
+                <button class="btn-danger-custom" style="padding:4px 10px;font-size:12px" onclick="deleteMemberAccount('${u.userid}', '${u.name}')">
+                  <i class="fas fa-trash me-1"></i>Remove
+                </button>
+              ` : ''}
+            </div>
           </td>
         </tr>
       `;
@@ -713,3 +725,22 @@ async function submitCreateGroupAdmin() {
 
 window.openCreateAdminModal = openCreateAdminModal;
 window.submitCreateGroupAdmin = submitCreateGroupAdmin;
+
+async function deleteMemberAccount(userid, name) {
+  if (!confirm(`Are you sure you want to PERMANENTLY REMOVE member account "${name}" (${userid})?`)) return;
+  showLoader();
+  const res = await api(`/api/members/${userid}`, { method: 'DELETE' });
+  hideLoader();
+
+  if (res && res.success) {
+    showToast('Member Removed 🗑️', res.message, 'success');
+    if (typeof triggerPushNotification === 'function') {
+      triggerPushNotification('Curry Tracker 🗑️', `Member account removed: ${name} (${userid})`);
+    }
+    loadMembers();
+  } else {
+    showToast('Error', res?.message || 'Failed to remove member account.', 'error');
+  }
+}
+
+window.deleteMemberAccount = deleteMemberAccount;

@@ -208,9 +208,19 @@ async function run(sql, params = []) {
       role: params[5] || 'member',
       email: params[6] || `${params[1]}@curry.local`,
       avatar: params[7] || params[4].substring(0, 2).toUpperCase(),
-      joinDate: params[8] || new Date().toISOString().split('T')[0]
+      joinDate: params[8] || new Date().toISOString().split('T')[0],
+      createdBy: params[10] || '192472374',
+      createdByName: params[11] || 'Jagan (Main Admin)'
     };
     users.push(newUser);
+    writeData('users', users);
+    return;
+  }
+
+  // Users DELETE
+  if (sql.includes('DELETE FROM users')) {
+    let users = readData('users');
+    users = users.filter(u => u.userid !== params[0] && u.id !== params[0]);
     writeData('users', users);
     return;
   }

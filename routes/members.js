@@ -1,7 +1,10 @@
 /**
  * Members Routes (SQLite & JSON Backend)
- * GET  /api/members        - Get all members with dynamic balances
- * POST /api/members        - Add new member (Admin only)
+ * GET    /api/members                 - Get all members with dynamic balances
+ * POST   /api/members                 - Add new member (Admin only)
+ * POST   /api/members/create-admin    - Create new group admin (Super Admin only)
+ * DELETE /api/members/:userid         - Remove member account (Admin only)
+ * POST   /api/members/reset-password  - Reset member password
  */
 
 const express = require('express');
@@ -34,11 +37,13 @@ router.post('/create-admin', requireSuperAdmin, async (req, res) => {
     const userRole = 'admin';
     const userEmail = email || `${userid.trim()}@curry.local`;
     const joinDate = new Date().toISOString().split('T')[0];
+    const createdBy = req.session?.user?.userid || '192472374';
+    const createdByName = req.session?.user?.name || req.session?.user?.shortName || 'Jagan (Main Admin)';
 
     await run(
       `INSERT INTO users (id, userid, password, name, shortName, role, email, avatar, joinDate)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate, password.trim()]
+      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate, password.trim(), createdBy, createdByName]
     );
 
     await run(
@@ -49,7 +54,7 @@ router.post('/create-admin', requireSuperAdmin, async (req, res) => {
     res.status(201).json({
       success: true,
       message: `Group Admin ${name.trim()} (${userid.trim()}) created successfully!`,
-      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate, password: password.trim() }
+      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate, password: password.trim(), createdBy, createdByName }
     });
   } catch (err) {
     console.error('Error creating admin:', err);
@@ -81,7 +86,9 @@ router.get('/credentials', requireAdmin, async (req, res) => {
       email: u.email,
       avatar: u.avatar,
       joinDate: u.joinDate,
-      password: u.rawPassword || '••••••••'
+      password: u.rawPassword || '••••••••',
+      createdBy: u.createdBy || '192472374',
+      createdByName: u.createdByName || (u.userid === '192472374' ? 'System' : 'Jagan (Main Admin)')
     }));
     res.json({ success: true, data: userList });
   } catch (err) {
@@ -113,27 +120,98 @@ router.post('/', requireAdmin, async (req, res) => {
     const userRole = (isSuperAdmin && role === 'admin') ? 'admin' : 'member';
     const userEmail = email || `${userid.trim()}@curry.local`;
     const joinDate = new Date().toISOString().split('T')[0];
+    const createdBy = req.session?.user?.userid || '192472374';
+    const createdByName = req.session?.user?.name || req.session?.user?.shortName || 'Jagan';
 
     await run(
       `INSERT INTO users (id, userid, password, name, shortName, role, email, avatar, joinDate)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate, password.trim()]
+      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate, password.trim(), createdBy, createdByName]
     );
+
+    // Also write to data/users.json if it exists
+    const fs = require('fs');
+    const path = require('path');
+    const dataPath = path.join(__dirname, '../data/users.json');
+    if (fs.existsSync(dataPath)) {
+      const users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+      if (!users.find(u => u.userid === userid.trim())) {
+        users.push({
+          id,
+          userid: userid.trim(),
+          password: hashedPassword,
+          rawPassword: password.trim(),
+          name: name.trim(),
+          shortName,
+          role: userRole,
+          email: userEmail,
+          avatar,
+          joinDate,
+          createdBy,
+          createdByName
+        });
+        fs.writeFileSync(dataPath, JSON.stringify(users, null, 2));
+      }
+    }
 
     // Notification
     await run(
       `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
-      [uuidv4(), 'system', `New member added: ${name.trim()} (${userid.trim()})`, new Date().toISOString(), 'all']
+      [uuidv4(), 'system', `New member added: ${name.trim()} (${userid.trim()}) by ${createdByName}`, new Date().toISOString(), 'all']
     );
 
     res.status(201).json({
       success: true,
-      message: `Member ${name.trim()} added successfully!`,
-      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate, password: password.trim() }
+      message: `Member ${name.trim()} added successfully by ${createdByName}!`,
+      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate, password: password.trim(), createdBy, createdByName }
     });
   } catch (err) {
     console.error('Error adding member:', err);
     res.status(500).json({ success: false, message: 'Database error adding member' });
+  }
+});
+
+// DELETE /api/members/:userid - Remove an existing member (Admin only)
+router.delete('/:userid', requireAdmin, async (req, res) => {
+  const { userid } = req.params;
+  const loggedInUserid = req.session?.user?.userid;
+
+  if (userid === '192472374') {
+    return res.status(400).json({ success: false, message: 'Main Super Admin Kandukuri Jagan cannot be removed!' });
+  }
+
+  if (userid === loggedInUserid) {
+    return res.status(400).json({ success: false, message: 'You cannot delete your own active admin account!' });
+  }
+
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const dataPath = path.join(__dirname, '../data/users.json');
+    let users = [];
+    if (fs.existsSync(dataPath)) {
+      users = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    }
+
+    const targetUser = users.find(u => u.userid === userid.trim());
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    users = users.filter(u => u.userid !== userid.trim());
+    fs.writeFileSync(dataPath, JSON.stringify(users, null, 2));
+
+    await run('DELETE FROM users WHERE userid = ?', [userid.trim()]);
+
+    await run(
+      `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
+      [uuidv4(), 'system', `🗑️ Member removed: ${targetUser.name} (${targetUser.userid}) by ${req.session?.user?.name || 'Admin'}`, new Date().toISOString(), 'all']
+    );
+
+    res.json({ success: true, message: `Member ${targetUser.name} (${userid.trim()}) removed successfully!` });
+  } catch (err) {
+    console.error('Error deleting member:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete member: ' + err.message });
   }
 });
 
