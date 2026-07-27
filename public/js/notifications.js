@@ -164,37 +164,39 @@ function triggerPushNotification(title, body) {
     showToast(title, body, 'info', 4000);
   }
 
-  try {
-    const iconUrl = 'https://expense-tracker-77br.onrender.com/icons/icon-192.png';
-    const notifOptions = {
-      body: body,
-      icon: iconUrl,
-      vibrate: [500, 200, 500, 200, 500],
-      tag: 'curry-notif-' + Date.now(),
-      renotify: true,
-      requireInteraction: true,
-      silent: false,
-      data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
-    };
+  const iconUrl = 'https://expense-tracker-77br.onrender.com/icons/icon-192.png';
 
+  // 1. Direct Browser System Notification
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(title || 'Curry Tracker 🍛', {
+        body: body || 'New notification alert!',
+        icon: iconUrl,
+        badge: iconUrl,
+        vibrate: [300, 100, 300],
+        tag: 'curry-direct-' + Date.now()
+      });
+    }
+  } catch (e) {}
+
+  // 2. Service Worker System Notification
+  try {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(reg => {
+      navigator.serviceWorker.ready.then(reg => {
         if (reg && reg.showNotification) {
-          reg.showNotification(title, notifOptions).catch(() => {});
-        } else {
-          navigator.serviceWorker.register('/sw.js').then(newReg => {
-            if (newReg && newReg.showNotification) {
-              newReg.showNotification(title, notifOptions).catch(() => {});
-            }
+          reg.showNotification(title || 'Curry Tracker 🍛', {
+            body: body || 'New notification alert!',
+            icon: iconUrl,
+            badge: iconUrl,
+            vibrate: [300, 100, 300],
+            tag: 'curry-sw-' + Date.now(),
+            renotify: true,
+            data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
           }).catch(() => {});
         }
       }).catch(() => {});
-    } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: iconUrl, silent: false });
     }
-  } catch (e) {
-    console.log('[Notification] Push notice:', e);
-  }
+  } catch (e) {}
 }
 
 async function loadNotifications() {
