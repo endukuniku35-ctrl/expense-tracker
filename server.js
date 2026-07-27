@@ -88,6 +88,13 @@ app.use('/api/members', require('./routes/members'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/balance', require('./routes/balance').router);
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ocr', require('./routes/ocr'));
+app.use('/api/budget', require('./routes/budget'));
+app.use('/api/audit', require('./routes/audit'));
+app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/groups', require('./routes/groups'));
 
 // Serve login page at root with no-cache
 app.get('/', (req, res) => {

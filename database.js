@@ -50,6 +50,11 @@ async function all(tableOrSql) {
   if (tableOrSql.includes('notifications')) return readData('notifications');
   if (tableOrSql.includes('messages')) return readData('messages');
   if (tableOrSql.includes('users')) return readData('users');
+  if (tableOrSql.includes('budgets')) return readData('budgets');
+  if (tableOrSql.includes('audit_logs')) return readData('audit_logs');
+  if (tableOrSql.includes('receipt_verifications')) return readData('receipt_verifications');
+  if (tableOrSql.includes('attendance')) return readData('attendance');
+  if (tableOrSql.includes('inventory')) return readData('inventory');
   return [];
 }
 
@@ -71,9 +76,14 @@ async function get(sql, params = []) {
     const settlements = readData('settlements');
     return settlements.find(s => s.id === params[0]) || null;
   }
+  if (sql.includes('FROM budgets WHERE month')) {
+    const budgets = readData('budgets');
+    return budgets.find(b => b.month === params[0]) || null;
+  }
   if (sql.includes('COUNT(*)')) {
     let table = 'expenses';
     if (sql.includes('users')) table = 'users';
+    if (sql.includes('audit_logs')) table = 'audit_logs';
     const items = readData(table);
     return { count: items.length };
   }
@@ -133,6 +143,114 @@ async function run(sql, params = []) {
     let expenses = readData('expenses');
     expenses = expenses.filter(e => e.id !== params[0]);
     writeData('expenses', expenses);
+    return;
+  }
+
+  // Audit Logs INSERT
+  if (sql.includes('INSERT INTO audit_logs')) {
+    const logs = readData('audit_logs');
+    logs.unshift({
+      id: params[0],
+      action: params[1],
+      performedBy: params[2],
+      performedByName: params[3],
+      targetId: params[4] || '',
+      details: typeof params[5] === 'string' ? params[5] : JSON.stringify(params[5] || {}),
+      timestamp: params[6] || new Date().toISOString()
+    });
+    writeData('audit_logs', logs.slice(0, 200));
+    return;
+  }
+
+  // Budgets INSERT / UPDATE
+  if (sql.includes('INSERT INTO budgets')) {
+    const budgets = readData('budgets');
+    const existing = budgets.findIndex(b => b.month === params[1]);
+    const record = {
+      id: params[0],
+      month: params[1],
+      amount: parseFloat(params[2]),
+      categoryBudgets: typeof params[3] === 'string' ? JSON.parse(params[3]) : params[3],
+      updatedAt: params[4] || new Date().toISOString()
+    };
+    if (existing !== -1) {
+      budgets[existing] = record;
+    } else {
+      budgets.unshift(record);
+    }
+    writeData('budgets', budgets);
+    return;
+  }
+
+  // Receipt Verification INSERT
+  if (sql.includes('INSERT INTO receipt_verifications')) {
+    const verifications = readData('receipt_verifications');
+    verifications.unshift({
+      id: params[0],
+      type: params[1] || 'settlement',
+      relatedId: params[2] || '',
+      uploadedBy: params[3],
+      uploadedByName: params[4],
+      imageUrl: params[5],
+      amount: parseFloat(params[6] || 0),
+      status: params[7] || 'pending',
+      timestamp: params[8] || new Date().toISOString()
+    });
+    writeData('receipt_verifications', verifications);
+    return;
+  }
+
+  // Receipt Verification UPDATE (Approve/Reject)
+  if (sql.includes('UPDATE receipt_verifications')) {
+    const verifications = readData('receipt_verifications');
+    const id = params[2];
+    const item = verifications.find(v => v.id === id);
+    if (item) {
+      item.status = params[0]; // 'approved' or 'rejected'
+      item.approvedBy = params[1];
+      item.updatedAt = new Date().toISOString();
+      writeData('receipt_verifications', verifications);
+    }
+    return;
+  }
+
+  // Meal Attendance INSERT / UPDATE
+  if (sql.includes('INSERT INTO attendance')) {
+    const attendance = readData('attendance');
+    const date = params[0];
+    const mealType = params[1];
+    const attendees = typeof params[2] === 'string' ? JSON.parse(params[2]) : params[2];
+    
+    const idx = attendance.findIndex(a => a.date === date && a.mealType === mealType);
+    if (idx !== -1) {
+      attendance[idx].attendees = attendees;
+    } else {
+      attendance.push({ id: `${date}_${mealType}`, date, mealType, attendees, updatedAt: new Date().toISOString() });
+    }
+    writeData('attendance', attendance);
+    return;
+  }
+
+  // Inventory UPDATE / INSERT
+  if (sql.includes('INSERT INTO inventory')) {
+    const items = readData('inventory');
+    const id = params[0];
+    const record = {
+      id,
+      name: params[1],
+      quantity: parseFloat(params[2]),
+      unit: params[3],
+      remainingDays: parseInt(params[4]),
+      status: params[5],
+      lastPurchased: params[6] || new Date().toISOString().split('T')[0]
+    };
+    const idx = items.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      items[idx] = record;
+    } else {
+      items.push(record);
+    }
+    writeData('inventory', items);
     return;
   }
 
@@ -276,19 +394,29 @@ async function initDatabase() {
     console.log('  ✅ Merged default members in users.json');
   }
 
-  // Check expenses
-  if (!fs.existsSync(getFilePath('expenses'))) {
-    writeData('expenses', []);
+  // Check budgets
+  if (!fs.existsSync(getFilePath('budgets')) || readData('budgets').length === 0) {
+    writeData('budgets', [
+      { id: 'b-1', month: '2026-07', amount: 12000, categoryBudgets: { Lunch: 5000, Dinner: 4000, Groceries: 3000 }, updatedAt: new Date().toISOString() }
+    ]);
   }
 
-  // Check settlements
-  if (!fs.existsSync(getFilePath('settlements'))) {
-    writeData('settlements', []);
+  // Check inventory
+  if (!fs.existsSync(getFilePath('inventory')) || readData('inventory').length === 0) {
+    writeData('inventory', [
+      { id: 'inv-1', name: 'Rice', quantity: 5, unit: 'kg', remainingDays: 3, status: 'low', lastPurchased: '2026-07-20' },
+      { id: 'inv-2', name: 'Cooking Oil', quantity: 1, unit: 'L', remainingDays: 2, status: 'low', lastPurchased: '2026-07-22' },
+      { id: 'inv-3', name: 'Milk', quantity: 2, unit: 'L', remainingDays: 5, status: 'ok', lastPurchased: '2026-07-26' },
+      { id: 'inv-4', name: 'Chicken', quantity: 1.5, unit: 'kg', remainingDays: 1, status: 'low', lastPurchased: '2026-07-27' },
+      { id: 'inv-5', name: 'Salt & Spices', quantity: 1, unit: 'pack', remainingDays: 14, status: 'ok', lastPurchased: '2026-07-15' }
+    ]);
   }
 
-  // Check notifications
-  if (!fs.existsSync(getFilePath('notifications'))) {
-    writeData('notifications', []);
+  // Check audit_logs
+  if (!fs.existsSync(getFilePath('audit_logs'))) {
+    writeData('audit_logs', [
+      { id: 'al-1', action: 'CREATE_EXPENSE', performedBy: '192472374', performedByName: 'Jagan Kandukuri', targetId: 'exp-1', details: '{"title":"Chicken Curry Lunch","amount":360}', timestamp: new Date().toISOString() }
+    ]);
   }
 }
 

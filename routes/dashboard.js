@@ -26,7 +26,8 @@ async function getExpenses() {
   return (rows || []).map(r => ({
     ...r,
     amount: Number(r.amount || 0),
-    splitBetween: parseSplitBetween(r.splitBetween)
+    splitBetween: parseSplitBetween(r.splitBetween),
+    date: r.date || new Date().toISOString().split('T')[0]
   }));
 }
 
@@ -34,54 +35,56 @@ async function getExpenses() {
 router.get('/stats', requireAuth, async (req, res) => {
   try {
     const { balances, totalExpenses, perPersonShare } = await computeBalances(req.session?.user);
-    const groupMemberIds = balances.map(b => b.userid);
+    const groupMemberIds = (balances || []).map(b => b.userid);
     const allExpenses = await getExpenses();
 
     const isSuperAdmin = req.session?.user && (req.session?.user.role === 'super_admin' || req.session?.user.userid === '192472374');
     const isMemberOnly = req.session?.user && req.session?.user.role === 'member';
 
-    const expenses = allExpenses.filter(e => {
+    const expenses = (allExpenses || []).filter(e => {
       if (isSuperAdmin) return true;
       if (isMemberOnly) {
-        const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
+        const splitList = parseSplitBetween(e.splitBetween);
         return e.paidBy === req.session.user.userid || splitList.includes(req.session.user.userid);
       }
-      return groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id)));
+      const splitList = parseSplitBetween(e.splitBetween);
+      return groupMemberIds.includes(e.paidBy) || splitList.some(id => groupMemberIds.includes(id));
     });
 
     const now = new Date();
     const todayStr  = now.toISOString().split('T')[0];
     const monthStr  = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    const totalPaid     = balances.reduce((s, b) => s + b.settledIn + Math.max(0, b.netBalance <= 0 ? b.settledOut : 0), 0);
-    const totalOwed     = balances.filter(b => b.netBalance < 0).reduce((s, b) => s + b.outstanding, 0);
-    const todayExpense  = expenses.filter(e => e.date === todayStr).reduce((s, e) => s + e.amount, 0);
-    const monthExpense  = expenses.filter(e => e.date.startsWith(monthStr)).reduce((s, e) => s + e.amount, 0);
+    const totalOwed     = (balances || []).filter(b => b.netBalance < 0).reduce((s, b) => s + (b.outstanding || 0), 0);
+    const todayExpense  = expenses.filter(e => e.date === todayStr).reduce((s, e) => s + (e.amount || 0), 0);
+    const monthExpense  = expenses.filter(e => e.date && e.date.startsWith(monthStr)).reduce((s, e) => s + (e.amount || 0), 0);
 
     const recentExpenses = [...expenses]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .sort((a, b) => new Date(b.date || Date.now()) - new Date(a.date || Date.now()))
       .slice(0, 5)
       .map(e => {
-        const count = e.splitBetween.length;
+        const splitList = parseSplitBetween(e.splitBetween);
+        const count = splitList.length || 1;
         return {
           ...e,
-          perPersonAmount: Math.round(e.amount / count),
+          splitBetween: splitList,
+          perPersonAmount: Math.round((e.amount || 0) / count),
         };
       });
 
     res.json({
       success: true,
       stats: {
-        totalExpenses,
-        perPersonShare: Math.round(perPersonShare),
-        totalOwed,
-        memberCount: balances.length || 4,
-        todayExpense,
-        monthExpense,
+        totalExpenses: totalExpenses || 0,
+        perPersonShare: Math.round(perPersonShare || 0),
+        totalOwed: totalOwed || 0,
+        memberCount: (balances || []).length,
+        todayExpense: todayExpense || 0,
+        monthExpense: monthExpense || 0,
         expenseCount: expenses.length,
       },
-      balances,
-      recentExpenses,
+      balances: balances || [],
+      recentExpenses: recentExpenses || [],
     });
   } catch (err) {
     console.error('Error loading dashboard stats:', err);
@@ -93,31 +96,34 @@ router.get('/stats', requireAuth, async (req, res) => {
 router.get('/charts', requireAuth, async (req, res) => {
   try {
     const { balances } = await computeBalances(req.session?.user);
-    const groupMemberIds = balances.map(b => b.userid);
+    const groupMemberIds = (balances || []).map(b => b.userid);
     const allExpenses = await getExpenses();
 
     const isSuperAdmin = req.session?.user && (req.session?.user.role === 'super_admin' || req.session?.user.userid === '192472374');
     const isMemberOnly = req.session?.user && req.session?.user.role === 'member';
 
-    const expenses = allExpenses.filter(e => {
+    const expenses = (allExpenses || []).filter(e => {
       if (isSuperAdmin) return true;
       if (isMemberOnly) {
-        const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
+        const splitList = parseSplitBetween(e.splitBetween);
         return e.paidBy === req.session.user.userid || splitList.includes(req.session.user.userid);
       }
-      return groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id)));
+      const splitList = parseSplitBetween(e.splitBetween);
+      return groupMemberIds.includes(e.paidBy) || splitList.some(id => groupMemberIds.includes(id));
     });
 
     // Category breakdown
     const categoryMap = {};
     expenses.forEach(e => {
-      categoryMap[e.category] = (categoryMap[e.category] || 0) + e.amount;
+      const cat = e.category || 'General';
+      categoryMap[cat] = (categoryMap[cat] || 0) + (e.amount || 0);
     });
 
     // Member paid (as bill payer)
     const memberMap = {};
     expenses.forEach(e => {
-      memberMap[e.paidByName] = (memberMap[e.paidByName] || 0) + e.amount;
+      const payer = e.paidByName || e.paidBy || 'Member';
+      memberMap[payer] = (memberMap[payer] || 0) + (e.amount || 0);
     });
 
     // Monthly trend (last 6 months)
@@ -129,8 +135,10 @@ router.get('/charts', requireAuth, async (req, res) => {
       monthlyMap[key] = 0;
     }
     expenses.forEach(e => {
-      const key = e.date.substring(0, 7);
-      if (monthlyMap.hasOwnProperty(key)) monthlyMap[key] += e.amount;
+      if (e.date) {
+        const key = e.date.substring(0, 7);
+        if (monthlyMap.hasOwnProperty(key)) monthlyMap[key] += (e.amount || 0);
+      }
     });
 
     // Weekly bar
@@ -138,16 +146,16 @@ router.get('/charts', requireAuth, async (req, res) => {
     for (let i = 3; i >= 0; i--) {
       const wStart = new Date(now); wStart.setDate(wStart.getDate() - (i + 1) * 7);
       const wEnd   = new Date(now); wEnd.setDate(wEnd.getDate() - i * 7);
-      const total  = expenses.filter(e => { const d = new Date(e.date); return d >= wStart && d < wEnd; }).reduce((s, e) => s + e.amount, 0);
+      const total  = expenses.filter(e => { const d = new Date(e.date || Date.now()); return d >= wStart && d < wEnd; }).reduce((s, e) => s + (e.amount || 0), 0);
       weeklyData.push({ label: `Week ${4 - i}`, total });
     }
 
     // Balance status per member (net balance bar)
-    const balanceBar = balances.map(b => ({
-      name:       b.shortName,
-      totalPaid:  b.totalPaid,
-      fairShare:  Math.round(b.totalShare),
-      netBalance: Math.round(b.netBalance),
+    const balanceBar = (balances || []).map(b => ({
+      name:       b.shortName || b.name,
+      totalPaid:  b.totalPaid || 0,
+      fairShare:  Math.round(b.totalShare || 0),
+      netBalance: Math.round(b.netBalance || 0),
     }));
 
     res.json({

@@ -201,6 +201,11 @@ function navigateTo(view) {
     reports: { title: 'Reports', breadcrumb: 'Analytics & Reports' },
     charts: { title: 'Charts', breadcrumb: 'Visual Analytics' },
     profile: { title: 'Profile', breadcrumb: 'Account Settings' },
+    budget: { title: 'Monthly Budget', breadcrumb: 'Budget Planner & Forecast' },
+    inventory: { title: 'Household Inventory', breadcrumb: 'Grocery Depletion Tracker' },
+    attendance: { title: 'Meal Attendance', breadcrumb: 'Daily Meal Matrix' },
+    groups: { title: 'Multi-House Groups', breadcrumb: 'Flats & Hostel Directory' },
+    audit: { title: 'System Audit Logs', breadcrumb: 'Activity History & Tracking' }
   };
 
   const info = titles[view] || { title: view, breadcrumb: '' };
@@ -218,7 +223,12 @@ function navigateTo(view) {
     broadcast: window.loadAdminBroadcasts,
     reports: window.loadReports,
     charts: window.loadCharts,
-    profile: window.loadProfile
+    profile: window.loadProfile,
+    budget: window.loadBudgetView,
+    inventory: window.loadInventoryView,
+    attendance: window.loadAttendanceView,
+    groups: window.loadGroupsView,
+    audit: window.loadAuditView
   };
 
   const loaderFn = loaders[view] || window.loadDashboard;

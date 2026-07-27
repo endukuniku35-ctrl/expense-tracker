@@ -5,6 +5,7 @@
 window.loadDashboard = async function loadDashboard() {
   const content = document.getElementById('viewContent');
   content.innerHTML = `<div style="opacity:0;animation:fadeInUp 0.4s ease forwards">
+    <div id="aiInsightsBanner"></div>
     <div class="row g-3 mb-4" id="statsGrid">
       ${[1,2,3,4,5,6].map(() => `
         <div class="col-xl-2 col-md-4 col-6">
