@@ -8,9 +8,54 @@ const express = require('express');
 const router  = express.Router();
 const bcrypt  = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const { computeBalances } = require('./balance');
 const { get, run, all } = require('../database');
+
+// POST /api/members/create-admin – Create a new Group Admin (ONLY Super Admin Jagan)
+router.post('/create-admin', requireSuperAdmin, async (req, res) => {
+  const { userid, name, password, email, groupName } = req.body;
+
+  if (!userid || !name || !password) {
+    return res.status(400).json({ success: false, message: 'User ID, Name, and Password are required' });
+  }
+
+  try {
+    const existing = await get('SELECT * FROM users WHERE userid = ?', [userid.trim()]);
+    if (existing) {
+      return res.status(400).json({ success: false, message: `Member or Admin with User ID ${userid.trim()} already exists` });
+    }
+
+    const id = uuidv4();
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(password, salt);
+    const shortName = name.trim().split(' ')[0];
+    const avatar = shortName.substring(0, 2).toUpperCase();
+    const userRole = 'admin';
+    const userEmail = email || `${userid.trim()}@curry.local`;
+    const joinDate = new Date().toISOString().split('T')[0];
+
+    await run(
+      `INSERT INTO users (id, userid, password, name, shortName, role, email, avatar, joinDate)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, userid.trim(), hashedPassword, name.trim(), shortName, userRole, userEmail, avatar, joinDate, password.trim()]
+    );
+
+    await run(
+      `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
+      [uuidv4(), 'system', `👑 Super Admin created new Group Admin: ${name.trim()} (${userid.trim()})`, new Date().toISOString(), 'all']
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `Group Admin ${name.trim()} (${userid.trim()}) created successfully!`,
+      data: { id, userid: userid.trim(), name: name.trim(), shortName, role: userRole, avatar, joinDate, password: password.trim() }
+    });
+  } catch (err) {
+    console.error('Error creating admin:', err);
+    res.status(500).json({ success: false, message: 'Database error creating admin' });
+  }
+});
 
 // GET /api/members - List members and their balance sheets
 router.get('/', requireAuth, async (req, res) => {

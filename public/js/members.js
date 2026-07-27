@@ -19,7 +19,8 @@ window.loadMembers = async function loadMembers() {
                 Check your card below to see how much you still owe.
               </div>
             </div>
-            <div style="margin-left:auto;display:flex;gap:10px;align-items:center">
+            <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              ${(App.currentUser?.role === 'super_admin' || App.currentUser?.userid === '192472374') ? `<button class="btn-warning-custom" onclick="openCreateAdminModal()" style="font-size:13px"><i class="fas fa-user-shield me-1"></i>Create Group Admin</button>` : ''}
               ${App.isAdmin ? `<button class="btn-primary-custom" onclick="openAddMemberModal()" style="font-size:13px"><i class="fas fa-user-plus me-1"></i>Add New Member</button>` : ''}
             </div>
           </div>
@@ -646,3 +647,42 @@ async function quickSettleFull(fromMemberId, fromMemberName, toMemberId, toMembe
 }
 
 window.loadMembers = loadMembers;
+
+function openCreateAdminModal() {
+  const modal = new bootstrap.Modal(document.getElementById('createAdminModal'));
+  modal.show();
+}
+
+async function submitCreateGroupAdmin() {
+  const name = document.getElementById('newAdminName')?.value.trim();
+  const userid = document.getElementById('newAdminUserid')?.value.trim();
+  const password = document.getElementById('newAdminPassword')?.value.trim();
+  const email = document.getElementById('newAdminEmail')?.value.trim();
+  const groupName = document.getElementById('newAdminGroupName')?.value.trim();
+
+  if (!name || !userid || !password) {
+    showToast('Missing Fields', 'Admin Full Name, User ID, and Password are required', 'warning');
+    return;
+  }
+
+  showLoader();
+  const res = await api('/api/members/create-admin', {
+    method: 'POST',
+    body: JSON.stringify({ name, userid, password, email, groupName })
+  });
+  hideLoader();
+
+  if (res && res.success) {
+    showToast('Group Admin Created! 👑', `Admin account ${name} (${userid}) created successfully.`, 'success', 4000);
+    const modalEl = document.getElementById('createAdminModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+    document.getElementById('createAdminForm').reset();
+    loadMembers();
+  } else {
+    showToast('Error Creating Admin', res?.message || 'Failed to create group admin', 'error');
+  }
+}
+
+window.openCreateAdminModal = openCreateAdminModal;
+window.submitCreateGroupAdmin = submitCreateGroupAdmin;

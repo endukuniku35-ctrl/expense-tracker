@@ -713,6 +713,50 @@
   </div>
 </div>
 
+<!-- Create New Group Admin Modal (Super Admin Jagan Only) -->
+<div class="modal fade" id="createAdminModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:18px">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fas fa-user-shield me-2 text-warning"></i>Create New Group Admin Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:24px">
+        <form id="createAdminForm" onsubmit="event.preventDefault(); submitCreateGroupAdmin();">
+          <div class="mb-3">
+            <label class="form-label-custom">Admin Full Name *</label>
+            <input type="text" class="form-control-custom" id="newAdminName" placeholder="e.g. Rajesh Sharma" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Admin User ID / Username *</label>
+            <input type="text" class="form-control-custom" id="newAdminUserid" placeholder="e.g. rajesh_admin or 192499100" required />
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px">This admin will use this User ID to log in and manage their own room/group.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Password *</label>
+            <input type="password" class="form-control-custom" id="newAdminPassword" placeholder="Set password for this Group Admin" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Room / Group Name (Optional)</label>
+            <input type="text" class="form-control-custom" id="newAdminGroupName" placeholder="e.g. Flat 301 Roommates or Curry Group B" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Admin Email (Optional)</label>
+            <input type="email" class="form-control-custom" id="newAdminEmail" placeholder="e.g. rajesh@curry.local" />
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);background:rgba(26,115,232,0.08);padding:12px;border-radius:10px;border:1px solid rgba(26,115,232,0.2)">
+            <i class="fas fa-crown text-warning me-1"></i>Created Group Admin will have their own separate dashboard to manage their specific group members and bills!
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer gap-2">
+        <button class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn-warning-custom" onclick="submitCreateGroupAdmin()"><i class="fas fa-shield-alt me-1"></i>Create Group Admin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Payment Reminder Nudge Modal -->
 <div class="modal fade" id="nudgeModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
