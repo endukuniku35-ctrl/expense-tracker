@@ -138,9 +138,12 @@ app.listen(PORT, () => {
   // Auto-register Telegram webhook on every startup
   setTimeout(() => {
     try {
-      const { registerWebhook } = require('./telegram');
+      const { registerWebhook, syncAllChatIdsFromHistory } = require('./telegram');
       registerWebhook(RENDER_URL);
-    } catch (e) { console.error('[Telegram] Webhook register error:', e.message); }
+      // CRITICAL: Recover all friend chat IDs from Telegram's message history
+      // This runs every startup so even after Render wipes the filesystem, all users are restored
+      syncAllChatIdsFromHistory().catch(() => {});
+    } catch (e) { console.error('[Telegram] Startup error:', e.message); }
   }, 3000);
 
   // 10-minute keep-alive self-ping to prevent Render free tier spin-down
