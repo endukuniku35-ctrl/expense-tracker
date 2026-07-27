@@ -6,6 +6,7 @@ const router = express.Router();
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, run } = require('../database');
 const { sendPushToAllSubscribers } = require('../push_service');
+const { sendTelegramMessage } = require('../telegram');
 
 // GET all group messages (Available for ALL users without login requirement)
 router.get('/', async (req, res) => {
@@ -50,6 +51,7 @@ router.post('/', async (req, res) => {
 
     // Trigger VAPID Mobile Status Bar Push to Android APK devices
     sendPushToAllSubscribers(`💬 ${msgObj.senderName}`, msgObj.text).catch(() => {});
+    sendTelegramMessage(`💬 <b>${msgObj.senderName}:</b> ${msgObj.text}`).catch(() => {});
 
     res.json({ success: true, data: msgObj });
   } catch (e) {
@@ -90,6 +92,7 @@ router.post('/nudge', requireAdmin, async (req, res) => {
     );
 
     sendPushToAllSubscribers('📲 Payment Reminder', nudgeText).catch(() => {});
+    sendTelegramMessage(`🔔 <b>PAYMENT REMINDER:</b> ${nudgeText}`).catch(() => {});
 
     res.json({ success: true, message: `Payment reminder sent to ${targetMemberName}!` });
   } catch (e) {
@@ -140,6 +143,7 @@ router.post('/broadcast', requireAdmin, async (req, res) => {
     );
 
     sendPushToAllSubscribers('📢 Admin Broadcast', fullMessage).catch(() => {});
+    sendTelegramMessage(`📢 <b>ANNOUNCEMENT:</b> ${fullMessage}`).catch(() => {});
 
     res.json({ success: true, message: 'Broadcast announcement sent to all members successfully!', data: msgObj });
   } catch (e) {
