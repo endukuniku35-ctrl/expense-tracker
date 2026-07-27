@@ -169,21 +169,18 @@ function triggerPushNotification(title, body) {
     const notifOptions = {
       body: body,
       icon: iconUrl,
-      badge: iconUrl,
-      vibrate: [300, 100, 300, 100, 300],
+      vibrate: [500, 200, 500, 200, 500],
       tag: 'curry-notif-' + Date.now(),
       renotify: true,
+      requireInteraction: true,
+      silent: false,
       data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
     };
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration().then(reg => {
         if (reg && reg.showNotification) {
-          reg.showNotification(title, notifOptions).catch(() => {
-            if (navigator.serviceWorker.controller) {
-              navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
-            }
-          });
+          reg.showNotification(title, notifOptions).catch(() => {});
         } else {
           navigator.serviceWorker.register('/sw.js').then(newReg => {
             if (newReg && newReg.showNotification) {
@@ -192,8 +189,8 @@ function triggerPushNotification(title, body) {
           }).catch(() => {});
         }
       }).catch(() => {});
-    } else if (typeof Notification !== 'undefined') {
-      new Notification(title, { body, icon: iconUrl });
+    } else if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: iconUrl, silent: false });
     }
   } catch (e) {
     console.log('[Notification] Push notice:', e);
