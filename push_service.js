@@ -1,16 +1,12 @@
 /**
- * push_service.js – Multi-Device VAPID Web Push Notification Engine
- * Keeps ALL device subscriptions persistent and sends push notifications concurrently.
+ * push_service.js – VAPID Web Push Notification Engine
+ * Stores subscriptions in data/push_subscriptions.json via the same database engine.
  */
 
 const webPush = require('web-push');
 const fs = require('fs');
 const path = require('path');
 
-const dataDir = path.join(__dirname, 'data');
-const subFile = path.join(dataDir, 'push_subscriptions.json');
-
-// Valid Cryptographic VAPID Keys for Google FCM Android Notification Delivery
 const vapidKeys = {
   publicKey: process.env.VAPID_PUBLIC_KEY || 'BNeVWZeLEOso9tKFoFONBaagdoHjMsjEX5GmxTztQ9WeFXchVvoYJb3qjc7peRYWn_kw7bF12eZ3SsCT3IrDpJ8',
   privateKey: process.env.VAPID_PRIVATE_KEY || 'E0s5ISnE1wkp46aFjzYPIDv2uLPX8meiEEfPnKrS8BE'
@@ -26,11 +22,24 @@ try {
   console.error('[VAPID] Key setup error:', e);
 }
 
+// Use same data directory as database.js for persistence across deploys
+const dataDir = path.join(__dirname, 'data');
+const subFile = path.join(dataDir, 'push_subscriptions.json');
+
+// In-memory cache of subscriptions (survives restarts via file, survives deploys if persistent disk)
+let _subsCache = null;
+
 function getSubscriptions() {
-  if (!fs.existsSync(subFile)) return [];
+  if (_subsCache) return _subsCache;
+  if (!fs.existsSync(subFile)) {
+    _subsCache = [];
+    return [];
+  }
   try {
-    return JSON.parse(fs.readFileSync(subFile, 'utf8'));
+    _subsCache = JSON.parse(fs.readFileSync(subFile, 'utf8'));
+    return _subsCache;
   } catch (e) {
+    _subsCache = [];
     return [];
   }
 }
@@ -56,42 +65,51 @@ function saveSubscription(sub, userid = 'guest') {
   } else {
     subs.push(entry);
   }
-  fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
-  console.log(`[PushService] Persistent SAVED device subscription for [${userid}]. Total active devices: ${subs.length}`);
+
+  _subsCache = subs;
+
+  try {
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
+    console.log(`[PushService] Saved device subscription for [${userid}]. Total devices: ${subs.length}`);
+  } catch (e) {
+    console.error('[PushService] Failed to write subscriptions file:', e.message);
+  }
 }
 
-async function sendPushToAllSubscribers(title, message, targetUserid = 'all', url = '/dashboard.html#chat') {
+async function sendPushToAllSubscribers(title, message) {
   const subs = getSubscriptions();
+  console.log(`[PushService] Sending push to ${subs.length} device(s): "${message}"`);
+
   if (subs.length === 0) {
-    console.log('[PushService] No subscriptions registered to push to.');
+    console.log('[PushService] No device subscriptions registered. Users must open the app and allow notifications.');
     return;
   }
 
   const payload = JSON.stringify({
     title: title || 'Curry Tracker 🍛',
     body: message,
-    url: url || '/dashboard.html#chat'
+    url: '/dashboard.html#chat'
   });
 
   const pushOptions = {
     TTL: 86400,
     urgency: 'high',
-    headers: {
-      'Urgency': 'high'
-    }
+    headers: { 'Urgency': 'high' }
   };
 
-  // Broadcast to all registered device endpoints concurrently without deleting active subscriptions
-  const sendPromises = subs.map(async (sub) => {
-    try {
-      await webPush.sendNotification(sub, payload, pushOptions);
-      console.log(`[VAPID Push] Delivered to ${sub.userid}`);
-    } catch (err) {
-      console.log(`[VAPID Push] Notice for ${sub.userid}:`, err.statusCode || err.message);
-    }
-  });
+  const results = await Promise.allSettled(
+    subs.map(async (sub) => {
+      try {
+        await webPush.sendNotification(sub, payload, pushOptions);
+        console.log(`[VAPID Push] ✅ Delivered to ${sub.userid}`);
+      } catch (err) {
+        console.log(`[VAPID Push] ⚠️ Error for ${sub.userid}: ${err.statusCode || err.message}`);
+      }
+    })
+  );
 
-  await Promise.allSettled(sendPromises);
+  return results;
 }
 
 module.exports = {
