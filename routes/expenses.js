@@ -137,8 +137,8 @@ router.get('/all', requireAuth, async (req, res) => {
 
 const { notifyNewExpense } = require('../telegram');
 
-// POST /api/expenses - add new expense
-router.post('/', requireAdmin, async (req, res) => {
+// POST /api/expenses - add new expense (Open for all users & APKs)
+router.post('/', async (req, res) => {
   const { title, description, amount, paidBy, category, date, notes, splitBetween } = req.body;
 
   if (!title || !amount || !paidBy || !date) {

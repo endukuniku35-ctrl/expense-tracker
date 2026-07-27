@@ -7,8 +7,8 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, run } = require('../database');
 const { sendPushToAllSubscribers } = require('../push_service');
 
-// GET all group messages (Available for ALL authenticated members)
-router.get('/', requireAuth, async (req, res) => {
+// GET all group messages (Available for ALL users without login requirement)
+router.get('/', async (req, res) => {
   try {
     const messages = await all('SELECT * FROM messages ORDER BY timestamp ASC');
     res.json({ success: true, data: messages || [] });
@@ -17,11 +17,11 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// POST send new chat message (Available for ALL authenticated members)
-router.post('/', requireAuth, async (req, res) => {
+// POST send new chat message (Available for ALL users without login requirement)
+router.post('/', async (req, res) => {
   try {
     const user = req.session?.user || req.user || {};
-    const { message } = req.body;
+    const { message, senderName } = req.body;
     if (!message || !message.trim()) {
       return res.status(400).json({ success: false, message: 'Message text is required' });
     }

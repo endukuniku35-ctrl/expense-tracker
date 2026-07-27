@@ -866,42 +866,6 @@
 <script src="/js/community.js?v=1.0"></script>
 <script src="/js/calendar.js?v=1.0"></script>
 <script src="/js/rapid_expense.js?v=1.0"></script>
-<!-- Floating AI Chatbot Button & Modal -->
-<div style="position:fixed;bottom:24px;right:24px;z-index:999">
-  <button class="btn-primary-custom" style="border-radius:50px;padding:12px 20px;box-shadow:0 8px 30px rgba(124,77,255,0.4);background:linear-gradient(135deg,#7c4dff,#1a73e8);border:none;display:flex;align-items:center;gap:8px" data-bs-toggle="modal" data-bs-target="#aiChatModal">
-    <span style="font-size:18px">🤖</span>
-    <span style="font-weight:700">Ask CurryTracker AI</span>
-  </button>
-</div>
-
-<!-- AI Chatbot Modal -->
-<div class="modal fade" id="aiChatModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:20px">
-      <div class="modal-header" style="border-bottom:1px solid var(--glass-border)">
-        <h5 class="modal-title" style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text-primary)">
-          <span>🤖</span> Ask CurryTracker AI Assistant
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" style="padding:16px">
-        <div id="aiChatMessages" style="height:300px;overflow-y:auto;padding-right:6px;margin-bottom:12px">
-          <div style="margin-bottom:10px;text-align:left">
-            <div style="display:inline-block;background:rgba(124,77,255,0.12);color:var(--text-primary);border:1px solid rgba(124,77,255,0.25);padding:10px 14px;border-radius:14px;font-size:13px">
-              👋 Hi! I am CurryTracker AI. Ask me anything like "Who spent the most?", "Show pending members", or click 🎤 for voice input.
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="aiChatInput" class="form-control-custom" placeholder="Ask CurryTracker AI..." onkeydown="if(event.key==='Enter') sendAIChatQuery()" />
-          <button class="btn-ghost" onclick="startVoiceEntry()" title="Speak Expense Input" style="padding:8px 12px;font-size:16px">🎤</button>
-          <button class="btn-primary-custom" onclick="sendAIChatQuery()">Send</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="/js/app.js?v=15.0_MAX_SPEED"></script>
 </body>
 </html>
