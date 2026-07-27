@@ -1,5 +1,6 @@
 /**
  * notifications.js – Real-Time Instant Notification & Mobile Push Engine
+ * Built for Installed PWA / Android TWA apps (Managed by CurryTracker)
  */
 
 let seenNotifIds = new Set();
@@ -37,62 +38,32 @@ function playNotificationChime() {
   }
 }
 
+// Request Web & Android System Push Notification permissions
 window.requestNotificationPermission = function requestNotificationPermission() {
   if ('Notification' in window) {
     Notification.requestPermission().then(permission => {
-      console.log('[Notification] Permission:', permission);
+      console.log('[Notification] Permission result:', permission);
+      registerPushSubscription();
+      triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Active! Status bar alerts enabled.');
       checkNotificationPermissionBanner();
-      if (permission === 'granted') {
-        registerPushSubscription();
-        triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Enabled! Status bar alerts are active.');
-      } else if (permission === 'denied') {
-        openNotificationUnblockGuide();
-      }
+    }).catch(() => {
+      registerPushSubscription();
+      triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Active!');
     });
+  } else {
+    registerPushSubscription();
   }
-};
-
-window.openNotificationUnblockGuide = function openNotificationUnblockGuide() {
-  let modal = document.getElementById('notifUnblockModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.id = 'notifUnblockModal';
-    modal.setAttribute('tabindex', '-1');
-    modal.innerHTML = `
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:20px">
-          <div class="modal-header">
-            <h5 class="modal-title" style="font-size:16px;font-weight:800"><i class="fas fa-unlock text-warning me-2"></i>How to Allow Notifications in Chrome</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body" style="padding:20px;font-size:13.5px;color:var(--text-primary)">
-            <p style="margin-bottom:12px;font-weight:600">If the address bar / lock icon is hidden in your app, follow these 3 steps in Chrome:</p>
-            <ol style="padding-left:20px;line-height:1.6">
-              <li>Open <strong>Chrome App</strong> on your phone.</li>
-              <li>Tap <strong>3 dots ⋮ (top right)</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Site settings</strong> &rarr; <strong>Notifications</strong>.</li>
-              <li>Under <i>Blocked</i>, tap <code>expense-tracker-77br.onrender.com</code> &rarr; Tap <strong>Clear & Reset</strong> (or change to <strong>Allow</strong>).</li>
-            </ol>
-            <div style="background:rgba(26,115,232,0.1);border:1px solid rgba(26,115,232,0.3);border-radius:12px;padding:12px;margin-top:14px;font-size:12.5px">
-              💡 <strong>Note:</strong> In-App Audio Chime & Visual Toast Banners will continue ringing inside CurryTracker even if browser notifications are muted!
-            </div>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-  }
-  new bootstrap.Modal(modal).show();
 };
 
 function checkNotificationPermissionBanner() {
-  if (!('Notification' in window)) return;
   const banner = document.getElementById('notifPermBanner');
   if (!banner) return;
 
-  if (Notification.permission === 'default' || Notification.permission === 'denied') {
-    banner.style.display = 'flex';
-  } else {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (isStandalone || (typeof Notification !== 'undefined' && Notification.permission === 'granted')) {
     banner.style.display = 'none';
+  } else {
+    banner.style.display = 'flex';
   }
 }
 
@@ -157,38 +128,32 @@ function triggerPushNotification(title, body) {
     showToast(title, body, 'info', 4000);
   }
 
-  if (!('Notification' in window)) return;
-
-  if (Notification.permission === 'granted') {
-    try {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-          if (reg && reg.showNotification) {
-            reg.showNotification(title, {
-              body: body,
-              icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
-              badge: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
-              vibrate: [300, 100, 300, 100, 300],
-              tag: 'curry-notif-' + Date.now(),
-              renotify: true,
-              data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
-            }).catch(() => {
-              if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
-              }
-            });
-          } else if (navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
-          } else {
-            new Notification(title, { body, icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png' });
-          }
-        });
-      } else {
-        new Notification(title, { body, icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png' });
-      }
-    } catch (e) {
-      console.log('[Notification] Push error:', e);
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        if (reg && reg.showNotification) {
+          reg.showNotification(title, {
+            body: body,
+            icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
+            badge: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
+            vibrate: [300, 100, 300, 100, 300],
+            tag: 'curry-notif-' + Date.now(),
+            renotify: true,
+            data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
+          }).catch(() => {
+            if (navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
+            }
+          });
+        } else if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
+        }
+      });
+    } else if (typeof Notification !== 'undefined') {
+      new Notification(title, { body, icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png' });
     }
+  } catch (e) {
+    console.log('[Notification] Push notice:', e);
   }
 }
 
@@ -264,6 +229,7 @@ async function markAllRead() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  registerPushSubscription();
   checkNotificationPermissionBanner();
 });
 
