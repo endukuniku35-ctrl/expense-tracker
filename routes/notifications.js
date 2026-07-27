@@ -30,6 +30,16 @@ router.post('/test-push', async (req, res) => {
   }
 });
 
+// GET /api/notifications/public – Unauthenticated Public Feed for APK Background Polling
+router.get('/public', async (req, res) => {
+  try {
+    const notifications = await all('SELECT * FROM notifications ORDER BY timestamp DESC LIMIT 20');
+    res.json({ success: true, data: notifications || [] });
+  } catch (e) {
+    res.json({ success: true, data: [] });
+  }
+});
+
 // GET Notifications (Open for background Service Workers)
 router.get('/', async (req, res) => {
   try {

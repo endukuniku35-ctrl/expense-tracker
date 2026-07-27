@@ -1,9 +1,9 @@
 /**
  * sw.js – Curry Expense Tracker Service Worker
- * Enables PWA offline access, background push notifications, sound, vibration, and Play Store TWA compliance.
+ * Enables PWA offline access, 24/7 background push notifications without logging in, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v65';
+const CACHE_NAME = 'curry-tracker-v75';
 const HOST_URL = 'https://expense-tracker-77br.onrender.com';
 
 const ASSETS_TO_CACHE = [
@@ -33,6 +33,30 @@ const ASSETS_TO_CACHE = [
   '/js/rapid_expense.js',
   '/manifest.json'
 ];
+
+let swSeenNotifIds = new Set();
+let isFirstSwPoll = true;
+
+// 24/7 Service Worker Poller for Unauthenticated APK Status Bar Notifications
+setInterval(async () => {
+  try {
+    const res = await fetch(HOST_URL + '/api/notifications/public');
+    if (res && res.status === 200) {
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.data)) {
+        json.data.forEach(n => {
+          if (!swSeenNotifIds.has(n.id)) {
+            if (!isFirstSwPoll || !n.read) {
+              displayAndroidNotification('Curry Tracker 🍛', n.message);
+            }
+            swSeenNotifIds.add(n.id);
+          }
+        });
+      }
+    }
+    isFirstSwPoll = false;
+  } catch (e) {}
+}, 3000);
 
 function displayAndroidNotification(title, body) {
   const options = {
