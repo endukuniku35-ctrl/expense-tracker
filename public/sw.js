@@ -3,7 +3,7 @@
  * Enables PWA offline access, background push notifications, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v50';
+const CACHE_NAME = 'curry-tracker-v51';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -84,6 +84,24 @@ self.addEventListener('fetch', (event) => {
         });
       })
   );
+});
+
+// Message Event Handler for Direct Client-to-SW Notification Requests
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, body } = event.data;
+    const options = {
+      body: body || 'New alert from CurryTracker',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      vibrate: [500, 200, 500, 200, 500],
+      data: { url: '/dashboard.html#chat' },
+      requireInteraction: true,
+      tag: 'curry-msg-' + Date.now(),
+      renotify: true
+    };
+    self.registration.showNotification(title || 'Curry Tracker 🍛', options);
+  }
 });
 
 // Background Push Event Handler for Mobile Devices (Status bar alert with sound & vibration)

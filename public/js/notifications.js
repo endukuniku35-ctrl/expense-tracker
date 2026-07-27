@@ -1,12 +1,11 @@
 /**
  * notifications.js – Real-Time Instant Notification & Mobile Push Engine
  * Ensures EVERY message, nudge, expense & payment triggers an immediate 
- * native mobile push notification in the phone status bar.
+ * native mobile push notification in the phone status bar on Android/iOS/Desktop PWA apps.
  */
 
 let seenNotifIds = new Set();
 let isFirstNotifLoad = true;
-let lastNotifCheckTime = Date.now() - (2 * 60 * 1000); // 2 mins ago
 
 // Request Web & Android System Push Notification permissions
 function requestNotificationPermission() {
@@ -14,6 +13,9 @@ function requestNotificationPermission() {
     Notification.requestPermission().then(permission => {
       console.log('[Notification] Permission result:', permission);
       checkNotificationPermissionBanner();
+      if (permission === 'granted') {
+        triggerPushNotification('Curry Tracker 🍛', 'Mobile System Notifications Enabled!');
+      }
     });
   }
 }
@@ -31,29 +33,36 @@ function checkNotificationPermissionBanner() {
   }
 }
 
-// Trigger native Web / Android Mobile Push Notification
+// Trigger native Web / Android Mobile Push Notification via Service Worker Registration
 function triggerPushNotification(title, body) {
   if (!('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
     try {
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification(title, {
-            body: body,
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            vibrate: [500, 200, 500, 200, 500],
-            tag: 'curry-notif-' + Date.now(),
-            renotify: true,
-            requireInteraction: true
-          });
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg && reg.showNotification) {
+            reg.showNotification(title, {
+              body: body,
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              vibrate: [500, 200, 500, 200, 500],
+              tag: 'curry-notif-' + Date.now(),
+              renotify: true,
+              requireInteraction: true
+            }).catch(() => {
+              if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
+              }
+            });
+          } else if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
+          } else {
+            new Notification(title, { body, icon: '/icons/icon-192.png' });
+          }
         });
       } else {
-        new Notification(title, {
-          body: body,
-          icon: '/icons/icon-192.png'
-        });
+        new Notification(title, { body, icon: '/icons/icon-192.png' });
       }
     } catch (e) {
       console.log('[Notification] Push error:', e);
@@ -83,12 +92,9 @@ async function loadNotifications() {
   // Check for new notifications to trigger instant Mobile Push Notification
   if (notifications && notifications.length > 0) {
     notifications.forEach(n => {
-      const notifTime = new Date(n.timestamp).getTime();
-      
-      // If notification has not been seen by this device client
+      // If notification has not been seen by this device client or is unread
       if (!seenNotifIds.has(n.id)) {
-        // Trigger push notification if created after client loaded OR within last 2 minutes
-        if (!isFirstNotifLoad || notifTime > lastNotifCheckTime) {
+        if (!isFirstNotifLoad || !n.read) {
           triggerPushNotification('Curry Tracker 🍛', n.message);
         }
         seenNotifIds.add(n.id);
@@ -117,7 +123,7 @@ async function loadNotifications() {
         <i class="fas ${n.type === 'expense' ? 'fa-receipt' : n.type === 'payment' ? 'fa-wallet' : n.type === 'message' ? 'fa-comment' : 'fa-bell'}"></i>
       </div>
       <div style="flex:1;min-width:0">
-        <div class="notif-text">${n.message}</div>
+        <div class="notif-text">${escapeHtml(n.message)}</div>
         <div class="notif-time">${typeof timeAgo === 'function' ? timeAgo(n.timestamp) : n.timestamp}</div>
       </div>
       ${!n.read ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;margin-top:4px"></div>` : ''}
