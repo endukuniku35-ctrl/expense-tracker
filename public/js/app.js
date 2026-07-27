@@ -352,13 +352,24 @@ async function initApp() {
 
   // Show Roommate Chat link for ALL members
   const chatNav = document.getElementById('roommateChatNavItem');
-  if (chatNav) {
-    chatNav.style.display = 'block';
-  }
+  if (chatNav) chatNav.style.display = 'block';
+
   const bcastNav = document.getElementById('adminBroadcastNavItem');
-  if (bcastNav) {
-    bcastNav.style.display = App.isAdmin ? 'block' : 'none';
-  }
+  if (bcastNav) bcastNav.style.display = App.isAdmin ? 'block' : 'none';
+
+  // Show Smart Platform & Analytics sections ONLY for admin
+  const adminOnlyNavIds = [
+    'navGroupSmartPlatform',
+    'navItemBudget', 'navItemAttendance', 'navItemInventory',
+    'navItemGroups', 'navItemAudit', 'navItemCommunity', 'navItemCalendar',
+    'navGroupAnalytics',
+    'navItemReports', 'navItemCharts'
+  ];
+  adminOnlyNavIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = App.isAdmin ? 'block' : 'none';
+  });
+
 
   // Show notifications bell for ALL logged-in users (Admin + Members)
   const notifWrap = document.getElementById('notifWrap');
