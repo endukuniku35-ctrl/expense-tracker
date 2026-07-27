@@ -279,11 +279,11 @@ async function initApp() {
   }
 
   App.currentUser = authData.user;
-  App.isAdmin = authData.user.role === 'admin';
+  App.isAdmin = authData.user.role === 'admin' || authData.user.role === 'super_admin' || authData.user.userid === '192472374';
 
   // Update UI with user info
   const { name, shortName, avatar, role, userid } = authData.user;
-  const userPhoto = (userid === '192472374' || role === 'admin') ? '/images/logo_brand.png' : null;
+  const userPhoto = (userid === '192472374' || App.isAdmin) ? '/images/logo_brand.png' : null;
 
   const sidebarAv = document.getElementById('sidebarAvatar');
   if (sidebarAv) {
@@ -292,7 +292,7 @@ async function initApp() {
   }
 
   document.getElementById('sidebarName').textContent = name;
-  document.getElementById('sidebarRole').textContent = role === 'admin' ? '👑 Administrator' : '👤 Member';
+  document.getElementById('sidebarRole').textContent = App.isAdmin ? (role === 'super_admin' || userid === '192472374' ? '👑 Main Super Admin' : '👑 Administrator') : '👤 Member';
 
   const topbarAv = document.getElementById('topbarAvatar');
   if (topbarAv) {
