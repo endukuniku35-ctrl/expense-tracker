@@ -26,42 +26,24 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
     let sub = await reg.pushManager.getSubscription();
 
     if (!sub) {
-      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-        if (Notification.permission === 'default') {
-          const perm = await Notification.requestPermission().catch(() => 'denied');
-          if (perm !== 'granted') {
-            console.log('[PWA] Push permission not granted during auto-register:', perm);
-            return;
-          }
-        } else {
-          console.log('[PWA] Push permission blocked. Cannot auto-subscribe.');
-          return;
-        }
-      }
-
-      try {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'denied') {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: keyArray
+        }).catch(err => {
+          console.log('[PWA] Direct subscribe notice:', err);
+          return null;
         });
-      } catch (err) {
-        console.error('[PWA] Auto push subscribe failed:', err);
-        return;
       }
     }
 
     if (sub) {
-      const res = await fetch('/api/notifications/subscribe', {
+      await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...sub.toJSON(), userid: 'device_' + Date.now() })
       });
-      const data = await res.json().catch(() => null);
-      if (data && data.success) {
-        console.log('[PWA] Device Push Registered Successfully 24/7!');
-      } else {
-        console.error('[PWA] Auto-register subscription save failed:', data);
-      }
+      console.log('[PWA] Device Push Registered Successfully 24/7!');
     }
   } catch (e) {
     console.log('[PWA] Auto-push notice:', e);
