@@ -35,8 +35,14 @@ router.get('/stats', requireAuth, async (req, res) => {
   try {
     const { balances, totalExpenses, perPersonShare } = await computeBalances(req.session?.user);
     const groupMemberIds = balances.map(b => b.userid);
-    const allExpenses = await getExpenses();
-    const expenses = allExpenses.filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
+    const isMemberOnly = req.session?.user && req.session?.user.role === 'member';
+    const expenses = allExpenses.filter(e => {
+      if (isMemberOnly) {
+        const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
+        return e.paidBy === req.session.user.userid || splitList.includes(req.session.user.userid);
+      }
+      return groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id)));
+    });
 
     const now = new Date();
     const todayStr  = now.toISOString().split('T')[0];
@@ -83,8 +89,14 @@ router.get('/charts', requireAuth, async (req, res) => {
   try {
     const { balances } = await computeBalances(req.session?.user);
     const groupMemberIds = balances.map(b => b.userid);
-    const allExpenses = await getExpenses();
-    const expenses = allExpenses.filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
+    const isMemberOnly = req.session?.user && req.session?.user.role === 'member';
+    const expenses = allExpenses.filter(e => {
+      if (isMemberOnly) {
+        const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
+        return e.paidBy === req.session.user.userid || splitList.includes(req.session.user.userid);
+      }
+      return groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id)));
+    });
 
     // Category breakdown
     const categoryMap = {};

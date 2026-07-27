@@ -30,9 +30,9 @@ async function getMembers(currentUser) {
       const adminId = currentUser.role === 'admin' ? currentUser.userid : (currentUser.createdBy || '192472374');
       userList = userList.filter(u => u.userid === adminId || u.createdBy === adminId);
     } else {
-      // Main Super Admin Jagan: show Jagan's group members
+      // Main Super Admin Jagan: show Jagan's group members (exclude secondary group admins from room split)
       const adminId = '192472374';
-      userList = userList.filter(u => u.userid === adminId || u.createdBy === adminId || !u.createdBy);
+      userList = userList.filter(u => u.userid === adminId || (u.createdBy === adminId && u.role !== 'admin') || (!u.createdBy && u.role !== 'admin'));
     }
   }
 
@@ -60,13 +60,21 @@ async function computeBalances(currentUser) {
     const expRows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
     const setRows = await all('SELECT * FROM settlements ORDER BY date DESC, createdAt DESC');
 
+    const isMemberOnly = currentUser && currentUser.role === 'member';
+
     const expenses = (expRows || [])
       .map(r => ({
         ...r,
         amount: Number(r.amount || 0),
         splitBetween: parseSplitBetween(r.splitBetween, groupMemberIds)
       }))
-      .filter(e => groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id))));
+      .filter(e => {
+        if (isMemberOnly) {
+          const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
+          return e.paidBy === currentUser.userid || splitList.includes(currentUser.userid);
+        }
+        return groupMemberIds.includes(e.paidBy) || (Array.isArray(e.splitBetween) && e.splitBetween.some(id => groupMemberIds.includes(id)));
+      });
 
     const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
     const perPersonShare = members.length > 0 ? (totalExpenses / members.length) : 0;
