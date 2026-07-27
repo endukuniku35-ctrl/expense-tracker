@@ -5,6 +5,29 @@
 window.loadDashboard = async function loadDashboard() {
   const content = document.getElementById('viewContent');
   content.innerHTML = `<div style="opacity:0;animation:fadeInUp 0.4s ease forwards">
+    <!-- Instant 24/7 Mobile Status Bar Alert Banner -->
+    <div style="background:linear-gradient(135deg,rgba(52,168,83,0.12),rgba(26,115,232,0.12));border:1px solid rgba(52,168,83,0.3);border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(52,168,83,0.2);display:flex;align-items:center;justify-content:center;color:var(--secondary);font-size:20px">
+          <i class="fas fa-mobile-alt"></i>
+        </div>
+        <div>
+          <div style="font-weight:800;font-size:14px;color:var(--text-primary)">📲 24/7 Mobile Status Bar Notifications</div>
+          <div style="font-size:12px;color:var(--text-secondary)">Receive instant chime & vibration alerts on your phone status bar even when the app is completely closed or phone is idle!</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-primary-custom" onclick="registerPhoneForPushNotifications()" style="font-size:12px;padding:8px 16px;border-radius:8px;background:linear-gradient(135deg,#34a853,#1a73e8)">
+          <i class="fas fa-mobile-alt me-1"></i>Register Phone Now
+        </button>
+        <button class="btn-ghost" onclick="sendTestMobilePush()" style="font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--secondary);color:var(--text-primary)">
+          <i class="fas fa-paper-plane me-1"></i>Test Push Alert
+        </button>
+        <a href="https://t.me/CurryTrackerBot" target="_blank" class="btn-ghost" style="font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--secondary);color:var(--text-primary);text-decoration:none">
+          <i class="fab fa-telegram me-1 text-info"></i>Telegram Instant Bot
+        </a>
+      </div>
+    </div>
     <div id="aiInsightsBanner"></div>
     <div class="row g-3 mb-4" id="statsGrid">
       ${[1,2,3,4,5,6].map(() => `
