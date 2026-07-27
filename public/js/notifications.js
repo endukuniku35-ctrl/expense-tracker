@@ -171,7 +171,6 @@ window.sendTestMobilePush = async function sendTestMobilePush() {
   }
 };
 
-// Trigger native Web / Android Mobile Push Notification
 function triggerPushNotification(title, body) {
   playNotificationChime();
 
@@ -180,52 +179,36 @@ function triggerPushNotification(title, body) {
   }
 
   const iconUrl = 'https://expense-tracker-77br.onrender.com/icons/icon-192.png';
+  const options = {
+    body: body || 'New alert from Curry Tracker!',
+    icon: iconUrl,
+    vibrate: [500, 200, 500, 200, 500],
+    tag: 'curry-notif-' + Date.now(),
+    renotify: true,
+    requireInteraction: true,
+    silent: false,
+    data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
+  };
 
-  // 1. Direct Browser System Notification
-  try {
-    if (typeof Notification !== 'undefined') {
-      if (Notification.permission === 'granted') {
-        new Notification(title || 'Curry Tracker 🍛', {
-          body: body || 'New notification alert!',
-          icon: iconUrl,
-          badge: iconUrl,
-          vibrate: [300, 100, 300],
-          tag: 'curry-direct-' + Date.now()
-        });
-      } else if (Notification.permission === 'default') {
-        Notification.requestPermission().then(perm => {
-          if (perm === 'granted') {
-            new Notification(title || 'Curry Tracker 🍛', {
-              body: body || 'New notification alert!',
-              icon: iconUrl,
-              badge: iconUrl,
-              vibrate: [300, 100, 300],
-              tag: 'curry-direct-' + Date.now()
-            });
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg && reg.showNotification) {
+        reg.showNotification(title || 'Curry Tracker 🍛', options).catch(() => {});
+      } else {
+        navigator.serviceWorker.register('/sw.js').then(newReg => {
+          if (newReg && newReg.showNotification) {
+            newReg.showNotification(title || 'Curry Tracker 🍛', options).catch(() => {});
           }
         }).catch(() => {});
       }
-    }
-  } catch (e) {}
-
-  // 2. Service Worker System Notification
-  try {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        if (reg && reg.showNotification) {
-          reg.showNotification(title || 'Curry Tracker 🍛', {
-            body: body || 'New notification alert!',
-            icon: iconUrl,
-            badge: iconUrl,
-            vibrate: [300, 100, 300],
-            tag: 'curry-sw-' + Date.now(),
-            renotify: true,
-            data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
-          }).catch(() => {});
-        }
-      }).catch(() => {});
-    }
-  } catch (e) {}
+    }).catch(() => {});
+  } else {
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        new Notification(title || 'Curry Tracker 🍛', options);
+      }
+    } catch (e) {}
+  }
 }
 
 async function loadNotifications() {
