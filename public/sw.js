@@ -1,9 +1,9 @@
 /**
  * sw.js – Curry Expense Tracker Service Worker
- * Enables PWA offline access, network caching, and Google Play Store TWA compliance.
+ * Enables PWA offline access, background push notifications, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v15';
+const CACHE_NAME = 'curry-tracker-v50';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -19,10 +19,14 @@ const ASSETS_TO_CACHE = [
   '/js/profile.js',
   '/js/notifications.js',
   '/js/search.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/icon-maskable-512.png'
+  '/js/ai_assistant.js',
+  '/js/ocr_scanner.js',
+  '/js/budget.js',
+  '/js/audit.js',
+  '/js/inventory.js',
+  '/js/attendance.js',
+  '/js/groups.js',
+  '/manifest.json'
 ];
 
 // Install Event
@@ -63,7 +67,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache fresh response if valid
         if (response && response.status === 200 && response.type === 'basic') {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -73,7 +76,6 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // Fallback to cache if network fails
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           if (event.request.mode === 'navigate') {
@@ -84,7 +86,32 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push Notification Click Event
+// Background Push Event Handler for Mobile Devices (Status bar alert with sound & vibration)
+self.addEventListener('push', (event) => {
+  let data = { title: 'Curry Tracker 🍛', body: 'New roommate message or expense update!' };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [500, 200, 500, 200, 500],
+    data: { url: '/dashboard.html#chat' },
+    requireInteraction: true,
+    tag: 'curry-msg-' + Date.now(),
+    renotify: true
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// Notification Click Event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
@@ -95,7 +122,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow('/dashboard.html');
+        return clients.openWindow('/dashboard.html#chat');
       }
     })
   );

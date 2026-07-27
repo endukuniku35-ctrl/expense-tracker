@@ -175,9 +175,9 @@ function toggleDarkMode() {
 function navigateTo(view) {
   hideLoader();
 
-  // Guard Admin-Only Views (Chat & Broadcast)
-  if ((view === 'chat' || view === 'broadcast') && !App.isAdmin) {
-    showToast('Access Restricted 🔒', 'Roommate Chat & Admin Broadcasts are strictly restricted to Admin Jagan.', 'warning');
+  // Guard Admin-Only View (Broadcast)
+  if (view === 'broadcast' && !App.isAdmin) {
+    showToast('Access Restricted 🔒', 'Admin Broadcasts are strictly restricted to Admin Jagan.', 'warning');
     if (view !== 'dashboard') navigateTo('dashboard');
     return;
   }
@@ -311,10 +311,10 @@ async function initApp() {
   }
   document.getElementById('topbarName').textContent = shortName;
 
-  // Show Admin-Only sidebar links for Admin Jagan only
+  // Show Roommate Chat link for ALL members
   const chatNav = document.getElementById('roommateChatNavItem');
   if (chatNav) {
-    chatNav.style.display = App.isAdmin ? 'block' : 'none';
+    chatNav.style.display = 'block';
   }
   const bcastNav = document.getElementById('adminBroadcastNavItem');
   if (bcastNav) {

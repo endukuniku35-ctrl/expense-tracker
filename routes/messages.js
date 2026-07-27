@@ -6,8 +6,8 @@ const router = express.Router();
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, run } = require('../database');
 
-// GET all group messages (Admin Only)
-router.get('/', requireAdmin, async (req, res) => {
+// GET all group messages (Available for ALL authenticated members)
+router.get('/', requireAuth, async (req, res) => {
   try {
     const messages = await all('SELECT * FROM messages ORDER BY timestamp ASC');
     res.json({ success: true, data: messages || [] });
@@ -16,8 +16,8 @@ router.get('/', requireAdmin, async (req, res) => {
   }
 });
 
-// POST send new chat message (Admin Only)
-router.post('/', requireAdmin, async (req, res) => {
+// POST send new chat message (Available for ALL authenticated members)
+router.post('/', requireAuth, async (req, res) => {
   try {
     const user = req.session?.user || req.user || {};
     const { message } = req.body;
@@ -27,10 +27,10 @@ router.post('/', requireAdmin, async (req, res) => {
 
     const msgObj = {
       id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      senderId: user.userid || '192472374',
-      senderName: user.name || user.shortName || 'Jagan Kandukuri',
-      senderAvatar: user.avatar || '👑',
-      senderRole: user.role || 'admin',
+      senderId: user.userid || 'member',
+      senderName: user.name || user.shortName || 'Roommate',
+      senderAvatar: user.avatar || '👤',
+      senderRole: user.role || 'member',
       text: message.trim(),
       timestamp: new Date().toISOString()
     };
@@ -41,7 +41,7 @@ router.post('/', requireAdmin, async (req, res) => {
     );
 
     // Also add to notifications for all members
-    const notifMsg = `💬 ${msgObj.senderName}: "${msgObj.text.length > 30 ? msgObj.text.substring(0, 30) + '...' : msgObj.text}"`;
+    const notifMsg = `💬 ${msgObj.senderName}: "${msgObj.text.length > 40 ? msgObj.text.substring(0, 40) + '...' : msgObj.text}"`;
     await run(
       'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
       ['notif_' + Date.now(), 'message', notifMsg, msgObj.timestamp, 'all']
