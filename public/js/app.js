@@ -193,22 +193,46 @@ function toggleDarkMode() {
 function navigateTo(view) {
   hideLoader();
 
-  // Guard Admin-Only View (Broadcast)
-  if (view === 'broadcast' && !App.isAdmin) {
-    showToast('Access Restricted 🔒', 'Admin Broadcasts are strictly restricted to Admin Jagan.', 'warning');
-    if (view !== 'dashboard') navigateTo('dashboard');
+  // Guard Admin-Only Views
+  const adminOnlyViews = ['broadcast', 'budget', 'attendance', 'inventory', 'groups', 'audit', 'community', 'calendar', 'reports', 'charts'];
+  if (adminOnlyViews.includes(view) && !App.isAdmin) {
+    showToast('Access Restricted 🔒', 'This section is for Admin only.', 'warning');
+    navigateTo('dashboard');
     return;
   }
 
   App.currentView = view;
   window.location.hash = view;
 
-  // Update active nav item
+  // ── Update active nav item with smooth glide indicator ──────────────────────
+  let activeEl = null;
   document.querySelectorAll('.nav-link-custom[data-view]').forEach(el => {
-    el.classList.toggle('active', el.dataset.view === view);
+    const isActive = el.dataset.view === view;
+    el.classList.toggle('active', isActive);
+    if (isActive) activeEl = el;
   });
 
-  // Update page title
+  // Auto-scroll sidebar to keep active item in view (smooth)
+  if (activeEl) {
+    const wrapper = activeEl.closest('.nav-item-wrapper') || activeEl;
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Ripple tap effect on mobile
+    const ripple = document.createElement('span');
+    ripple.style.cssText = `
+      position:absolute;border-radius:50%;
+      background:rgba(255,255,255,0.25);
+      width:100%;height:100%;top:0;left:0;
+      animation:navRipple 0.5s ease-out forwards;
+      pointer-events:none;
+    `;
+    activeEl.style.position = 'relative';
+    activeEl.style.overflow = 'hidden';
+    activeEl.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+  }
+
+  // ── Update page title ──────────────────────────────────────────────────────
   const titles = {
     dashboard: { title: 'Dashboard', breadcrumb: 'Overview' },
     members: { title: 'Members', breadcrumb: 'Team Members & Status' },
@@ -232,7 +256,7 @@ function navigateTo(view) {
   document.getElementById('pageTitle').textContent = info.title;
   document.getElementById('pageBreadcrumb').textContent = info.breadcrumb;
 
-  // Load view
+  // ── Load view content ──────────────────────────────────────────────────────
   const content = document.getElementById('viewContent');
   const loaders = {
     dashboard: window.loadDashboard,
@@ -258,18 +282,17 @@ function navigateTo(view) {
     try {
       loaderFn();
     } catch (err) {
-      console.error('Error executing loader for view ' + view + ':', err);
-      if (content) {
-        content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">Error loading ${view}. <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
-      }
+      console.error('Error loading view ' + view + ':', err);
+      if (content) content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--danger)">Error loading ${view}. <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
     }
   } else if (content) {
     content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading ${view}... <button class="btn-primary-custom" onclick="navigateTo('${view}')">Retry</button></div>`;
   }
 
-  // Close sidebar on mobile
+  // Auto-close sidebar on mobile after navigation
   if (window.innerWidth < 992) closeSidebar();
 }
+
 
 // ─── Logout ────────────────────────────────────────
 function showLogoutModal() {

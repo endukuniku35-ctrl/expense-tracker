@@ -153,6 +153,7 @@ body {
 
 .nav-item-wrapper { padding: 2px 12px; }
 
+
 .nav-link-custom {
   display: flex;
   align-items: center;
@@ -163,7 +164,7 @@ body {
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
-  transition: var(--transition);
+  transition: background 0.25s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.25s ease;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -172,12 +173,20 @@ body {
 .nav-link-custom:hover {
   background: rgba(255,255,255,0.08);
   color: #fff;
+  transform: translateX(3px);
 }
 
 .nav-link-custom.active {
-  background: linear-gradient(135deg, rgba(26,115,232,0.4), rgba(52,168,83,0.3));
+  background: linear-gradient(135deg, rgba(26,115,232,0.45), rgba(52,168,83,0.3));
   color: #fff;
-  box-shadow: 0 4px 16px rgba(26,115,232,0.3);
+  box-shadow: 0 4px 20px rgba(26,115,232,0.35), inset 0 0 0 1px rgba(255,255,255,0.08);
+  transform: translateX(4px);
+  font-weight: 600;
+}
+
+.nav-link-custom.active .nav-icon {
+  transform: scale(1.18);
+  filter: drop-shadow(0 0 4px rgba(26,115,232,0.6));
 }
 
 .nav-link-custom.active::before {
@@ -187,10 +196,19 @@ body {
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 60%;
+  height: 65%;
   background: linear-gradient(to bottom, var(--primary), var(--secondary));
   border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 8px rgba(26,115,232,0.8);
 }
+
+/* Ripple animation for nav tap feedback */
+@keyframes navRipple {
+  0%   { opacity: 0.4; transform: scale(0); }
+  80%  { opacity: 0.15; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+
 
 .nav-icon {
   width: 18px;
