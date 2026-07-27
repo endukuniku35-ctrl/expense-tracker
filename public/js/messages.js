@@ -23,9 +23,12 @@ async function loadChatMessages() {
               <div style="font-size:12px;color:var(--text-muted)">Real-time group chat, food updates & automated UPI payment nudges</div>
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <a href="https://t.me/CurryTrackerBot" target="_blank" class="btn-ghost" style="font-size:12px;padding:8px 14px;border-radius:10px;border:1px solid var(--secondary);color:var(--text-primary);text-decoration:none;display:inline-flex;align-items:center">
-                <i class="fab fa-telegram me-1 text-info"></i>Connect Phone Push (@CurryTrackerBot)
-              </a>
+              <button onclick="showTelegramSetupModal()" class="btn-ghost" style="font-size:12px;padding:8px 14px;border-radius:10px;border:1px solid #229ED9;color:#229ED9;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:rgba(34,158,217,0.1)">
+                <i class="fab fa-telegram"></i> Get Alerts on Telegram
+              </button>
+              <button class="btn-ghost" onclick="requestWebPushPermission()" style="font-size:12px;padding:8px 14px;border-radius:10px;border:1px solid #34a853;color:#34a853;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:rgba(52,168,83,0.1)">
+                <i class="fas fa-bell"></i> Enable Phone Alerts
+              </button>
               <button class="btn-primary-custom" onclick="openNudgeModal()" style="font-size:13px;padding:8px 16px">
                 <i class="fas fa-bell me-1"></i>Send Payment Reminder Nudge
               </button>
@@ -321,6 +324,90 @@ async function submitAdminBroadcast() {
 window.loadChatMessages = loadChatMessages;
 window.loadAdminBroadcasts = loadAdminBroadcasts;
 
+// ── Telegram Setup Modal ──────────────────────────────────────────────────────
+window.showTelegramSetupModal = function showTelegramSetupModal() {
+  const existing = document.getElementById('telegramSetupModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'telegramSetupModal';
+  modal.style.cssText = `position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);padding:16px`;
+  modal.innerHTML = `
+    <div style="background:var(--bg-2,#1a1a2e);border:1px solid rgba(34,158,217,0.4);border-radius:20px;padding:28px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="font-size:48px;margin-bottom:8px">📱</div>
+        <h3 style="color:#229ED9;margin:0 0 6px 0;font-size:20px">Get Background Alerts</h3>
+        <p style="color:var(--text-muted,#888);font-size:13px;margin:0">Notifications even when app is closed</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+        <!-- Telegram Option -->
+        <div style="background:rgba(34,158,217,0.1);border:1px solid rgba(34,158,217,0.3);border-radius:14px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <i class="fab fa-telegram" style="font-size:24px;color:#229ED9"></i>
+            <div>
+              <div style="font-weight:600;color:var(--text-primary,#fff)">Telegram Alerts</div>
+              <div style="font-size:11px;color:var(--text-muted,#888)">100% reliable · Works when phone is locked</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted,#aaa);margin:0 0 12px 0">
+            Step 1: Open Telegram → Search <b style="color:#229ED9">@CurryTrackerBot</b><br>
+            Step 2: Tap <b>START</b> → Done! ✅<br>
+            You'll get alerts for every message, expense & payment.
+          </p>
+          <a href="https://t.me/CurryTrackerBot" target="_blank"
+             style="display:block;text-align:center;background:#229ED9;color:#fff;padding:10px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px">
+            <i class="fab fa-telegram me-1"></i>Open @CurryTrackerBot
+          </a>
+        </div>
+
+        <!-- Web Push Option -->
+        <div style="background:rgba(52,168,83,0.1);border:1px solid rgba(52,168,83,0.3);border-radius:14px;padding:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <i class="fas fa-bell" style="font-size:22px;color:#34a853"></i>
+            <div>
+              <div style="font-weight:600;color:var(--text-primary,#fff)">Browser Push Alerts</div>
+              <div style="font-size:11px;color:var(--text-muted,#888)">Status bar banners · Works in background</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted,#aaa);margin:0 0 12px 0">
+            Tap the button below → Allow notifications when Chrome asks.
+            You'll see a banner on your status bar for every update!
+          </p>
+          <button onclick="requestWebPushPermission(); document.getElementById('telegramSetupModal').remove();"
+             style="width:100%;background:#34a853;color:#fff;padding:10px;border-radius:10px;border:none;font-weight:600;font-size:14px;cursor:pointer">
+            <i class="fas fa-bell me-1"></i>Enable Push Alerts Now
+          </button>
+        </div>
+      </div>
+
+      <button onclick="document.getElementById('telegramSetupModal').remove()"
+        style="width:100%;background:transparent;border:1px solid var(--glass-border,rgba(255,255,255,0.1));color:var(--text-muted,#888);padding:10px;border-radius:10px;cursor:pointer;font-size:13px">
+        Close
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+};
+
+// ── Web Push Permission Request ───────────────────────────────────────────────
+window.requestWebPushPermission = async function requestWebPushPermission() {
+  if (!('Notification' in window)) {
+    showToast('Not Supported', 'Your browser does not support push notifications.', 'error'); return;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      showToast('✅ Alerts Enabled!', 'You will receive status bar notifications for all updates.', 'success', 4000);
+      if (typeof window.autoRegisterDevicePush === 'function') await window.autoRegisterDevicePush();
+    } else {
+      showToast('Blocked', 'Please allow notifications in your browser settings for this site.', 'error', 5000);
+    }
+  } catch (e) {
+    showToast('Error', 'Could not request notification permission.', 'error');
+  }
+};
+
 // Auto-refresh chat messages every 2 seconds whenever chat window is visible
 setInterval(() => {
   const box = document.getElementById('chatMessagesBox');
@@ -328,3 +415,4 @@ setInterval(() => {
     loadChatMessages();
   }
 }, 2000);
+

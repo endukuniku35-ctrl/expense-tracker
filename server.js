@@ -97,6 +97,7 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/community', require('./routes/community'));
 app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/telegram', require('./routes/telegram'));
 
 // Serve login page at root with no-cache
 app.get('/', (req, res) => {
@@ -132,16 +133,23 @@ app.listen(PORT, () => {
   console.log(`  Mode: Fast-Performance Engine`);
   console.log('================================================');
 
-  // Automatic 10-Minute Keep-Alive Self-Ping to Prevent Cloud Spin-Down Delay
   const RENDER_URL = process.env.RENDER_EXTERNAL_URL || 'https://expense-tracker-77br.onrender.com';
+
+  // Auto-register Telegram webhook on every startup
+  setTimeout(() => {
+    try {
+      const { registerWebhook } = require('./telegram');
+      registerWebhook(RENDER_URL);
+    } catch (e) { console.error('[Telegram] Webhook register error:', e.message); }
+  }, 3000);
+
+  // 10-minute keep-alive self-ping to prevent Render free tier spin-down
   setInterval(() => {
     try {
       const client = RENDER_URL.startsWith('https') ? https : http;
-      client.get(`${RENDER_URL}/ping`, (res) => {
-        // Keep warm success
-      }).on('error', () => {});
+      client.get(`${RENDER_URL}/ping`, () => {}).on('error', () => {});
     } catch (e) {}
-  }, 10 * 60 * 1000); // Ping every 10 minutes
+  }, 10 * 60 * 1000);
 });
 
 module.exports = app;
