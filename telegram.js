@@ -38,16 +38,58 @@ function saveChatId(chatId) {
   const id = String(chatId);
   const isNew = !_chatIdSet.has(id);
   _chatIdSet.add(id);
+  const idList = [..._chatIdSet];
   // Write to file for persistence within same deploy cycle
   try {
     const dataDir = path.dirname(chatsFile);
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(chatsFile, JSON.stringify([..._chatIdSet], null, 2));
+    fs.writeFileSync(chatsFile, JSON.stringify(idList, null, 2));
     if (isNew) console.log(`[Telegram] ✅ New chat ID registered: ${id}. Total: ${_chatIdSet.size}`);
   } catch (e) {
     console.error('[Telegram] Failed to save chat ID:', e.message);
   }
+  // Auto-commit to GitHub so new chat IDs survive next Render deploy
+  if (isNew) setImmediate(() => commitChatsToGitHub(idList));
   return isNew;
+}
+
+// ── GitHub Auto-Commit for Telegram Chat IDs ─────────────────────────────────
+
+function commitChatsToGitHub(ids) {
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  if (!GITHUB_TOKEN) return;
+
+  const REPO = 'endukuniku35-ctrl/expense-tracker';
+  const FILE_PATH = 'data/telegram_chats.json';
+  const BRANCH = 'main';
+  const content = Buffer.from(JSON.stringify(ids, null, 2) + '\n').toString('base64');
+
+  const getReq = https.request({
+    hostname: 'api.github.com',
+    path: `/repos/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
+    method: 'GET',
+    headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'CurryTracker', 'Accept': 'application/vnd.github.v3+json' }
+  }, (res) => {
+    let data = '';
+    res.on('data', c => data += c);
+    res.on('end', () => {
+      try {
+        const { sha } = JSON.parse(data);
+        const body = JSON.stringify({ message: `[auto] Update telegram chats (${ids.length} users)`, content, sha, branch: BRANCH });
+        const putReq = https.request({
+          hostname: 'api.github.com',
+          path: `/repos/${REPO}/contents/${FILE_PATH}`,
+          method: 'PUT',
+          headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'User-Agent': 'CurryTracker', 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        }, (r) => { r.resume(); console.log(`[Telegram] ✅ GitHub commit: ${ids.length} chat IDs saved permanently`); });
+        putReq.on('error', () => {});
+        putReq.write(body);
+        putReq.end();
+      } catch (e) {}
+    });
+  });
+  getReq.on('error', () => {});
+  getReq.end();
 }
 
 // ── getUpdates Recovery (runs on startup) ────────────────────────────────────

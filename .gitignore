@@ -1,6 +1,8 @@
 node_modules/
 data/*.json
 !data/init.js
+!data/push_subscriptions.json
+!data/telegram_chats.json
 *.log
 .env
 .DS_Store
