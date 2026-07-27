@@ -167,6 +167,9 @@ window.loadDashboard = async function loadDashboard() {
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-primary-custom" onclick="sendTelegramSummary()" style="background:linear-gradient(135deg,#0088cc,#00a8ff);font-size:12.5px;padding:7px 14px;border-radius:8px">
+          <i class="fab fa-telegram me-1"></i>Telegram Summary
+        </button>
         ${App.isAdmin ? `
           <button class="btn-primary-custom" onclick="nudgeAllPendingPayers()" style="font-size:12.5px;padding:7px 14px;border-radius:8px">
             <i class="fas fa-bell me-1"></i>Nudge All Pending Payers

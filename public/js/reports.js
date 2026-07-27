@@ -231,3 +231,42 @@ function exportReport(type) {
   showToast('Exporting...', `Preparing ${type.toUpperCase()} download.`, 'info', 2000);
   window.open(url, '_blank');
 }
+
+async function sendTelegramSummary() {
+  showLoader();
+  const [statsData, balanceData] = await Promise.all([
+    api('/api/dashboard/stats'),
+    api('/api/members')
+  ]);
+  hideLoader();
+
+  if (!statsData || !balanceData) {
+    showToast('Error', 'Failed to fetch summary for Telegram.', 'error');
+    return;
+  }
+
+  const { stats } = statsData;
+  const balances = balanceData.data || balanceData.balances || [];
+
+  let msg = `🍛 *CURRY EXPENSE TRACKER - REPORT SUMMARY*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *Total Curry Bills:* ₹${(stats.totalExpenses || 0).toLocaleString('en-IN')}\n`;
+  msg += `👥 *Avg Fair Share:* ₹${(stats.perPersonShare || 0).toLocaleString('en-IN')}\n`;
+  msg += `🔴 *Total Outstanding:* ₹${(stats.totalOwed || 0).toLocaleString('en-IN')}\n\n`;
+  msg += `📋 *MEMBER BREAKDOWN & STATUS:*\n`;
+
+  balances.forEach(b => {
+    const net = b.outstanding > 0 ? (b.netBalance < 0 ? `🔴 Owes ₹${Math.round(b.outstanding)}` : `💰 Receives ₹${Math.round(b.outstanding)}`) : `✅ Settled`;
+    msg += `• *${b.name}* (${b.userid}): ${net} (Paid ₹${(b.totalPaid||0).toLocaleString('en-IN')})\n`;
+  });
+
+  msg += `\n💳 *PAYMENT UPI ID:* \`8367047947@ybl\`\n`;
+  msg += `🔗 *APP URL:* https://expense-tracker-77br.onrender.com\n`;
+
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent('https://expense-tracker-77br.onrender.com')}&text=${encodeURIComponent(msg)}`;
+  window.open(telegramUrl, '_blank');
+  showToast('Telegram Ready! ✈️', 'Opening Telegram to share monthly report.', 'success');
+}
+
+window.sendTelegramSummary = sendTelegramSummary;
+window.exportReport = exportReport;
