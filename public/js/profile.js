@@ -21,7 +21,7 @@ window.loadProfile = function loadProfile() {
       <div class="glass-card mb-4" style="overflow:visible">
         <div style="background:linear-gradient(135deg, ${colors[0]}, ${colors[1]});height:140px;border-radius:20px 20px 0 0;position:relative">
           ${user.userid === '192472374' || user.role === 'admin' ? `
-            <!-- Admin real photo with premium ring effect -->
+            <!-- Jagan's real photo - visible to all users -->
             <div style="position:absolute;bottom:-46px;left:28px">
               <div style="position:relative;width:92px;height:92px">
                 <div style="position:absolute;inset:-4px;border-radius:24px;background:linear-gradient(135deg,${colors[0]},${colors[1]});opacity:0.6;filter:blur(6px)"></div>

@@ -90,9 +90,9 @@ async function loadChatMessages() {
       `;
     }
 
-    // Avatar: Admin (Jagan) gets real photo if viewer is admin; others get initials
+    // Avatar: Admin (Jagan) always shows real photo for ALL viewers; others get initials
     const initials = (m.senderName || '?').substring(0, 2).toUpperCase();
-    const showRealPhoto = isAdminMsg && App.isAdmin;
+    const showRealPhoto = isAdminMsg; // Real photo visible to EVERYONE
     const avatarHtml = showRealPhoto
       ? `<div style="position:relative;width:36px;height:36px;flex-shrink:0">
            <img src="/images/jagan.jpg" alt="J"

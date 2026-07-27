@@ -144,13 +144,12 @@ function avatarClass(name) {
 }
 
 // ─── Get Member Avatar HTML ─────────────────────────
-// Admin (Jagan) gets real photo; all others get styled initials
+// Admin (Jagan) always shows real photo for ALL users; others get styled initials
 window.getMemberAvatarHtml = function(name, userid, role, size = 40, radius = '50%') {
-  const isAdmin = (userid === '192472374' || role === 'admin' || role === 'super_admin');
+  const isJaganAdmin = (userid === '192472374' || role === 'admin' || role === 'super_admin');
   const initials = (name || '?').substring(0, 2).toUpperCase();
   const cls = avatarClass(name);
-  if (isAdmin && App.isAdmin) {
-    // Only admin viewer sees the real photo
+  if (isJaganAdmin) {
     return `<img src="/images/jagan.jpg" alt="Jagan" style="width:${size}px;height:${size}px;border-radius:${radius};object-fit:cover;object-position:center top;border:2.5px solid var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,0.2)" onerror="this.onerror=null;this.outerHTML='<div class=${JSON.stringify('avatar ' + cls)} style=\'width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size*0.35)}px;\'>${initials}</div>'" />`;
   }
   return `<div class="avatar ${cls}" style="width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size * 0.35)}px;font-weight:700;display:flex;align-items:center;justify-content:center">${initials}</div>`;
