@@ -25,15 +25,13 @@ async function getMembers(currentUser) {
 
   if (currentUser) {
     const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.userid === '192472374';
-    if (!isSuperAdmin) {
-      // Secondary admin or member: find the group admin ID
-      const adminId = currentUser.role === 'admin' ? currentUser.userid : (currentUser.createdBy || '192472374');
-      userList = userList.filter(u => u.userid === adminId || u.createdBy === adminId);
-    } else {
-      // Main Super Admin Jagan: show Jagan's group members (exclude secondary group admins from room split)
-      const adminId = '192472374';
-      userList = userList.filter(u => u.userid === adminId || (u.createdBy === adminId && u.role !== 'admin') || (!u.createdBy && u.role !== 'admin'));
+    if (isSuperAdmin) {
+      // Main Super Admin Jagan sees all members across all groups
+      return userList;
     }
+    // Secondary admin or member: find their specific group members
+    const adminId = currentUser.role === 'admin' ? currentUser.userid : (currentUser.createdBy || '192472374');
+    userList = userList.filter(u => u.userid === adminId || u.createdBy === adminId);
   }
 
   return userList;
@@ -60,6 +58,7 @@ async function computeBalances(currentUser) {
     const expRows = await all('SELECT * FROM expenses ORDER BY date DESC, createdAt DESC');
     const setRows = await all('SELECT * FROM settlements ORDER BY date DESC, createdAt DESC');
 
+    const isSuperAdmin = currentUser && (currentUser.role === 'super_admin' || currentUser.userid === '192472374');
     const isMemberOnly = currentUser && currentUser.role === 'member';
 
     const expenses = (expRows || [])
@@ -69,6 +68,7 @@ async function computeBalances(currentUser) {
         splitBetween: parseSplitBetween(r.splitBetween, groupMemberIds)
       }))
       .filter(e => {
+        if (isSuperAdmin) return true; // Super Admin Jagan sees ALL expenses
         if (isMemberOnly) {
           const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
           return e.paidBy === currentUser.userid || splitList.includes(currentUser.userid);

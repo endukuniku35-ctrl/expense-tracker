@@ -35,8 +35,13 @@ router.get('/stats', requireAuth, async (req, res) => {
   try {
     const { balances, totalExpenses, perPersonShare } = await computeBalances(req.session?.user);
     const groupMemberIds = balances.map(b => b.userid);
+    const allExpenses = await getExpenses();
+
+    const isSuperAdmin = req.session?.user && (req.session?.user.role === 'super_admin' || req.session?.user.userid === '192472374');
     const isMemberOnly = req.session?.user && req.session?.user.role === 'member';
+
     const expenses = allExpenses.filter(e => {
+      if (isSuperAdmin) return true;
       if (isMemberOnly) {
         const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
         return e.paidBy === req.session.user.userid || splitList.includes(req.session.user.userid);
@@ -89,8 +94,13 @@ router.get('/charts', requireAuth, async (req, res) => {
   try {
     const { balances } = await computeBalances(req.session?.user);
     const groupMemberIds = balances.map(b => b.userid);
+    const allExpenses = await getExpenses();
+
+    const isSuperAdmin = req.session?.user && (req.session?.user.role === 'super_admin' || req.session?.user.userid === '192472374');
     const isMemberOnly = req.session?.user && req.session?.user.role === 'member';
+
     const expenses = allExpenses.filter(e => {
+      if (isSuperAdmin) return true;
       if (isMemberOnly) {
         const splitList = Array.isArray(e.splitBetween) ? e.splitBetween : groupMemberIds;
         return e.paidBy === req.session.user.userid || splitList.includes(req.session.user.userid);
