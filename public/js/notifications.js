@@ -46,12 +46,12 @@ window.requestNotificationPermission = function requestNotificationPermission() 
       if (permission === 'granted') {
         registerPushSubscription();
         triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Enabled! Status bar alerts are active.');
-      } else {
-        alert('Please allow Notifications in your Android Phone Settings -> Apps -> CurryTracker -> Notifications -> Turn ON');
+      } else if (permission === 'denied') {
+        if (typeof showToast === 'function') {
+          showToast('Notifications Blocked in Browser 🔒', 'Tap the Lock icon 🔒 next to the web address -> Site Settings -> Notifications -> ALLOW!', 'warning', 8000);
+        }
       }
     });
-  } else {
-    alert('Notifications API is not supported in this browser environment.');
   }
 };
 
@@ -123,6 +123,10 @@ window.sendTestMobilePush = async function sendTestMobilePush() {
 // Trigger native Web / Android Mobile Push Notification
 function triggerPushNotification(title, body) {
   playNotificationChime();
+
+  if (typeof showToast === 'function') {
+    showToast(title, body, 'info', 4000);
+  }
 
   if (!('Notification' in window)) return;
 

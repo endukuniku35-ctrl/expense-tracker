@@ -3,7 +3,7 @@
  * Enables PWA offline access, background push notifications, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v60';
+const CACHE_NAME = 'curry-tracker-v65';
 const HOST_URL = 'https://expense-tracker-77br.onrender.com';
 
 const ASSETS_TO_CACHE = [
@@ -34,8 +34,6 @@ const ASSETS_TO_CACHE = [
   '/manifest.json'
 ];
 
-let swSeenNotifIds = new Set();
-
 function displayAndroidNotification(title, body) {
   const options = {
     body: body || 'New alert from CurryTracker',
@@ -44,7 +42,10 @@ function displayAndroidNotification(title, body) {
     vibrate: [300, 100, 300, 100, 300],
     data: { url: HOST_URL + '/dashboard.html#chat' },
     tag: 'curry-notif-' + Date.now(),
-    renotify: true
+    renotify: true,
+    actions: [
+      { action: 'open', title: '💬 Open Chat' }
+    ]
   };
   return self.registration.showNotification(title || 'Curry Tracker 🍛', options);
 }
