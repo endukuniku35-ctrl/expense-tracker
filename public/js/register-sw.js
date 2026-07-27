@@ -17,26 +17,23 @@ function urlBase64ToUint8Array(base64String) {
 window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     const vapidRes = await fetch('/api/notifications/vapid-key').then(r => r.json());
     if (!vapidRes || !vapidRes.publicKey) return;
 
     const keyArray = urlBase64ToUint8Array(vapidRes.publicKey);
     let sub = await reg.pushManager.getSubscription();
 
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: keyArray
-      }).catch(async () => {
-        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-          await Notification.requestPermission();
-        }
-        return reg.pushManager.subscribe({
+    if (!sub && typeof Notification !== 'undefined') {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission().catch(() => {});
+      }
+      if (Notification.permission === 'granted' || Notification.permission === 'default') {
+        sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: keyArray
-        });
-      });
+        }).catch(err => console.log('[PWA] Subscribe catch:', err));
+      }
     }
 
     if (sub) {
@@ -55,8 +52,7 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(function(reg) {
-        console.log('[PWA] ServiceWorker registered with scope:', reg.scope);
+      .then(function() {
         window.autoRegisterDevicePush();
       })
       .catch(function(err) {

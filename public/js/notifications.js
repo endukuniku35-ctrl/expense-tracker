@@ -67,17 +67,31 @@ function checkNotificationPermissionBanner() {
   }
 }
 
-// Register VAPID Web Push Subscription on Android devices
-async function registerPushSubscription() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+window.registerPhoneForPushNotifications = async function registerPhoneForPushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (typeof showToast === 'function') {
+      showToast('Push Not Supported', 'PushManager is not supported in this mobile browser.', 'warning');
+    }
+    return;
+  }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        if (typeof showToast === 'function') {
+          showToast('Permission Blocked 🔒', 'Tap Lock icon 🔒 in browser address bar -> Site Settings -> Notifications -> ALLOW', 'warning', 8000);
+        }
+        return;
+      }
+    }
+
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     const vapidRes = await api('/api/notifications/vapid-key');
     if (!vapidRes || !vapidRes.publicKey) return;
 
+    const convertedKey = urlBase64ToUint8Array(vapidRes.publicKey);
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
-      const convertedKey = urlBase64ToUint8Array(vapidRes.publicKey);
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedKey
@@ -90,10 +104,22 @@ async function registerPushSubscription() {
         method: 'POST',
         body: JSON.stringify({ ...sub.toJSON(), userid })
       });
+
+      if (typeof showToast === 'function') {
+        showToast('Mobile Phone Registered! 📲', 'Your phone is now registered for 24/7 background status bar notifications!', 'success', 5000);
+      }
+      triggerPushNotification('Curry Tracker 🍛', '📲 Mobile Phone Registered! Background status bar alerts enabled.');
     }
   } catch (e) {
-    console.log('[Push] Subscription notice:', e);
+    console.log('[Push] Registration error:', e);
+    if (typeof showToast === 'function') {
+      showToast('Registration Notice', e.message || 'Could not register push', 'error');
+    }
   }
+};
+
+async function registerPushSubscription() {
+  return window.registerPhoneForPushNotifications();
 }
 
 function urlBase64ToUint8Array(base64String) {
