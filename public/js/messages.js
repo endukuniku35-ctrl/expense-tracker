@@ -112,16 +112,20 @@ async function sendChatMessage() {
   const msg = input.value.trim();
   if (!msg) return;
 
+  const senderName = (typeof App !== 'undefined' && App && App.currentUser) ? (App.currentUser.name || App.currentUser.shortName) : 'Roommate';
+
   input.value = '';
   const res = await api('/api/messages', {
     method: 'POST',
-    body: JSON.stringify({ message: msg })
+    body: JSON.stringify({ message: msg, senderName: senderName })
   });
 
   if (res && res.success) {
     await loadChatMessages();
+    const box = document.getElementById('chatMessagesBox');
+    if (box) box.scrollTop = box.scrollHeight;
   } else {
-    showToast('Error', res?.message || 'Failed to send message', 'error');
+    await loadChatMessages();
   }
 }
 

@@ -49,11 +49,14 @@ router.post('/', async (req, res) => {
       ['notif_' + Date.now(), 'message', notifMsg, msgObj.timestamp, 'all']
     );
 
-    // Trigger VAPID Mobile Status Bar Push to Android APK devices
-    sendPushToAllSubscribers(`💬 ${msgObj.senderName}`, msgObj.text).catch(() => {});
-    sendTelegramMessage(`💬 <b>${msgObj.senderName}:</b> ${msgObj.text}`).catch(() => {});
-
+    // Respond immediately to the frontend client
     res.json({ success: true, data: msgObj });
+
+    // Execute multi-device status bar push and Telegram alerts asynchronously in background
+    setImmediate(() => {
+      sendPushToAllSubscribers(`💬 ${msgObj.senderName}`, msgObj.text).catch(() => {});
+      sendTelegramMessage(`💬 <b>${msgObj.senderName}:</b> ${msgObj.text}`).catch(() => {});
+    });
   } catch (e) {
     console.error('Error sending message:', e);
     res.status(500).json({ success: false, message: 'Failed to send message: ' + e.message });
