@@ -94,7 +94,8 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
       }
     }
 
-    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const reg = await navigator.serviceWorker.ready;
     const vapidRes = await api('/api/notifications/vapid-key');
     if (!vapidRes || !vapidRes.publicKey) return;
 
@@ -164,7 +165,9 @@ function triggerPushNotification(title, body) {
     showToast(title, body, 'info', 4000);
   }
 
-  const iconUrl = 'https://expense-tracker-77br.onrender.com/icons/icon-192.png';
+  const baseUrl = window.location.origin;
+  const iconUrl = `${baseUrl}/icons/icon-192.png`;
+  const notificationUrl = `${baseUrl}/dashboard.html#chat`;
 
   // 1. Direct Browser System Notification
   try {
@@ -191,7 +194,7 @@ function triggerPushNotification(title, body) {
             vibrate: [300, 100, 300],
             tag: 'curry-sw-' + Date.now(),
             renotify: true,
-            data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
+            data: { url: notificationUrl }
           }).catch(() => {});
         }
       }).catch(() => {});
@@ -200,7 +203,7 @@ function triggerPushNotification(title, body) {
 }
 
 async function loadNotifications() {
-  const data = await api('/api/notifications');
+  const data = await api('/api/notifications', { bypassCache: true });
   if (!data) return;
 
   const { data: notifications, unreadCount } = data;

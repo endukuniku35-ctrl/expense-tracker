@@ -64,7 +64,7 @@ if ('serviceWorker' in navigator) {
         }
       }).catch(() => {});
     }
-    navigator.serviceWorker.register('/sw.js?v=300', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(function() {
         window.autoRegisterDevicePush();
       })
