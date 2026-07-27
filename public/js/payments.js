@@ -12,12 +12,12 @@ window.loadPayments = async function loadPayments() {
     content.innerHTML = `
       <div id="view-payments" class="view-section">
         <div style="animation:fadeInUp 0.4s ease">
-          <!-- ══ PhonePe QR Code Quick Pay Banner ══ -->
+          <!-- ══ Dynamic UPI QR Code Quick Pay Banner ══ -->
           <div class="glass-card mb-4" style="background:linear-gradient(135deg,rgba(26,115,232,0.08),rgba(52,168,83,0.08));border:1px solid rgba(26,115,232,0.3)">
             <div class="card-body-custom" style="padding:20px 24px">
               <div class="row align-items-center g-3">
                 <div class="col-md-3 text-center">
-                  <img src="/images/admin_phonepe_qr.png" alt="PhonePe QR Code" style="width:130px;height:130px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15)" />
+                  <img id="dynamicUpiQrImg" src="/images/admin_phonepe_qr.png" alt="PhonePe QR Code" style="width:135px;height:135px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15)" />
                 </div>
                 <div class="col-md-9">
                   <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -26,11 +26,17 @@ window.loadPayments = async function loadPayments() {
                   </div>
                   <h4 style="font-weight:800;color:var(--text-primary);margin-bottom:6px">Pay Outstanding Curry Balance via PhonePe / GPay / PayTM</h4>
                   <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
-                    Scan the QR code with any UPI App or use UPI ID: <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:3px 8px;border-radius:6px;font-weight:700">8367047947@ybl</code>
+                    Scan with any UPI App or use UPI ID: <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:3px 8px;border-radius:6px;font-weight:700">8367047947@ybl</code>
                   </div>
-                  <a href="upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense" class="btn-success-custom" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none">
-                    <i class="fas fa-mobile-alt"></i> Open UPI App Directly
-                  </a>
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <div style="display:inline-flex;align-items:center;background:var(--bg-1);border:1px solid var(--glass-border);border-radius:10px;padding:4px 12px">
+                      <span style="font-size:13px;font-weight:700;margin-right:6px">Enter Amount ₹</span>
+                      <input type="number" id="customQrAmount" placeholder="e.g. 250" oninput="updateDynamicUpiQr(this.value)" style="width:90px;background:none;border:none;color:var(--text-primary);font-weight:700;outline:none" />
+                    </div>
+                    <a id="directUpiBtn" href="upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense" class="btn-success-custom" style="padding:8px 16px;font-size:13px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;text-decoration:none">
+                      <i class="fas fa-mobile-alt"></i> Open UPI App Directly
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -467,3 +473,20 @@ async function deleteSettlementInLog(id) {
 
 // Explicitly register on window
 window.loadPayments = loadPayments;
+window.updateDynamicUpiQr = function updateDynamicUpiQr(amount) {
+  const amt = parseFloat(amount) || 0;
+  const qrImg = document.getElementById('dynamicUpiQrImg');
+  const upiBtn = document.getElementById('directUpiBtn');
+  const upiUri = amt > 0 
+    ? `upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&am=${amt}&cu=INR&tn=Curry%20Expense%20Payment`
+    : `upi://pay?pa=8367047947@ybl&pn=Kandukuri%20Jagan&cu=INR&tn=Curry%20Expense%20Payment`;
+
+  if (qrImg) {
+    qrImg.src = amt > 0 
+      ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUri)}`
+      : '/images/admin_phonepe_qr.png';
+  }
+  if (upiBtn) {
+    upiBtn.href = upiUri;
+  }
+};
