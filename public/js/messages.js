@@ -311,3 +311,10 @@ async function submitAdminBroadcast() {
 
 window.loadChatMessages = loadChatMessages;
 window.loadAdminBroadcasts = loadAdminBroadcasts;
+
+// Auto-refresh chat messages every 2 seconds when user is on the chat view
+setInterval(() => {
+  if (typeof App !== 'undefined' && App && App.currentView === 'chat') {
+    loadChatMessages();
+  }
+}, 2000);
