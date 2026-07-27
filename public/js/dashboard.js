@@ -147,20 +147,35 @@ window.loadDashboard = async function loadDashboard() {
   const me = App.currentUser;
   const displayBalances = App.isAdmin ? balances : balances.filter(b => b.userid === me?.userid);
 
+  const topPayer = [...balances].sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0))[0];
+  const curryKingName = topPayer ? topPayer.name : 'Jagan Kandukuri';
+  const totalMealCount = recentExpenses ? recentExpenses.length : 0;
+  const avgCostPerMeal = totalMealCount > 0 ? Math.round(totalExp / totalMealCount) : 0;
+
   document.getElementById('splitSummary').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:24px">🍛</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <img src="/images/logo_brand.png" style="width:44px;height:44px;border-radius:14px;object-fit:cover;border:2px solid var(--primary)" />
         <div>
-          <div style="font-weight:700;font-size:16px;color:var(--text-primary)">Curry Expense Split Summary</div>
-          <div style="font-size:13px;color:var(--text-secondary)">Expenses are split among participating members. Total Curry Bills = <strong>₹${totalExp.toLocaleString('en-IN')}</strong></div>
+          <div style="font-weight:800;font-size:16px;color:var(--text-primary);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            Curry Expense Split Summary
+            <span class="badge bg-warning text-dark" style="font-size:11px">👑 Curry King: ${curryKingName}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px">
+            Total Curry Bills: <strong>₹${totalExp.toLocaleString('en-IN')}</strong> &bull; Avg Cost/Meal: <strong>₹${avgCostPerMeal}</strong>
+          </div>
         </div>
       </div>
-      ${App.isAdmin ? `
-        <button class="btn-primary-custom" onclick="openAddMemberModal()" style="font-size:13px">
-          <i class="fas fa-user-plus me-1"></i>Add New Member Account
-        </button>
-      ` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${App.isAdmin ? `
+          <button class="btn-primary-custom" onclick="nudgeAllPendingPayers()" style="font-size:12.5px;padding:7px 14px;border-radius:8px">
+            <i class="fas fa-bell me-1"></i>Nudge All Pending Payers
+          </button>
+          <button class="btn-success-custom" onclick="openAddMemberModal()" style="font-size:12.5px;padding:7px 14px;border-radius:8px">
+            <i class="fas fa-user-plus me-1"></i>Add Member
+          </button>
+        ` : ''}
+      </div>
     </div>
     <div class="row g-3">
       ${displayBalances.map(b => {
@@ -268,3 +283,28 @@ window.loadDashboard = async function loadDashboard() {
 }
 
 window.loadDashboard = loadDashboard;
+window.nudgeAllPendingPayers = async function nudgeAllPendingPayers() {
+  const data = await api('/api/payments');
+  if (!data || !data.data) return;
+  const oweMembers = data.data.filter(b => b.outstanding > 0);
+  if (oweMembers.length === 0) {
+    showToast('All Settled 🎉', 'No members have outstanding balances right now!', 'success');
+    return;
+  }
+
+  showLoader();
+  let count = 0;
+  for (const m of oweMembers) {
+    await api('/api/messages/nudge', {
+      method: 'POST',
+      body: JSON.stringify({ targetMemberId: m.userid, targetMemberName: m.name, amount: m.outstanding })
+    });
+    count++;
+  }
+  hideLoader();
+
+  showToast('Nudges Sent! 🔔', `Payment reminder alerts sent to ${count} members owing balance.`, 'success', 4000);
+  if (typeof triggerPushNotification === 'function') {
+    triggerPushNotification('🔔 Payment Reminders Sent', `Admin broadcasted payment nudges to ${count} members.`);
+  }
+};
