@@ -9,6 +9,8 @@ const https = require('https');
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8610720064:AAFKbSOSwi2Xnfdz7jQDcJyduymg8VksPWE';
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID || '6877857251';
 
+const agent = new https.Agent({ keepAlive: true, timeout: 10000 });
+
 function sendTelegramMessage(text) {
   if (!BOT_TOKEN || !CHAT_ID) return Promise.resolve(false);
 
@@ -24,6 +26,7 @@ function sendTelegramMessage(text) {
     port: 443,
     path: `/bot${BOT_TOKEN}/sendMessage`,
     method: 'POST',
+    agent: agent,
     headers: {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(payload)
@@ -45,7 +48,12 @@ function sendTelegramMessage(text) {
     });
 
     req.on('error', (err) => {
-      console.error('Telegram notification failed:', err.message);
+      console.error('[Telegram Push] Network error:', err.message);
+      resolve(false);
+    });
+
+    req.setTimeout(8000, () => {
+      req.destroy();
       resolve(false);
     });
 
