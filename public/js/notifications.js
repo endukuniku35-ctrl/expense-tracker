@@ -75,21 +75,16 @@ function checkNotificationPermissionBanner() {
   if (blockBanner) blockBanner.style.display = 'none';
 }
 
-window.registerPhoneForPushNotifications = async function registerPhoneForPushNotifications() {
-  if (typeof showToast === 'function') {
+window.registerPhoneForPushNotifications = async function registerPhoneForPushNotifications(isManualClick = false) {
+  if (isManualClick && typeof showToast === 'function') {
     showToast('Registering Device... 📲', 'Requesting push notification permission...', 'info', 2000);
   }
 
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    if (typeof showToast === 'function') {
-      showToast('Push Not Supported', 'PushManager is not supported in this browser.', 'warning');
-    }
-    return;
-  }
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
   try {
-    // Request permission directly in direct user click gesture
     if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+      if (!isManualClick) return;
       const perm = await Notification.requestPermission();
       if (perm === 'denied') {
         if (typeof showToast === 'function') {
@@ -101,15 +96,12 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
 
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     const vapidRes = await api('/api/notifications/vapid-key');
-    if (!vapidRes || !vapidRes.publicKey) {
-      if (typeof showToast === 'function') showToast('Key Error', 'Could not fetch VAPID key', 'error');
-      return;
-    }
+    if (!vapidRes || !vapidRes.publicKey) return;
 
     const convertedKey = urlBase64ToUint8Array(vapidRes.publicKey);
     let sub = await reg.pushManager.getSubscription();
 
-    if (!sub) {
+    if (!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedKey
@@ -123,17 +115,16 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
         body: JSON.stringify({ ...sub.toJSON(), userid })
       });
 
-      if (typeof showToast === 'function') {
-        showToast('Phone Registered! 📲', 'Device registered for 24/7 background status bar notifications!', 'success', 5000);
+      if (isManualClick) {
+        if (typeof showToast === 'function') {
+          showToast('Phone Registered! 📲', 'Device registered for 24/7 background status bar notifications!', 'success', 5000);
+        }
+        playNotificationChime();
+        triggerPushNotification('Curry Tracker 🍛', '📲 Phone Registered! Background status bar alerts active.');
       }
-      playNotificationChime();
-      triggerPushNotification('Curry Tracker 🍛', '📲 Phone Registered! Background status bar alerts active.');
     }
   } catch (e) {
     console.error('[Push] Registration error:', e);
-    if (typeof showToast === 'function') {
-      showToast('Registration Error', e.message || 'Could not register push', 'error');
-    }
   }
 };
 

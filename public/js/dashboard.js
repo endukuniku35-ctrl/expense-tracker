@@ -17,7 +17,7 @@ window.loadDashboard = async function loadDashboard() {
         </div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn-primary-custom" onclick="registerPhoneForPushNotifications()" style="font-size:12px;padding:8px 16px;border-radius:8px;background:linear-gradient(135deg,#34a853,#1a73e8)">
+        <button class="btn-primary-custom" onclick="registerPhoneForPushNotifications(true)" style="font-size:12px;padding:8px 16px;border-radius:8px;background:linear-gradient(135deg,#34a853,#1a73e8)">
           <i class="fas fa-mobile-alt me-1"></i>Register Phone Now
         </button>
         <button class="btn-ghost" onclick="sendTestMobilePush()" style="font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--secondary);color:var(--text-primary)">
