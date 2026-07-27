@@ -30,7 +30,7 @@ router.post('/', async (req, res) => {
     const msgObj = {
       id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       senderId: user.userid || 'member',
-      senderName: user.name || user.shortName || 'Roommate',
+      senderName: (req.body.senderName && req.body.senderName.trim()) || user.name || user.shortName || 'Roommate',
       senderAvatar: user.avatar || '👤',
       senderRole: user.role || 'member',
       text: message.trim(),
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
     const notifMsg = `💬 ${msgObj.senderName}: "${msgObj.text.length > 40 ? msgObj.text.substring(0, 40) + '...' : msgObj.text}"`;
     await run(
       'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
-      ['notif_' + Date.now(), 'message', notifMsg, msgObj.timestamp, 'all']
+      ['notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), 'message', notifMsg, msgObj.timestamp, 'all']
     );
 
     // Respond immediately to the frontend client

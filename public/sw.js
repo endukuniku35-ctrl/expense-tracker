@@ -4,7 +4,7 @@
  */
 
 const CACHE_NAME = 'curry-tracker-v420-SILENT-FALSE';
-const HOST_URL = 'https://expense-tracker-77br.onrender.com';
+const HOST_URL = self.location.origin;
 
 const ASSETS_TO_CACHE = [
   '/',

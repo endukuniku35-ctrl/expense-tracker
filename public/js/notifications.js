@@ -39,19 +39,20 @@ function playNotificationChime() {
 }
 
 // Request Web & Android System Push Notification permissions
-window.requestNotificationPermission = function requestNotificationPermission() {
+window.requestNotificationPermission = async function requestNotificationPermission() {
   if ('Notification' in window) {
-    Notification.requestPermission().then(permission => {
+    try {
+      const permission = await Notification.requestPermission();
       console.log('[Notification] Permission result:', permission);
-      registerPushSubscription(true);
+      await registerPushSubscription(true);
       triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Active! Status bar alerts enabled.');
       checkNotificationPermissionBanner();
-    }).catch(() => {
-      registerPushSubscription(true);
+    } catch (err) {
+      await registerPushSubscription(true);
       triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Active!');
-    });
+    }
   } else {
-    registerPushSubscription();
+    await registerPushSubscription();
   }
 };
 
@@ -102,26 +103,40 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
     let sub = await reg.pushManager.getSubscription();
 
     if (!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey
-      });
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey
+        });
+      } catch (err) {
+        console.error('[Push] Subscribe failed:', err);
+      }
     }
 
-    if (sub) {
-      const userid = (typeof App !== 'undefined' && App && App.currentUser) ? App.currentUser.userid : '192472374';
-      await api('/api/notifications/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ ...sub.toJSON(), userid })
-      });
+    if (!sub) {
+      console.warn('[Push] No push subscription available after registration. Permission:', Notification.permission);
+      return;
+    }
 
-      if (isManualClick) {
-        if (typeof showToast === 'function') {
-          showToast('Phone Registered! 📲', 'Device registered for 24/7 background status bar notifications!', 'success', 5000);
-        }
-        playNotificationChime();
-        triggerPushNotification('Curry Tracker 🍛', '📲 Phone Registered! Background status bar alerts active.');
+    const userid = (typeof App !== 'undefined' && App && App.currentUser) ? App.currentUser.userid : '192472374';
+    const subscribeRes = await api('/api/notifications/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ ...sub.toJSON(), userid })
+    });
+
+    if (!subscribeRes || !subscribeRes.success) {
+      console.error('[Push] Subscription save failed:', subscribeRes);
+      return;
+    }
+
+    console.log('[Push] Subscription saved for', userid);
+
+    if (isManualClick) {
+      if (typeof showToast === 'function') {
+        showToast('Phone Registered! 📲', 'Device registered for 24/7 background status bar notifications!', 'success', 5000);
       }
+      playNotificationChime();
+      triggerPushNotification('Curry Tracker 🍛', '📲 Phone Registered! Background status bar alerts active.');
     }
   } catch (e) {
     console.error('[Push] Registration error:', e);
