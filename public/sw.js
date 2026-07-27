@@ -1,172 +1,114 @@
 /**
  * sw.js – Curry Expense Tracker Service Worker
- * Enables PWA offline access, 24/7 background push notifications without logging in, sound, vibration, and Play Store TWA compliance.
+ * Polls /api/notifications/public every 2s and shows status bar banners directly via self.registration.showNotification()
  */
 
-const CACHE_NAME = 'curry-tracker-v420-SILENT-FALSE';
+const CACHE_NAME = 'curry-tracker-v550';
 const HOST_URL = self.location.origin;
 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/dashboard.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/dashboard.js',
-  '/js/members.js',
-  '/js/expenses.js',
-  '/js/payments.js',
-  '/js/reports.js',
-  '/js/charts.js',
-  '/js/profile.js',
-  '/js/notifications.js',
-  '/js/search.js',
-  '/js/ai_assistant.js',
-  '/js/ocr_scanner.js',
-  '/js/budget.js',
-  '/js/audit.js',
-  '/js/inventory.js',
-  '/js/attendance.js',
-  '/js/groups.js',
-  '/js/community.js',
-  '/js/calendar.js',
-  '/js/rapid_expense.js',
   '/manifest.json'
 ];
 
 let swSeenNotifIds = new Set();
 let isFirstSwPoll = true;
 
-// 24/7 Service Worker Poller for Mobile Status Bar Notifications
+// ── 24/7 Background Poller ───────────────────────────────────────────────────
+// Polls every 2 seconds and shows Android status bar notifications for new items
 setInterval(async () => {
   try {
-    const res = await fetch(HOST_URL + '/api/notifications/public');
-    if (res && res.status === 200) {
-      const json = await res.json();
-      if (json && json.success && Array.isArray(json.data)) {
-        if (isFirstSwPoll) {
-          json.data.forEach(n => swSeenNotifIds.add(n.id));
-          isFirstSwPoll = false;
-        } else {
-          json.data.forEach(n => {
-            if (!swSeenNotifIds.has(n.id)) {
-              swSeenNotifIds.add(n.id);
-              displayAndroidNotification('Curry Tracker 🍛', n.message);
-            }
-          });
+    const res = await fetch(HOST_URL + '/api/notifications/public', { cache: 'no-store' });
+    if (!res || res.status !== 200) return;
+    const json = await res.json();
+    if (!json || !json.success || !Array.isArray(json.data)) return;
+
+    if (isFirstSwPoll) {
+      // On first poll, mark all existing notifications as seen so we don't spam old ones
+      json.data.forEach(n => swSeenNotifIds.add(n.id));
+      isFirstSwPoll = false;
+    } else {
+      // On subsequent polls, show notification for any new IDs
+      for (const n of json.data) {
+        if (!swSeenNotifIds.has(n.id)) {
+          swSeenNotifIds.add(n.id);
+          showStatusBarNotification('Curry Tracker 🍛', n.message || 'New update from roommates!');
         }
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    // Network error - silently ignore
+  }
 }, 2000);
 
-function displayAndroidNotification(title, body) {
-  const options = {
-    body: body || 'New alert from CurryTracker',
+// ── Show Status Bar Notification ─────────────────────────────────────────────
+function showStatusBarNotification(title, body) {
+  return self.registration.showNotification(title, {
+    body: body,
     icon: HOST_URL + '/icons/icon-192.png',
-    vibrate: [500, 200, 500, 200, 500],
-    data: { url: HOST_URL + '/dashboard.html#chat' },
-    tag: 'curry-push-' + Date.now(),
+    vibrate: [300, 100, 300, 100, 300],
+    tag: 'curry-' + Date.now(),
     renotify: true,
-    requireInteraction: true,
-    silent: false
-  };
-  return self.registration.showNotification(title || 'Curry Tracker 🍛', options);
+    data: { url: HOST_URL + '/dashboard.html#chat' }
+  });
 }
 
-// Install Event
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)).then(() => self.skipWaiting())
-  );
-});
-
-// Activate Event
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) return caches.delete(cache);
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
-});
-
-// Fetch Event
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
-  );
-});
-
-// Client Message Event
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
-    displayAndroidNotification(event.data.title, event.data.body);
-  }
-});
-
-// Background Push Event Handler
+// ── VAPID Push Event ─────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
   let title = 'Curry Tracker 🍛';
-  let body = 'New message or expense update!';
-
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      title = data.title || title;
-      body = data.body || body;
-    } catch (e) {
-      body = event.data.text();
-    }
-  }
-
-  event.waitUntil(displayAndroidNotification(title, body));
+  let body = 'New update from your roommates!';
+  try {
+    const data = event.data ? event.data.json() : {};
+    title = data.title || title;
+    body = data.body || body;
+  } catch (e) {}
+  event.waitUntil(showStatusBarNotification(title, body));
 });
 
-// Periodic Sync Event Handler for Android Background Service Execution
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'curry-notif-sync') {
-    event.waitUntil(
-      fetch(HOST_URL + '/api/notifications/public')
-        .then(res => res.json())
-        .then(json => {
-          if (json && json.success && Array.isArray(json.data)) {
-            json.data.forEach(n => {
-              if (!swSeenNotifIds.has(n.id)) {
-                swSeenNotifIds.add(n.id);
-                displayAndroidNotification('Curry Tracker 🍛', n.message);
-              }
-            });
-          }
-        })
-        .catch(() => {})
-    );
-  }
-});
-
-// Notification Click Event
+// ── Notification Click ────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (let client of clientList) {
-        if (client.url && 'focus' in client) return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      const url = (event.notification.data && event.notification.data.url) || (HOST_URL + '/dashboard.html#chat');
+      for (const c of clientList) {
+        if (c.url.includes(HOST_URL) && 'focus' in c) return c.focus();
       }
-      if (clients.openWindow) return clients.openWindow(HOST_URL + '/dashboard.html#chat');
+      return clients.openWindow(url);
     })
   );
+});
+
+// ── Install ──────────────────────────────────────────────────────────────────
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE)).catch(() => {}).then(() => self.skipWaiting())
+  );
+});
+
+// ── Activate ─────────────────────────────────────────────────────────────────
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  if (event.request.url.includes('/api/')) return;
+  event.respondWith(
+    caches.match(event.request).then(cached => cached || fetch(event.request).catch(() => cached))
+  );
+});
+
+// ── Message from page ─────────────────────────────────────────────────────────
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    showStatusBarNotification(event.data.title || 'Curry Tracker 🍛', event.data.body || 'New alert!');
+  }
 });
