@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.put('/:id/read', requireAuth, async (req, res) => {
+router.put('/:id/read', async (req, res) => {
   try {
     await run('UPDATE notifications SET read = 1 WHERE id = ?', [req.params.id]);
     res.json({ success: true });
@@ -61,7 +61,7 @@ router.put('/:id/read', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/mark-all-read', requireAuth, async (req, res) => {
+router.put('/mark-all-read', async (req, res) => {
   try {
     await run('UPDATE notifications SET read = 1');
     res.json({ success: true });

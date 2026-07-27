@@ -268,10 +268,10 @@ async function markAllRead() {
 document.addEventListener('DOMContentLoaded', () => {
   registerPushSubscription();
   checkNotificationPermissionBanner();
+  loadNotifications();
 });
 
+// Auto-sync in-app notifications every 2 seconds for ALL users (logged in or guest mode)
 setInterval(() => {
-  if (typeof App !== 'undefined' && App && App.currentUser) {
-    loadNotifications();
-  }
+  loadNotifications();
 }, 2000);
