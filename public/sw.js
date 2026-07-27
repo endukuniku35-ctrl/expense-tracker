@@ -137,6 +137,27 @@ self.addEventListener('push', (event) => {
   event.waitUntil(displayAndroidNotification(title, body));
 });
 
+// Periodic Sync Event Handler for Android Background Service Execution
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'curry-notif-sync') {
+    event.waitUntil(
+      fetch(HOST_URL + '/api/notifications/public')
+        .then(res => res.json())
+        .then(json => {
+          if (json && json.success && Array.isArray(json.data)) {
+            json.data.forEach(n => {
+              if (!swSeenNotifIds.has(n.id)) {
+                swSeenNotifIds.add(n.id);
+                displayAndroidNotification('Curry Tracker 🍛', n.message);
+              }
+            });
+          }
+        })
+        .catch(() => {})
+    );
+  }
+});
+
 // Notification Click Event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
