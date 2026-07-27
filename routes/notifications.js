@@ -12,28 +12,30 @@ router.get('/vapid-key', (req, res) => {
   res.json({ success: true, publicKey: vapidPublicKey });
 });
 
-// POST Subscribe device push endpoint
+// POST Subscribe device push endpoint (Public for multi-device 24/7 registration)
 router.post('/subscribe', (req, res) => {
   const sub = req.body;
-  saveSubscription(sub);
+  const userid = req.session?.user?.userid || req.body?.userid || 'guest';
+  saveSubscription(sub, userid);
   res.status(201).json({ success: true, message: 'Push subscription saved successfully!' });
 });
 
-// POST Trigger Test Status Bar Push Notification to Mobile APK
-router.post('/test-push', requireAuth, async (req, res) => {
+// POST Trigger Test Status Bar Push Notification to Mobile Devices & APKs
+router.post('/test-push', async (req, res) => {
   try {
-    await sendPushToAllSubscribers('Curry Tracker 🍛', '📲 Test Mobile Push Notification: System alerts are working 100% on your Android APK!');
-    res.json({ success: true, message: 'Test status bar notification sent to mobile devices!' });
+    await sendPushToAllSubscribers('Curry Tracker 🍛', '📲 Test Mobile Push: Alerts working 100% across all devices & friends\' phones!');
+    res.json({ success: true, message: 'Test status bar notification sent to all registered mobile devices!' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to send push notification: ' + err.message });
   }
 });
 
-router.get('/', requireAuth, async (req, res) => {
+// GET Notifications (Open for background Service Workers)
+router.get('/', async (req, res) => {
   try {
     const notifications = await all('SELECT * FROM notifications ORDER BY timestamp DESC LIMIT 50');
-    const unreadCount = notifications.filter(n => !n.read).length;
-    res.json({ success: true, data: notifications, unreadCount });
+    const unreadCount = (notifications || []).filter(n => !n.read).length;
+    res.json({ success: true, data: notifications || [], unreadCount });
   } catch (e) {
     res.json({ success: true, data: [], unreadCount: 0 });
   }

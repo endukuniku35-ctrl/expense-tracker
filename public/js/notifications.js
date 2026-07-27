@@ -85,9 +85,10 @@ async function registerPushSubscription() {
     }
 
     if (sub) {
+      const userid = (typeof App !== 'undefined' && App && App.currentUser) ? App.currentUser.userid : '192472374';
       await api('/api/notifications/subscribe', {
         method: 'POST',
-        body: JSON.stringify(sub)
+        body: JSON.stringify({ ...sub.toJSON(), userid })
       });
     }
   } catch (e) {

@@ -1,6 +1,7 @@
 /**
- * push_service.js – VAPID Web Push Notification Engine for Android APK / TWA Apps
- * Delivers background status bar notifications directly to Android devices at any time.
+ * push_service.js – Multi-Device VAPID Web Push Notification Engine
+ * Supports 24/7 background notification delivery to ALL devices (mobile phones, APKs, friend's mobile)
+ * whether logged in, logged out, backgrounded, or locked.
  */
 
 const webPush = require('web-push');
@@ -23,7 +24,6 @@ try {
     vapidKeys.privateKey
   );
 } catch (e) {
-  // If fallback fails, auto-generate fresh VAPID keys
   const keys = webPush.generateVAPIDKeys();
   vapidKeys.publicKey = keys.publicKey;
   vapidKeys.privateKey = keys.privateKey;
@@ -39,17 +39,25 @@ function getSubscriptions() {
   }
 }
 
-function saveSubscription(sub) {
+function saveSubscription(sub, userid = 'guest') {
   if (!sub || !sub.endpoint) return;
   let subs = getSubscriptions();
-  const exists = subs.find(s => s.endpoint === sub.endpoint);
-  if (!exists) {
-    subs.push(sub);
-    fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
+  const idx = subs.findIndex(s => s.endpoint === sub.endpoint);
+  const entry = {
+    ...sub,
+    userid: userid || sub.userid || 'guest',
+    updatedAt: new Date().toISOString()
+  };
+
+  if (idx !== -1) {
+    subs[idx] = entry;
+  } else {
+    subs.push(entry);
   }
+  fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
 }
 
-async function sendPushToAllSubscribers(title, message, url = '/dashboard.html#chat') {
+async function sendPushToAllSubscribers(title, message, targetUserid = 'all', url = '/dashboard.html#chat') {
   const subs = getSubscriptions();
   if (subs.length === 0) return;
 
