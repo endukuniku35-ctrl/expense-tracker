@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, run } = require('../database');
+const { sendPushToAllSubscribers } = require('../push_service');
 
 // GET all group messages (Available for ALL authenticated members)
 router.get('/', requireAuth, async (req, res) => {
@@ -47,6 +48,9 @@ router.post('/', requireAuth, async (req, res) => {
       ['notif_' + Date.now(), 'message', notifMsg, msgObj.timestamp, 'all']
     );
 
+    // Trigger VAPID Mobile Status Bar Push to Android APK devices
+    sendPushToAllSubscribers(`💬 ${msgObj.senderName}`, msgObj.text).catch(() => {});
+
     res.json({ success: true, data: msgObj });
   } catch (e) {
     console.error('Error sending message:', e);
@@ -84,6 +88,8 @@ router.post('/nudge', requireAdmin, async (req, res) => {
       'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
       ['notif_' + Date.now(), 'payment', `📲 Reminder from ${senderName} to ${targetMemberName} for ₹${amount}`, msgObj.timestamp, 'all']
     );
+
+    sendPushToAllSubscribers('📲 Payment Reminder', nudgeText).catch(() => {});
 
     res.json({ success: true, message: `Payment reminder sent to ${targetMemberName}!` });
   } catch (e) {
@@ -132,6 +138,8 @@ router.post('/broadcast', requireAdmin, async (req, res) => {
       'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
       ['notif_bcast_' + Date.now(), 'broadcast', fullMessage, msgObj.timestamp, 'all']
     );
+
+    sendPushToAllSubscribers('📢 Admin Broadcast', fullMessage).catch(() => {});
 
     res.json({ success: true, message: 'Broadcast announcement sent to all members successfully!', data: msgObj });
   } catch (e) {

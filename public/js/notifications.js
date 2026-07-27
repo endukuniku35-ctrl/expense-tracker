@@ -14,11 +14,63 @@ function requestNotificationPermission() {
       console.log('[Notification] Permission result:', permission);
       checkNotificationPermissionBanner();
       if (permission === 'granted') {
+        registerPushSubscription();
         triggerPushNotification('Curry Tracker 🍛', 'Mobile System Notifications Enabled!');
       }
     });
+  } else if ('Notification' in window && Notification.permission === 'granted') {
+    registerPushSubscription();
   }
 }
+
+// Register VAPID Web Push Subscription on Android devices
+async function registerPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const vapidRes = await api('/api/notifications/vapid-key');
+    if (!vapidRes || !vapidRes.publicKey) return;
+
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const convertedKey = urlBase64ToUint8Array(vapidRes.publicKey);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey
+      });
+    }
+
+    if (sub) {
+      await api('/api/notifications/subscribe', {
+        method: 'POST',
+        body: JSON.stringify(sub)
+      });
+    }
+  } catch (e) {
+    console.log('[Push] Subscription notice:', e);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+window.sendTestMobilePush = async function sendTestMobilePush() {
+  showToast('Testing Push... 🔔', 'Sending test push notification to mobile status bar...', 'info');
+  const res = await api('/api/notifications/test-push', { method: 'POST' });
+  if (res && res.success) {
+    showToast('Push Sent! 📲', res.message, 'success');
+  } else {
+    showToast('Push Error', res?.message || 'Could not send test push', 'error');
+  }
+};
 
 // Check and render notification permission banner if not granted
 function checkNotificationPermissionBanner() {

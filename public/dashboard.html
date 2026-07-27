@@ -528,9 +528,14 @@
             <div style="font-size:12px;color:var(--text-muted)">Get instant alerts on your phone's top notification bar when expenses, members, or payments are added.</div>
           </div>
         </div>
-        <button class="btn-primary-custom" onclick="requestNotificationPermission()" style="font-size:12px;padding:6px 14px;border-radius:8px">
-          <i class="fas fa-check-circle me-1"></i>Enable Mobile Alerts
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary-custom" onclick="requestNotificationPermission()" style="font-size:12px;padding:6px 14px;border-radius:8px">
+            <i class="fas fa-check-circle me-1"></i>Enable Mobile Alerts
+          </button>
+          <button class="btn-ghost" onclick="sendTestMobilePush()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--primary)">
+            <i class="fas fa-paper-plane me-1"></i>Test Mobile Push
+          </button>
+        </div>
       </div>
 
       <div id="view-payments" class="view-section">
