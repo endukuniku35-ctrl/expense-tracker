@@ -25,7 +25,7 @@ window.loadProfile = function loadProfile() {
             <div style="position:absolute;bottom:-46px;left:28px">
               <div style="position:relative;width:92px;height:92px">
                 <div style="position:absolute;inset:-4px;border-radius:24px;background:linear-gradient(135deg,${colors[0]},${colors[1]});opacity:0.6;filter:blur(6px)"></div>
-                <img src="/images/jagan.jpg" alt="Jagan Kandukuri"
+                <img src="/images/jagan.jpg?v=622" alt="Jagan Kandukuri"
                   style="position:relative;width:92px;height:92px;border-radius:22px;object-fit:cover;object-position:center top;border:4px solid var(--surface);box-shadow:0 8px 32px rgba(0,0,0,0.35)" />
                 <div style="position:absolute;bottom:2px;right:2px;width:18px;height:18px;background:#34a853;border-radius:50%;border:3px solid var(--surface)"></div>
               </div>

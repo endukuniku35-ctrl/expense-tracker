@@ -95,7 +95,7 @@ async function loadChatMessages() {
     const showRealPhoto = isAdminMsg; // Real photo visible to EVERYONE
     const avatarHtml = showRealPhoto
       ? `<div style="position:relative;width:36px;height:36px;flex-shrink:0">
-           <img src="/images/jagan.jpg" alt="J"
+           <img src="/images/jagan.jpg?v=622" alt="J"
              style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid var(--primary);box-shadow:0 2px 8px rgba(0,0,0,0.25)"
              onerror="this.onerror=null;this.outerHTML='<div style=width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px>${initials}</div>'" />
            <div style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:#34a853;border-radius:50%;border:1.5px solid var(--bg-1)"></div>

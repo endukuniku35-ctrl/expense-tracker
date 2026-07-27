@@ -150,7 +150,7 @@ window.getMemberAvatarHtml = function(name, userid, role, size = 40, radius = '5
   const initials = (name || '?').substring(0, 2).toUpperCase();
   const cls = avatarClass(name);
   if (isJaganAdmin) {
-    return `<img src="/images/jagan.jpg" alt="Jagan" style="width:${size}px;height:${size}px;border-radius:${radius};object-fit:cover;object-position:center top;border:2.5px solid var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,0.2)" onerror="this.onerror=null;this.outerHTML='<div class=${JSON.stringify('avatar ' + cls)} style=\'width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size*0.35)}px;\'>${initials}</div>'" />`;
+    return `<img src="/images/jagan.jpg?v=622" alt="Jagan" style="width:${size}px;height:${size}px;border-radius:${radius};object-fit:cover;object-position:center top;border:2.5px solid var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,0.2)" onerror="this.onerror=null;this.outerHTML='<div class=${JSON.stringify('avatar ' + cls)} style=\'width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size*0.35)}px;\'>${initials}</div>'" />`;
   }
   return `<div class="avatar ${cls}" style="width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size * 0.35)}px;font-weight:700;display:flex;align-items:center;justify-content:center">${initials}</div>`;
 };
@@ -345,7 +345,7 @@ async function initApp() {
     if (isJagan) {
       sidebarAv.innerHTML = `
         <div style="position:relative;width:44px;height:44px">
-          <img src="/images/jagan.jpg" alt="Jagan"
+          <img src="/images/jagan.jpg?v=622" alt="Jagan"
             style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center top;border:2.5px solid var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,0.25),0 4px 12px rgba(0,0,0,0.3)"
             onerror="this.onerror=null;this.parentElement.innerHTML='<span style=font-size:22px>${avatar}</span>'" />
           <div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:#34a853;border-radius:50%;border:2px solid var(--bg-1)"></div>
@@ -362,7 +362,7 @@ async function initApp() {
   const topbarAv = document.getElementById('topbarAvatar');
   if (topbarAv) {
     if (isJagan) {
-      topbarAv.innerHTML = `<img src="/images/jagan.jpg" alt="J"
+      topbarAv.innerHTML = `<img src="/images/jagan.jpg?v=622" alt="J"
         style="width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid var(--primary);box-shadow:0 0 0 2px rgba(26,115,232,0.3)"
         onerror="this.onerror=null;this.parentElement.innerHTML='<span>${shortName}</span>'" />`;
     } else {
