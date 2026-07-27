@@ -51,7 +51,14 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    if (navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let reg of registrations) {
+          reg.update().catch(() => {});
+        }
+      }).catch(() => {});
+    }
+    navigator.serviceWorker.register('/sw.js?v=200', { scope: '/' })
       .then(function() {
         window.autoRegisterDevicePush();
       })

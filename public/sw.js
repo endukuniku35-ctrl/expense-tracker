@@ -3,7 +3,7 @@
  * Enables PWA offline access, 24/7 background push notifications without logging in, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v75';
+const CACHE_NAME = 'curry-tracker-v200-FORCE-UPDATE';
 const HOST_URL = 'https://expense-tracker-77br.onrender.com';
 
 const ASSETS_TO_CACHE = [
