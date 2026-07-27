@@ -531,59 +531,7 @@
 
     <!-- View Content -->
     <main class="page-content" id="viewContent">
-      <!-- Mobile Notification Permission Request Banner -->
-      <div id="notifPermBanner" style="display:none;background:linear-gradient(135deg,rgba(26,115,232,0.12),rgba(52,168,83,0.12));border:1px solid rgba(26,115,232,0.3);border-radius:14px;padding:12px 18px;margin-bottom:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <i class="fas fa-bell text-warning" style="font-size:22px"></i>
-          <div>
-            <div style="font-weight:700;font-size:13.5px;color:var(--text-primary)">Enable Mobile System Notifications</div>
-            <div style="font-size:12px;color:var(--text-muted)">Get instant alerts on your phone's top notification bar when expenses, members, or payments are added.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-primary-custom" onclick="requestNotificationPermission()" style="font-size:12px;padding:6px 14px;border-radius:8px">
-            <i class="fas fa-check-circle me-1"></i>Enable Mobile Alerts
-          </button>
-          <button class="btn-ghost" onclick="sendTestMobilePush()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid var(--primary)">
-            <i class="fas fa-paper-plane me-1"></i>Test Mobile Push
-          </button>
-        </div>
-      </div>
 
-      <!-- Notification Blocked Helper Banner -->
-      <div id="notifBlockedBanner" style="display:none;background:linear-gradient(135deg,rgba(234,67,53,0.12),rgba(251,188,4,0.12));border:1px solid rgba(234,67,53,0.3);border-radius:14px;padding:12px 18px;margin-bottom:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <i class="fas fa-lock text-danger" style="font-size:22px"></i>
-          <div>
-            <div style="font-weight:700;font-size:13.5px;color:var(--text-primary)">Notifications Blocked by Browser 🔒</div>
-            <div style="font-size:12px;color:var(--text-secondary)">To enable: Tap <b>🔒 Lock Icon</b> (left of URL) &rarr; <b>Permissions</b> &rarr; <b>Notifications</b> &rarr; <b>ALLOW</b>.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Instant 24/7 Mobile Status Bar Alert Banner -->
-      <div style="background:linear-gradient(135deg,rgba(52,168,83,0.12),rgba(26,115,232,0.12));border:1px solid rgba(52,168,83,0.3);border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="width:40px;height:40px;border-radius:50%;background:rgba(52,168,83,0.2);display:flex;align-items:center;justify-content:center;color:var(--secondary);font-size:20px">
-            <i class="fas fa-mobile-alt"></i>
-          </div>
-          <div>
-            <div style="font-weight:800;font-size:14px;color:var(--text-primary)">📲 24/7 Mobile Status Bar Notifications</div>
-            <div style="font-size:12px;color:var(--text-secondary)">Receive instant chime & vibration alerts on your phone status bar even when the app is completely closed or phone is idle!</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-primary-custom" onclick="registerPhoneForPushNotifications(true)" style="font-size:12px;padding:8px 16px;border-radius:8px;background:linear-gradient(135deg,#34a853,#1a73e8)">
-            <i class="fas fa-mobile-alt me-1"></i>Register Phone Now
-          </button>
-          <button class="btn-ghost" onclick="sendTestMobilePush()" style="font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--secondary);color:var(--text-primary)">
-            <i class="fas fa-paper-plane me-1"></i>Test Push Alert
-          </button>
-          <a href="https://t.me/CurryTrackerBot" target="_blank" class="btn-ghost" style="font-size:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--secondary);color:var(--text-primary);text-decoration:none">
-            <i class="fab fa-telegram me-1 text-info"></i>Telegram Instant Bot
-          </a>
-        </div>
-      </div>
 
       <div id="view-payments" class="view-section">
         <div style="animation:fadeInUp 0.4s ease">
