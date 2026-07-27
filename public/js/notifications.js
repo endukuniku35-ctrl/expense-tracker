@@ -37,7 +37,6 @@ function playNotificationChime() {
   }
 }
 
-// Request Web & Android System Push Notification permissions
 window.requestNotificationPermission = function requestNotificationPermission() {
   if ('Notification' in window) {
     Notification.requestPermission().then(permission => {
@@ -47,12 +46,42 @@ window.requestNotificationPermission = function requestNotificationPermission() 
         registerPushSubscription();
         triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Enabled! Status bar alerts are active.');
       } else if (permission === 'denied') {
-        if (typeof showToast === 'function') {
-          showToast('Notifications Blocked in Browser 🔒', 'Tap the Lock icon 🔒 next to the web address -> Site Settings -> Notifications -> ALLOW!', 'warning', 8000);
-        }
+        openNotificationUnblockGuide();
       }
     });
   }
+};
+
+window.openNotificationUnblockGuide = function openNotificationUnblockGuide() {
+  let modal = document.getElementById('notifUnblockModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'notifUnblockModal';
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--surface);border:1px solid var(--glass-border);border-radius:20px">
+          <div class="modal-header">
+            <h5 class="modal-title" style="font-size:16px;font-weight:800"><i class="fas fa-unlock text-warning me-2"></i>How to Allow Notifications in Chrome</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" style="padding:20px;font-size:13.5px;color:var(--text-primary)">
+            <p style="margin-bottom:12px;font-weight:600">If the address bar / lock icon is hidden in your app, follow these 3 steps in Chrome:</p>
+            <ol style="padding-left:20px;line-height:1.6">
+              <li>Open <strong>Chrome App</strong> on your phone.</li>
+              <li>Tap <strong>3 dots ⋮ (top right)</strong> &rarr; <strong>Settings</strong> &rarr; <strong>Site settings</strong> &rarr; <strong>Notifications</strong>.</li>
+              <li>Under <i>Blocked</i>, tap <code>expense-tracker-77br.onrender.com</code> &rarr; Tap <strong>Clear & Reset</strong> (or change to <strong>Allow</strong>).</li>
+            </ol>
+            <div style="background:rgba(26,115,232,0.1);border:1px solid rgba(26,115,232,0.3);border-radius:12px;padding:12px;margin-top:14px;font-size:12.5px">
+              💡 <strong>Note:</strong> In-App Audio Chime & Visual Toast Banners will continue ringing inside CurryTracker even if browser notifications are muted!
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  new bootstrap.Modal(modal).show();
 };
 
 function checkNotificationPermissionBanner() {
