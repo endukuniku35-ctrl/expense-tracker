@@ -3,11 +3,11 @@
  */
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, run } = require('../database');
 
-// GET all group messages
-router.get('/', requireAuth, async (req, res) => {
+// GET all group messages (Admin Only)
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const messages = await all('SELECT * FROM messages ORDER BY timestamp ASC');
     res.json({ success: true, data: messages });
@@ -16,8 +16,8 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// POST send new chat message
-router.post('/', requireAuth, async (req, res) => {
+// POST send new chat message (Admin Only)
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const { message } = req.body;
     if (!message || !message.trim()) {
