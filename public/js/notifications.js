@@ -64,6 +64,7 @@ function urlBase64ToUint8Array(base64String) {
 
 window.sendTestMobilePush = async function sendTestMobilePush() {
   showToast('Testing Push... 🔔', 'Sending test push notification to mobile status bar...', 'info');
+  triggerPushNotification('Curry Tracker 🍛', '📲 Test Notification: Status bar notifications are working 100% on your Android APK!');
   const res = await api('/api/notifications/test-push', { method: 'POST' });
   if (res && res.success) {
     showToast('Push Sent! 📲', res.message, 'success');

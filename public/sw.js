@@ -3,7 +3,7 @@
  * Enables PWA offline access, background push notifications, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v51';
+const CACHE_NAME = 'curry-tracker-v55';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -26,8 +26,45 @@ const ASSETS_TO_CACHE = [
   '/js/inventory.js',
   '/js/attendance.js',
   '/js/groups.js',
+  '/js/community.js',
+  '/js/calendar.js',
+  '/js/rapid_expense.js',
   '/manifest.json'
 ];
+
+let swSeenNotifIds = new Set();
+let swPollInterval = null;
+
+// Service Worker Independent Background Notification Poller (Runs in isolated Android process)
+function startSWBackgroundPolling() {
+  if (swPollInterval) return;
+  swPollInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      if (res && res.status === 200) {
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.data)) {
+          const unread = json.data.filter(n => !n.read);
+          for (const n of unread) {
+            if (!swSeenNotifIds.has(n.id)) {
+              swSeenNotifIds.add(n.id);
+              self.registration.showNotification('Curry Tracker 🍛', {
+                body: n.message,
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-192.png',
+                vibrate: [500, 200, 500, 200, 500],
+                tag: 'curry-apk-' + n.id,
+                renotify: true,
+                requireInteraction: true,
+                data: { url: '/dashboard.html#chat' }
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }, 4000);
+}
 
 // Install Event
 self.addEventListener('install', (event) => {
@@ -51,7 +88,10 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      startSWBackgroundPolling();
+      return self.clients.claim();
+    })
   );
 });
 
@@ -88,6 +128,8 @@ self.addEventListener('fetch', (event) => {
 
 // Message Event Handler for Direct Client-to-SW Notification Requests
 self.addEventListener('message', (event) => {
+  startSWBackgroundPolling();
+
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     const { title, body } = event.data;
     const options = {
