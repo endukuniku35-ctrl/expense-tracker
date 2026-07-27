@@ -8,6 +8,7 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, get, run } = require('../database');
+const { sendPushToAllSubscribers } = require('../push_service');
 
 const MEMBERS = ['192472374', '192472343', '192411184', '192411185'];
 
@@ -208,6 +209,8 @@ router.post('/settle', requireAuth, async (req, res) => {
       `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
       [uuidv4(), 'payment', message, createdAt, 'all']
     );
+
+    sendPushToAllSubscribers('Curry Tracker 🍛', message).catch(() => {});
 
     res.status(201).json({
       success: true,

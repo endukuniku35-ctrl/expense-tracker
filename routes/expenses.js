@@ -26,12 +26,15 @@ function parseSplitBetween(val) {
   return ALL_MEMBERS;
 }
 
+const { sendPushToAllSubscribers } = require('../push_service');
+
 async function addNotification(message, type = 'expense') {
   try {
     await run(
       'INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)',
       [uuidv4(), type, message, new Date().toISOString(), 'all']
     );
+    sendPushToAllSubscribers('Curry Tracker 🍛', message).catch(() => {});
   } catch (e) {
     console.error('Error adding notification:', e);
   }
