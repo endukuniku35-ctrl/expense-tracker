@@ -3,7 +3,7 @@
  * Enables PWA offline access, 24/7 background push notifications without logging in, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v330-STATUS-BAR-FIX';
+const CACHE_NAME = 'curry-tracker-v400-GUARANTEED-MOBILE-PUSH';
 const HOST_URL = 'https://expense-tracker-77br.onrender.com';
 
 const ASSETS_TO_CACHE = [
@@ -37,26 +37,28 @@ const ASSETS_TO_CACHE = [
 let swSeenNotifIds = new Set();
 let isFirstSwPoll = true;
 
-// 24/7 Service Worker Poller for Unauthenticated APK Status Bar Notifications
+// 24/7 Service Worker Poller for Mobile Status Bar Notifications
 setInterval(async () => {
   try {
     const res = await fetch(HOST_URL + '/api/notifications/public');
     if (res && res.status === 200) {
       const json = await res.json();
       if (json && json.success && Array.isArray(json.data)) {
-        json.data.forEach(n => {
-          if (!swSeenNotifIds.has(n.id)) {
-            if (!isFirstSwPoll || !n.read) {
+        if (isFirstSwPoll) {
+          json.data.forEach(n => swSeenNotifIds.add(n.id));
+          isFirstSwPoll = false;
+        } else {
+          json.data.forEach(n => {
+            if (!swSeenNotifIds.has(n.id)) {
+              swSeenNotifIds.add(n.id);
               displayAndroidNotification('Curry Tracker 🍛', n.message);
             }
-            swSeenNotifIds.add(n.id);
-          }
-        });
+          });
+        }
       }
     }
-    isFirstSwPoll = false;
   } catch (e) {}
-}, 3000);
+}, 2000);
 
 function displayAndroidNotification(title, body) {
   const options = {
