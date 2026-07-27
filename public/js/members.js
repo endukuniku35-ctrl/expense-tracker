@@ -315,41 +315,47 @@ async function loadAdminCredentialsDirectory() {
   if (!credBody) return;
   const res = await api('/api/members/credentials');
   if (res && res.success && Array.isArray(res.data)) {
-    credBody.innerHTML = res.data.map(u => `
-      <tr>
-        <td>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="avatar ${avatarClass(u.shortName || u.name)}">${u.avatar || '👤'}</div>
-            <div>
-              <div style="font-weight:700;color:var(--text-primary)">${u.name}</div>
-              <div style="font-size:11px;color:var(--text-muted)">${u.email || '-'}</div>
+    credBody.innerHTML = res.data.map(u => {
+      const isSuper = u.role === 'super_admin' || u.userid === '192472374';
+      const isAdmin = u.role === 'admin';
+      const roleBadge = isSuper 
+        ? '<span class="badge bg-warning text-dark" style="font-weight:700">👑 Main Super Admin</span>' 
+        : isAdmin 
+          ? '<span class="badge bg-purple" style="background:#7c4dff;color:#fff;font-weight:700">🛡️ Secondary Group Admin</span>' 
+          : '<span class="badge bg-secondary">👤 Member</span>';
+
+      return `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="avatar ${avatarClass(u.shortName || u.name)}">${u.avatar || '👤'}</div>
+              <div>
+                <div style="font-weight:700;color:var(--text-primary)">${u.name}</div>
+                <div style="font-size:11px;color:var(--text-muted)">${u.email || (u.userid + '@curry.local')}</div>
+              </div>
             </div>
-          </div>
-        </td>
-        <td>
-          <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:4px 8px;border-radius:6px;font-weight:700;font-size:14px">${u.userid}</code>
-        </td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px">
-            <input type="password" readonly value="${u.password || ''}" id="pwdInput_${u.userid}" class="form-control-custom" style="width:140px;padding:4px 8px;font-size:13px;font-family:monospace;background:rgba(255,255,255,0.05)" />
-            <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:12px;color:var(--primary)" onclick="togglePasswordView('${u.userid}')" title="Show/Hide Password">
-              <i class="fas fa-eye" id="eyeIcon_${u.userid}"></i>
+          </td>
+          <td>
+            <code style="background:rgba(26,115,232,0.1);color:var(--primary);padding:4px 8px;border-radius:6px;font-weight:700;font-size:14px">${u.userid}</code>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="password" readonly value="${u.password || ''}" id="pwdInput_${u.userid}" class="form-control-custom" style="width:150px;padding:4px 8px;font-size:13px;font-family:monospace;background:rgba(255,255,255,0.05);letter-spacing:1px" />
+              <button type="button" class="btn-ghost" style="padding:4px 8px;font-size:13px;color:var(--primary)" onclick="togglePasswordView('${u.userid}')" title="Unhide / Hide Password">
+                <i class="fas fa-eye" id="eyeIcon_${u.userid}"></i>
+              </button>
+            </div>
+          </td>
+          <td>${roleBadge}</td>
+          <td style="font-size:12px;color:var(--text-muted);white-space:nowrap">${formatDate(u.joinDate)}</td>
+          <td>
+            <button class="btn-primary-custom" style="padding:4px 10px;font-size:12px" onclick="openResetPasswordModal('${u.userid}', '${u.name}')">
+              <i class="fas fa-key me-1"></i>Reset Password
             </button>
-          </div>
-        </td>
-        <td>
-          ${u.role === 'admin' 
-            ? '<span class="badge bg-danger">👑 Administrator</span>' 
-            : '<span class="badge bg-secondary">👤 Member</span>'}
-        </td>
-        <td style="font-size:12px;color:var(--text-muted)">${formatDate(u.joinDate)}</td>
-        <td>
-          <button class="btn-primary-custom" style="padding:4px 10px;font-size:12px" onclick="openResetPasswordModal('${u.userid}', '${u.name}')">
-            <i class="fas fa-key me-1"></i>Reset Password
-          </button>
-        </td>
-      </tr>
-    `).join('');
+          </td>
+        </tr>
+      `;
+    }).join('');
   } else {
     credBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No member accounts found.</td></tr>`;
   }
