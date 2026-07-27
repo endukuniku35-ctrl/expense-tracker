@@ -22,9 +22,14 @@ async function loadChatMessages() {
               </h3>
               <div style="font-size:12px;color:var(--text-muted)">Real-time group chat, food updates & automated UPI payment nudges</div>
             </div>
-            <button class="btn-primary-custom" onclick="openNudgeModal()" style="font-size:13px;padding:8px 16px">
-              <i class="fas fa-bell me-1"></i>Send Payment Reminder Nudge
-            </button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a href="https://t.me/CurryTrackerBot" target="_blank" class="btn-ghost" style="font-size:12px;padding:8px 14px;border-radius:10px;border:1px solid var(--secondary);color:var(--text-primary);text-decoration:none;display:inline-flex;align-items:center">
+                <i class="fab fa-telegram me-1 text-info"></i>Connect Phone Push (@CurryTrackerBot)
+              </a>
+              <button class="btn-primary-custom" onclick="openNudgeModal()" style="font-size:13px;padding:8px 16px">
+                <i class="fas fa-bell me-1"></i>Send Payment Reminder Nudge
+              </button>
+            </div>
           </div>
           
           <div style="padding:20px">
