@@ -1,6 +1,6 @@
 /**
  * push_service.js – Multi-Device VAPID Web Push Notification Engine
- * Sends push notifications concurrently via Promise.allSettled to all devices.
+ * Keeps ALL device subscriptions persistent and sends push notifications concurrently.
  */
 
 const webPush = require('web-push');
@@ -38,10 +38,8 @@ function getSubscriptions() {
 function saveSubscription(sub, userid = 'guest') {
   if (!sub) return;
   const endpoint = sub.endpoint || (sub.subscription && sub.subscription.endpoint);
-  if (!endpoint) {
-    console.error('[PushService] Rejected subscription - missing endpoint:', sub);
-    return;
-  }
+  if (!endpoint) return;
+
   const keys = sub.keys || (sub.subscription && sub.subscription.keys) || {};
 
   let subs = getSubscriptions();
@@ -59,7 +57,7 @@ function saveSubscription(sub, userid = 'guest') {
     subs.push(entry);
   }
   fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
-  console.log(`[PushService] SAVED device subscription for user [${userid}]. Total active devices: ${subs.length}`);
+  console.log(`[PushService] Persistent SAVED device subscription for [${userid}]. Total active devices: ${subs.length}`);
 }
 
 async function sendPushToAllSubscribers(title, message, targetUserid = 'all', url = '/dashboard.html#chat') {
@@ -83,27 +81,17 @@ async function sendPushToAllSubscribers(title, message, targetUserid = 'all', ur
     }
   };
 
-  const remainingSubs = [];
-
-  // Broadcast to all registered device endpoints in parallel
+  // Broadcast to all registered device endpoints concurrently without deleting active subscriptions
   const sendPromises = subs.map(async (sub) => {
     try {
       await webPush.sendNotification(sub, payload, pushOptions);
-      console.log(`[VAPID Push] Push delivered to ${sub.userid} (${sub.endpoint.substring(0, 30)}...)`);
-      remainingSubs.push(sub);
+      console.log(`[VAPID Push] Delivered to ${sub.userid}`);
     } catch (err) {
-      console.log(`[VAPID Push] Error sending to ${sub.userid}:`, err.statusCode || err.message);
-      if (err.statusCode !== 410 && err.statusCode !== 404) {
-        remainingSubs.push(sub);
-      }
+      console.log(`[VAPID Push] Notice for ${sub.userid}:`, err.statusCode || err.message);
     }
   });
 
   await Promise.allSettled(sendPromises);
-
-  if (remainingSubs.length !== subs.length) {
-    fs.writeFileSync(subFile, JSON.stringify(remainingSubs, null, 2));
-  }
 }
 
 module.exports = {
