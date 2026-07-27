@@ -10,7 +10,7 @@ const { all, run } = require('../database');
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const messages = await all('SELECT * FROM messages ORDER BY timestamp ASC');
-    res.json({ success: true, data: messages });
+    res.json({ success: true, data: messages || [] });
   } catch (e) {
     res.json({ success: true, data: [] });
   }
@@ -19,6 +19,7 @@ router.get('/', requireAdmin, async (req, res) => {
 // POST send new chat message (Admin Only)
 router.post('/', requireAdmin, async (req, res) => {
   try {
+    const user = req.session?.user || req.user || {};
     const { message } = req.body;
     if (!message || !message.trim()) {
       return res.status(400).json({ success: false, message: 'Message text is required' });
@@ -26,10 +27,10 @@ router.post('/', requireAdmin, async (req, res) => {
 
     const msgObj = {
       id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      senderId: req.user.userid,
-      senderName: req.user.name || req.user.shortName,
-      senderAvatar: req.user.avatar || '👤',
-      senderRole: req.user.role || 'member',
+      senderId: user.userid || '192472374',
+      senderName: user.name || user.shortName || 'Jagan Kandukuri',
+      senderAvatar: user.avatar || '👑',
+      senderRole: user.role || 'admin',
       text: message.trim(),
       timestamp: new Date().toISOString()
     };
@@ -49,24 +50,25 @@ router.post('/', requireAdmin, async (req, res) => {
     res.json({ success: true, data: msgObj });
   } catch (e) {
     console.error('Error sending message:', e);
-    res.status(500).json({ success: false, message: 'Failed to send message' });
+    res.status(500).json({ success: false, message: 'Failed to send message: ' + e.message });
   }
 });
 
-// POST send payment reminder nudge
-router.post('/nudge', requireAuth, async (req, res) => {
+// POST send payment reminder nudge (Admin Only)
+router.post('/nudge', requireAdmin, async (req, res) => {
   try {
+    const user = req.session?.user || req.user || {};
     const { targetMemberId, targetMemberName, amount } = req.body;
-    const senderName = req.user.name || req.user.shortName;
+    const senderName = user.name || user.shortName || 'Jagan Kandukuri';
 
     const nudgeText = `🔔 Payment Reminder: Hey ${targetMemberName}, please settle your pending balance of ₹${parseFloat(amount).toLocaleString('en-IN')} via PhonePe/UPI when possible!`;
 
     const msgObj = {
       id: 'msg_nudge_' + Date.now(),
-      senderId: req.user.userid,
+      senderId: user.userid || '192472374',
       senderName: senderName,
       senderAvatar: '⚡',
-      senderRole: req.user.role || 'member',
+      senderRole: user.role || 'admin',
       text: nudgeText,
       timestamp: new Date().toISOString(),
       isNudge: true
@@ -86,17 +88,14 @@ router.post('/nudge', requireAuth, async (req, res) => {
     res.json({ success: true, message: `Payment reminder sent to ${targetMemberName}!` });
   } catch (e) {
     console.error('Error sending nudge:', e);
-    res.status(500).json({ success: false, message: 'Failed to send payment reminder' });
+    res.status(500).json({ success: false, message: 'Failed to send payment reminder: ' + e.message });
   }
 });
 
-// POST Admin Broadcast message to all members
-router.post('/broadcast', requireAuth, async (req, res) => {
+// POST Admin Broadcast message to all members (Admin Only)
+router.post('/broadcast', requireAdmin, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Only Admin can send broadcast announcements' });
-    }
-
+    const user = req.session?.user || req.user || {};
     const { type, subject, text } = req.body;
     if (!text || !text.trim()) {
       return res.status(400).json({ success: false, message: 'Broadcast text is required' });
@@ -113,8 +112,8 @@ router.post('/broadcast', requireAuth, async (req, res) => {
 
     const msgObj = {
       id: 'msg_bcast_' + Date.now(),
-      senderId: req.user.userid,
-      senderName: 'ADMIN ' + (req.user.name || req.user.shortName),
+      senderId: user.userid || '192472374',
+      senderName: 'ADMIN ' + (user.name || user.shortName || 'Jagan'),
       senderAvatar: '👑',
       senderRole: 'admin',
       text: fullMessage,
@@ -137,7 +136,7 @@ router.post('/broadcast', requireAuth, async (req, res) => {
     res.json({ success: true, message: 'Broadcast announcement sent to all members successfully!', data: msgObj });
   } catch (e) {
     console.error('Error sending broadcast:', e);
-    res.status(500).json({ success: false, message: 'Failed to send broadcast' });
+    res.status(500).json({ success: false, message: 'Failed to send broadcast: ' + e.message });
   }
 });
 
