@@ -3,7 +3,9 @@
  * Enables PWA offline access, background push notifications, sound, vibration, and Play Store TWA compliance.
  */
 
-const CACHE_NAME = 'curry-tracker-v55';
+const CACHE_NAME = 'curry-tracker-v60';
+const HOST_URL = 'https://expense-tracker-77br.onrender.com';
+
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -33,46 +35,24 @@ const ASSETS_TO_CACHE = [
 ];
 
 let swSeenNotifIds = new Set();
-let swPollInterval = null;
 
-// Service Worker Independent Background Notification Poller (Runs in isolated Android process)
-function startSWBackgroundPolling() {
-  if (swPollInterval) return;
-  swPollInterval = setInterval(async () => {
-    try {
-      const res = await fetch('/api/notifications');
-      if (res && res.status === 200) {
-        const json = await res.json();
-        if (json && json.success && Array.isArray(json.data)) {
-          const unread = json.data.filter(n => !n.read);
-          for (const n of unread) {
-            if (!swSeenNotifIds.has(n.id)) {
-              swSeenNotifIds.add(n.id);
-              self.registration.showNotification('Curry Tracker 🍛', {
-                body: n.message,
-                icon: '/icons/icon-192.png',
-                badge: '/icons/icon-192.png',
-                vibrate: [500, 200, 500, 200, 500],
-                tag: 'curry-apk-' + n.id,
-                renotify: true,
-                requireInteraction: true,
-                data: { url: '/dashboard.html#chat' }
-              });
-            }
-          }
-        }
-      }
-    } catch (e) {}
-  }, 4000);
+function displayAndroidNotification(title, body) {
+  const options = {
+    body: body || 'New alert from CurryTracker',
+    icon: HOST_URL + '/icons/icon-192.png',
+    badge: HOST_URL + '/icons/icon-192.png',
+    vibrate: [300, 100, 300, 100, 300],
+    data: { url: HOST_URL + '/dashboard.html#chat' },
+    tag: 'curry-notif-' + Date.now(),
+    renotify: true
+  };
+  return self.registration.showNotification(title || 'Curry Tracker 🍛', options);
 }
 
 // Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Pre-caching static assets');
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)).then(() => self.skipWaiting())
   );
 });
 
@@ -82,93 +62,54 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Purging old cache:', cache);
-            return caches.delete(cache);
-          }
+          if (cache !== CACHE_NAME) return caches.delete(cache);
         })
       );
-    }).then(() => {
-      startSWBackgroundPolling();
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Fetch Event (Network first for API calls, Cache first for static assets)
+// Fetch Event
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-
-  // Skip non-GET or API requests (always live from server)
-  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) {
-    return;
-  }
+  if (event.request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return response;
       })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-      })
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html')))
   );
 });
 
-// Message Event Handler for Direct Client-to-SW Notification Requests
+// Client Message Event
 self.addEventListener('message', (event) => {
-  startSWBackgroundPolling();
-
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
-    const { title, body } = event.data;
-    const options = {
-      body: body || 'New alert from CurryTracker',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      vibrate: [500, 200, 500, 200, 500],
-      data: { url: '/dashboard.html#chat' },
-      requireInteraction: true,
-      tag: 'curry-msg-' + Date.now(),
-      renotify: true
-    };
-    self.registration.showNotification(title || 'Curry Tracker 🍛', options);
+    displayAndroidNotification(event.data.title, event.data.body);
   }
 });
 
-// Background Push Event Handler for Mobile Devices (Status bar alert with sound & vibration)
+// Background Push Event Handler
 self.addEventListener('push', (event) => {
-  let data = { title: 'Curry Tracker 🍛', body: 'New roommate message or expense update!' };
+  let title = 'Curry Tracker 🍛';
+  let body = 'New message or expense update!';
+
   if (event.data) {
     try {
-      data = event.data.json();
+      const data = event.data.json();
+      title = data.title || title;
+      body = data.body || body;
     } catch (e) {
-      data.body = event.data.text();
+      body = event.data.text();
     }
   }
 
-  const options = {
-    body: data.body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    vibrate: [500, 200, 500, 200, 500],
-    data: { url: '/dashboard.html#chat' },
-    requireInteraction: true,
-    tag: 'curry-msg-' + Date.now(),
-    renotify: true
-  };
-
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(displayAndroidNotification(title, body));
 });
 
 // Notification Click Event
@@ -177,13 +118,9 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (let client of clientList) {
-        if (client.url && 'focus' in client) {
-          return client.focus();
-        }
+        if (client.url && 'focus' in client) return client.focus();
       }
-      if (clients.openWindow) {
-        return clients.openWindow('/dashboard.html#chat');
-      }
+      if (clients.openWindow) return clients.openWindow(HOST_URL + '/dashboard.html#chat');
     })
   );
 });

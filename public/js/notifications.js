@@ -1,25 +1,69 @@
 /**
  * notifications.js – Real-Time Instant Notification & Mobile Push Engine
- * Ensures EVERY message, nudge, expense & payment triggers an immediate 
- * native mobile push notification in the phone status bar on Android/iOS/Desktop PWA apps.
  */
 
 let seenNotifIds = new Set();
 let isFirstNotifLoad = true;
 
+// Web Audio API Synthesizer Notification Chime
+function playNotificationChime() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc2.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1); // A5
+
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start(ctx.currentTime);
+    osc2.start(ctx.currentTime + 0.1);
+    osc1.stop(ctx.currentTime + 0.4);
+    osc2.stop(ctx.currentTime + 0.4);
+  } catch (e) {
+    console.log('[Audio] Chime notice:', e);
+  }
+}
+
 // Request Web & Android System Push Notification permissions
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission !== 'granted') {
+window.requestNotificationPermission = function requestNotificationPermission() {
+  if ('Notification' in window) {
     Notification.requestPermission().then(permission => {
-      console.log('[Notification] Permission result:', permission);
+      console.log('[Notification] Permission:', permission);
       checkNotificationPermissionBanner();
       if (permission === 'granted') {
         registerPushSubscription();
-        triggerPushNotification('Curry Tracker 🍛', 'Mobile System Notifications Enabled!');
+        triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Enabled! Status bar alerts are active.');
+      } else {
+        alert('Please allow Notifications in your Android Phone Settings -> Apps -> CurryTracker -> Notifications -> Turn ON');
       }
     });
-  } else if ('Notification' in window && Notification.permission === 'granted') {
-    registerPushSubscription();
+  } else {
+    alert('Notifications API is not supported in this browser environment.');
+  }
+};
+
+function checkNotificationPermissionBanner() {
+  if (!('Notification' in window)) return;
+  const banner = document.getElementById('notifPermBanner');
+  if (!banner) return;
+
+  if (Notification.permission === 'default' || Notification.permission === 'denied') {
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
   }
 }
 
@@ -64,7 +108,9 @@ function urlBase64ToUint8Array(base64String) {
 
 window.sendTestMobilePush = async function sendTestMobilePush() {
   showToast('Testing Push... 🔔', 'Sending test push notification to mobile status bar...', 'info');
-  triggerPushNotification('Curry Tracker 🍛', '📲 Test Notification: Status bar notifications are working 100% on your Android APK!');
+  playNotificationChime();
+  triggerPushNotification('Curry Tracker 🍛', '📲 Test Notification: Status bar notifications are working 100% on your Android phone!');
+  
   const res = await api('/api/notifications/test-push', { method: 'POST' });
   if (res && res.success) {
     showToast('Push Sent! 📲', res.message, 'success');
@@ -73,36 +119,25 @@ window.sendTestMobilePush = async function sendTestMobilePush() {
   }
 };
 
-// Check and render notification permission banner if not granted
-function checkNotificationPermissionBanner() {
-  if (!('Notification' in window)) return;
-  const banner = document.getElementById('notifPermBanner');
-  if (!banner) return;
-
-  if (Notification.permission === 'default' || Notification.permission === 'denied') {
-    banner.style.display = 'flex';
-  } else {
-    banner.style.display = 'none';
-  }
-}
-
-// Trigger native Web / Android Mobile Push Notification via Service Worker Registration
+// Trigger native Web / Android Mobile Push Notification
 function triggerPushNotification(title, body) {
+  playNotificationChime();
+
   if (!('Notification' in window)) return;
 
   if (Notification.permission === 'granted') {
     try {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistration().then(reg => {
+        navigator.serviceWorker.ready.then(reg => {
           if (reg && reg.showNotification) {
             reg.showNotification(title, {
               body: body,
-              icon: '/icons/icon-192.png',
-              badge: '/icons/icon-192.png',
-              vibrate: [500, 200, 500, 200, 500],
+              icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
+              badge: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
+              vibrate: [300, 100, 300, 100, 300],
               tag: 'curry-notif-' + Date.now(),
               renotify: true,
-              requireInteraction: true
+              data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
             }).catch(() => {
               if (navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
@@ -111,17 +146,15 @@ function triggerPushNotification(title, body) {
           } else if (navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
           } else {
-            new Notification(title, { body, icon: '/icons/icon-192.png' });
+            new Notification(title, { body, icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png' });
           }
         });
       } else {
-        new Notification(title, { body, icon: '/icons/icon-192.png' });
+        new Notification(title, { body, icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png' });
       }
     } catch (e) {
       console.log('[Notification] Push error:', e);
     }
-  } else if (Notification.permission === 'default') {
-    requestNotificationPermission();
   }
 }
 
@@ -142,10 +175,9 @@ async function loadNotifications() {
     }
   }
 
-  // Check for new notifications to trigger instant Mobile Push Notification
+  // Check for new notifications to trigger instant Mobile Push Notification & Chime
   if (notifications && notifications.length > 0) {
     notifications.forEach(n => {
-      // If notification has not been seen by this device client or is unread
       if (!seenNotifIds.has(n.id)) {
         if (!isFirstNotifLoad || !n.read) {
           triggerPushNotification('Curry Tracker 🍛', n.message);
@@ -197,13 +229,10 @@ async function markAllRead() {
   }
 }
 
-// Request permission and start fast 2-second polling loop for ALL users
 document.addEventListener('DOMContentLoaded', () => {
-  requestNotificationPermission();
   checkNotificationPermissionBanner();
 });
 
-// Auto-refresh notifications every 2 seconds for INSTANT mobile push delivery
 setInterval(() => {
   if (typeof App !== 'undefined' && App && App.currentUser) {
     loadNotifications();
