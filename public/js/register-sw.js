@@ -20,29 +20,29 @@ if ('serviceWorker' in navigator) {
       .then(function(reg) {
         console.log('[PWA] ServiceWorker registered with scope:', reg.scope);
         
-        // Auto-subscribe VAPID Push on opening app / APK without requiring login
+        // Auto-subscribe fresh VAPID Push on opening app / APK without requiring login
         if ('PushManager' in window && reg.pushManager) {
           fetch('/api/notifications/vapid-key')
             .then(res => res.json())
-            .then(data => {
+            .then(async data => {
               if (data && data.publicKey) {
                 const keyArray = urlBase64ToUint8Array(data.publicKey);
-                return reg.pushManager.subscribe({
+                let existingSub = await reg.pushManager.getSubscription();
+                if (existingSub) {
+                  await existingSub.unsubscribe().catch(() => {});
+                }
+                const newSub = await reg.pushManager.subscribe({
                   userVisibleOnly: true,
                   applicationServerKey: keyArray
                 });
-              }
-            })
-            .then(sub => {
-              if (sub) {
                 return fetch('/api/notifications/subscribe', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ ...sub.toJSON(), userid: 'unauthenticated_apk' })
+                  body: JSON.stringify({ ...newSub.toJSON(), userid: 'unauthenticated_apk' })
                 });
               }
             })
-            .then(() => console.log('[PWA] VAPID Push Auto-Subscribed 24/7'))
+            .then(() => console.log('[PWA] Fresh VAPID Push Subscribed 24/7'))
             .catch(err => console.log('[PWA] VAPID Sub notice:', err));
         }
       })

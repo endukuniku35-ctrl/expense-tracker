@@ -7,6 +7,7 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "gcm_sender_id": "103953800507",
   "orientation": "portrait",
   "background_color": "#0f0c29",
   "theme_color": "#1a73e8",
