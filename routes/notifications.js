@@ -16,6 +16,7 @@ router.get('/vapid-key', (req, res) => {
 router.post('/subscribe', (req, res) => {
   const sub = req.body;
   const userid = req.session?.user?.userid || req.body?.userid || 'guest';
+  console.log('[Subscribe Endpoint] Received subscribe request for user:', userid, 'sub:', !!sub?.endpoint);
   saveSubscription(sub, userid);
   res.status(201).json({ success: true, message: 'Push subscription saved successfully!' });
 });

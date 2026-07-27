@@ -36,11 +36,19 @@ function getSubscriptions() {
 }
 
 function saveSubscription(sub, userid = 'guest') {
-  if (!sub || !sub.endpoint) return;
+  if (!sub) return;
+  const endpoint = sub.endpoint || (sub.subscription && sub.subscription.endpoint);
+  if (!endpoint) {
+    console.error('[PushService] Rejected subscription - missing endpoint:', sub);
+    return;
+  }
+  const keys = sub.keys || (sub.subscription && sub.subscription.keys) || {};
+
   let subs = getSubscriptions();
-  const idx = subs.findIndex(s => s.endpoint === sub.endpoint);
+  const idx = subs.findIndex(s => s.endpoint === endpoint);
   const entry = {
-    ...sub,
+    endpoint,
+    keys,
     userid: userid || sub.userid || 'guest',
     updatedAt: new Date().toISOString()
   };
@@ -51,12 +59,15 @@ function saveSubscription(sub, userid = 'guest') {
     subs.push(entry);
   }
   fs.writeFileSync(subFile, JSON.stringify(subs, null, 2));
-  console.log(`[PushService] Saved subscription for user: ${userid}. Total devices: ${subs.length}`);
+  console.log(`[PushService] SAVED device subscription for user [${userid}]. Total active devices: ${subs.length}`);
 }
 
 async function sendPushToAllSubscribers(title, message, targetUserid = 'all', url = '/dashboard.html#chat') {
   const subs = getSubscriptions();
-  if (subs.length === 0) return;
+  if (subs.length === 0) {
+    console.log('[PushService] No subscriptions registered to push to.');
+    return;
+  }
 
   const payload = JSON.stringify({
     title: title || 'Curry Tracker 🍛',
@@ -78,6 +89,7 @@ async function sendPushToAllSubscribers(title, message, targetUserid = 'all', ur
   const sendPromises = subs.map(async (sub) => {
     try {
       await webPush.sendNotification(sub, payload, pushOptions);
+      console.log(`[VAPID Push] Push delivered to ${sub.userid} (${sub.endpoint.substring(0, 30)}...)`);
       remainingSubs.push(sub);
     } catch (err) {
       console.log(`[VAPID Push] Error sending to ${sub.userid}:`, err.statusCode || err.message);
