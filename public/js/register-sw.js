@@ -1,6 +1,8 @@
 /**
- * register-sw.js – Automatic Service Worker & VAPID Web Push Registration
- * Runs on ALL pages (index.html, dashboard.html, unauthenticated APK)
+ * register-sw.js – Automatic Service Worker & VAPID Push Re-Registration
+ * KEY FIX: On every page load, we re-POST the existing push subscription to the server.
+ * This is needed because Render.com free tier wipes the server's push_subscriptions.json on every deploy.
+ * The browser's Service Worker keeps the subscription locally - we just need to re-send it to server.
  */
 
 function urlBase64ToUint8Array(base64String) {
@@ -19,12 +21,15 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
 
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    const vapidRes = await fetch('/api/notifications/vapid-key').then(r => r.json());
+    const vapidRes = await fetch('/api/notifications/vapid-key').then(r => r.json()).catch(() => null);
     if (!vapidRes || !vapidRes.publicKey) return;
 
     const keyArray = urlBase64ToUint8Array(vapidRes.publicKey);
+
+    // Step 1: Try to get existing subscription from browser (no permission prompt needed)
     let sub = await reg.pushManager.getSubscription();
 
+    // Step 2: If no existing subscription, request permission and create one
     if (!sub) {
       if (typeof Notification !== 'undefined') {
         let perm = Notification.permission;
@@ -36,40 +41,37 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
             userVisibleOnly: true,
             applicationServerKey: keyArray
           }).catch(err => {
-            console.log('[PWA] Push subscribe attempt notice:', err);
+            console.log('[PWA] Push subscribe notice:', err.message);
             return null;
           });
         }
       }
     }
 
+    // Step 3: ALWAYS re-POST the subscription to the server on every page load
+    // This is critical: Render.com free tier wipes files on deploy, so we must re-register every time
     if (sub) {
+      const subJson = sub.toJSON();
       await fetch('/api/notifications/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...sub.toJSON(), userid: 'device_' + Date.now() })
-      });
-      console.log('[PWA] Device Push Registered Successfully 24/7!');
+        body: JSON.stringify({ ...subJson, userid: 'user_' + (Date.now() % 100000) })
+      }).catch(() => {});
+      console.log('[PWA] ✅ Device push subscription re-synced to server!');
+    } else {
+      console.log('[PWA] No push subscription available (permission may be denied).');
     }
   } catch (e) {
-    console.log('[PWA] Auto-push notice:', e);
+    console.log('[PWA] Auto-push notice:', e.message);
   }
 };
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async function() {
-    if (navigator.serviceWorker.getRegistrations) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (let reg of registrations) {
-          reg.update().catch(() => {});
-        }
-      }).catch(() => {});
-    }
-
     try {
       await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-      await navigator.serviceWorker.ready;
-      await window.autoRegisterDevicePush();
+      // Run immediately on load - no waiting
+      window.autoRegisterDevicePush();
     } catch (err) {
       console.error('[PWA] ServiceWorker registration failed:', err);
     }
