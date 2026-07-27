@@ -26,14 +26,20 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
     let sub = await reg.pushManager.getSubscription();
 
     if (!sub) {
-      if (typeof Notification === 'undefined' || Notification.permission !== 'denied') {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: keyArray
-        }).catch(err => {
-          console.log('[PWA] Direct subscribe notice:', err);
-          return null;
-        });
+      if (typeof Notification !== 'undefined') {
+        let perm = Notification.permission;
+        if (perm === 'default') {
+          perm = await Notification.requestPermission().catch(() => 'denied');
+        }
+        if (perm === 'granted') {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: keyArray
+          }).catch(err => {
+            console.log('[PWA] Push subscribe attempt notice:', err);
+            return null;
+          });
+        }
       }
     }
 
