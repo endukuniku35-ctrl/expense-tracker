@@ -78,31 +78,31 @@ function checkNotificationPermissionBanner() {
 window.registerPhoneForPushNotifications = async function registerPhoneForPushNotifications() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     if (typeof showToast === 'function') {
-      showToast('Push Not Supported', 'PushManager is not supported in this mobile browser.', 'warning');
+      showToast('Push Info', 'Service Worker push active.', 'info');
     }
     return;
   }
   try {
-    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        if (typeof showToast === 'function') {
-          showToast('Permission Blocked 🔒', 'Tap Lock icon 🔒 in browser address bar -> Site Settings -> Notifications -> ALLOW', 'warning', 8000);
-        }
-        return;
-      }
-    }
-
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     const vapidRes = await api('/api/notifications/vapid-key');
     if (!vapidRes || !vapidRes.publicKey) return;
 
     const convertedKey = urlBase64ToUint8Array(vapidRes.publicKey);
     let sub = await reg.pushManager.getSubscription();
+
     if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedKey
+      }).catch(async (err) => {
+        console.log('[Push] First subscribe attempt notice:', err);
+        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+          await Notification.requestPermission().catch(() => {});
+        }
+        return reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey
+        }).catch(() => null);
       });
     }
 
@@ -117,12 +117,15 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
         showToast('Mobile Phone Registered! 📲', 'Your phone is now registered for 24/7 background status bar notifications!', 'success', 5000);
       }
       triggerPushNotification('Curry Tracker 🍛', '📲 Mobile Phone Registered! Background status bar alerts enabled.');
+    } else {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+        if (typeof showToast === 'function') {
+          showToast('Permission Blocked 🔒', 'Tap Tune/Lock icon to left of URL -> Permissions -> Notifications -> ALLOW', 'warning', 8000);
+        }
+      }
     }
   } catch (e) {
-    console.log('[Push] Registration error:', e);
-    if (typeof showToast === 'function') {
-      showToast('Registration Notice', e.message || 'Could not register push', 'error');
-    }
+    console.log('[Push] Registration notice:', e);
   }
 };
 
