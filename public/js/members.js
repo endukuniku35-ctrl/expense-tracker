@@ -299,8 +299,13 @@ window.loadMembers = async function loadMembers() {
 
     renderSettlements(visibleSettlements);
 
-    // ─── Load Admin Credentials Directory ──────────────
-    if (App.isAdmin) {
+    // ─── Load Admin Credentials Directory (Super Admin Jagan Only) ──────────────
+    const isSuperAdmin = App.currentUser?.role === 'super_admin' || App.currentUser?.userid === '192472374';
+    const credCard = document.getElementById('adminCredentialsCard');
+    if (credCard) {
+      credCard.style.display = isSuperAdmin ? 'block' : 'none';
+    }
+    if (isSuperAdmin) {
       loadAdminCredentialsDirectory();
     }
   } catch (err) {
@@ -470,9 +475,25 @@ function renderSettlements(settlements) {
     </div>`;
 }
 
-// ─── Add Member Modal Controller ──────────────────
 function openAddMemberModal() {
   document.getElementById('addMemberForm').reset();
+  const roleGroup = document.getElementById('memberRoleGroup');
+  const roleSelect = document.getElementById('newMemberRole');
+  const isSuperAdmin = App.currentUser?.role === 'super_admin' || App.currentUser?.userid === '192472374';
+
+  if (roleGroup && roleSelect) {
+    if (isSuperAdmin) {
+      roleGroup.style.display = 'block';
+      roleSelect.innerHTML = `
+        <option value="member">👤 Member (Standard Access)</option>
+        <option value="admin">👑 Administrator (Full Control)</option>
+      `;
+    } else {
+      roleGroup.style.display = 'none';
+      roleSelect.innerHTML = `<option value="member" selected>👤 Member (Standard Access)</option>`;
+    }
+  }
+
   const modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
   modal.show();
 }

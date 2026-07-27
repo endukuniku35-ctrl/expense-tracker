@@ -109,7 +109,8 @@ router.post('/', requireAdmin, async (req, res) => {
     const hashedPassword = bcrypt.hashSync(password, salt);
     const shortName = name.trim().split(' ')[0];
     const avatar = shortName.substring(0, 2).toUpperCase();
-    const userRole = role === 'admin' ? 'admin' : 'member';
+    const isSuperAdmin = req.session?.user?.role === 'super_admin' || req.session?.user?.userid === '192472374';
+    const userRole = (isSuperAdmin && role === 'admin') ? 'admin' : 'member';
     const userEmail = email || `${userid.trim()}@curry.local`;
     const joinDate = new Date().toISOString().split('T')[0];
 
