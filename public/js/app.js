@@ -18,9 +18,14 @@ const apiCache = new Map();
 async function api(url, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const cacheKey = url;
+  const bypassCache = options.bypassCache;
+
+  // Clean fetch options so custom flags don't break Android WebView fetch
+  const fetchOpts = { ...options };
+  delete fetchOpts.bypassCache;
 
   // Serve instantly from cache if GET request within last 15 seconds
-  if (method === 'GET' && !options.bypassCache) {
+  if (method === 'GET' && !bypassCache) {
     const cached = apiCache.get(cacheKey);
     if (cached && (Date.now() - cached.time < 15000)) {
       return cached.data;
@@ -29,9 +34,9 @@ async function api(url, options = {}) {
 
   try {
     const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      headers: { 'Content-Type': 'application/json', ...fetchOpts.headers },
       credentials: 'include',
-      ...options
+      ...fetchOpts
     });
     if (res.status === 401) {
       sessionStorage.clear();

@@ -43,11 +43,11 @@ window.requestNotificationPermission = function requestNotificationPermission() 
   if ('Notification' in window) {
     Notification.requestPermission().then(permission => {
       console.log('[Notification] Permission result:', permission);
-      registerPushSubscription();
+      registerPushSubscription(true);
       triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Active! Status bar alerts enabled.');
       checkNotificationPermissionBanner();
     }).catch(() => {
-      registerPushSubscription();
+      registerPushSubscription(true);
       triggerPushNotification('Curry Tracker 🍛', '✅ Mobile Notifications Active!');
     });
   } else {
@@ -128,8 +128,8 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
   }
 };
 
-async function registerPushSubscription() {
-  return window.registerPhoneForPushNotifications();
+async function registerPushSubscription(isManualClick = false) {
+  return window.registerPhoneForPushNotifications(isManualClick);
 }
 
 function urlBase64ToUint8Array(base64String) {
