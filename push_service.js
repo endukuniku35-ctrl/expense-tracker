@@ -69,9 +69,17 @@ async function sendPushToAllSubscribers(title, message, targetUserid = 'all', ur
 
   const remainingSubs = [];
 
+  const pushOptions = {
+    TTL: 86400,
+    urgency: 'high',
+    headers: {
+      'Urgency': 'high'
+    }
+  };
+
   for (const sub of subs) {
     try {
-      await webPush.sendNotification(sub, payload);
+      await webPush.sendNotification(sub, payload, pushOptions);
       remainingSubs.push(sub);
     } catch (err) {
       if (err.statusCode !== 410 && err.statusCode !== 404) {
