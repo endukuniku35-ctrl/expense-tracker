@@ -1,9 +1,12 @@
 /**
- * notifications.js – Notification & Native Mobile System Push System
+ * notifications.js – Real-Time Instant Notification & Mobile Push Engine
+ * Ensures EVERY message, nudge, expense & payment triggers an immediate 
+ * native mobile push notification in the phone status bar.
  */
 
 let seenNotifIds = new Set();
 let isFirstNotifLoad = true;
+let lastNotifCheckTime = Date.now() - (2 * 60 * 1000); // 2 mins ago
 
 // Request Web & Android System Push Notification permissions
 function requestNotificationPermission() {
@@ -40,7 +43,7 @@ function triggerPushNotification(title, body) {
             body: body,
             icon: '/icons/icon-192.png',
             badge: '/icons/icon-192.png',
-            vibrate: [300, 100, 300, 100, 300],
+            vibrate: [500, 200, 500, 200, 500],
             tag: 'curry-notif-' + Date.now(),
             renotify: true,
             requireInteraction: true
@@ -66,7 +69,7 @@ async function loadNotifications() {
 
   const { data: notifications, unreadCount } = data;
 
-  // Update badge
+  // Update badge in topbar
   const badge = document.getElementById('notifCount');
   if (badge) {
     if (unreadCount > 0) {
@@ -77,11 +80,15 @@ async function loadNotifications() {
     }
   }
 
-  // Check for new unread notifications to trigger Mobile System Push Notification
+  // Check for new notifications to trigger instant Mobile Push Notification
   if (notifications && notifications.length > 0) {
     notifications.forEach(n => {
-      if (!n.read && !seenNotifIds.has(n.id)) {
-        if (!isFirstNotifLoad) {
+      const notifTime = new Date(n.timestamp).getTime();
+      
+      // If notification has not been seen by this device client
+      if (!seenNotifIds.has(n.id)) {
+        // Trigger push notification if created after client loaded OR within last 2 minutes
+        if (!isFirstNotifLoad || notifTime > lastNotifCheckTime) {
           triggerPushNotification('Curry Tracker 🍛', n.message);
         }
         seenNotifIds.add(n.id);
@@ -90,7 +97,7 @@ async function loadNotifications() {
   }
   isFirstNotifLoad = false;
 
-  // Render notifications list
+  // Render notifications list in topbar dropdown
   const list = document.getElementById('notifList');
   if (!list) return;
 
@@ -107,7 +114,7 @@ async function loadNotifications() {
   list.innerHTML = notifications.slice(0, 15).map(n => `
     <div class="notif-item ${n.read ? '' : 'unread'}" onclick="markRead('${n.id}')">
       <div class="notif-icon-wrap ${n.type || 'info'}">
-        <i class="fas ${n.type === 'expense' ? 'fa-receipt' : n.type === 'payment' ? 'fa-wallet' : 'fa-bell'}"></i>
+        <i class="fas ${n.type === 'expense' ? 'fa-receipt' : n.type === 'payment' ? 'fa-wallet' : n.type === 'message' ? 'fa-comment' : 'fa-bell'}"></i>
       </div>
       <div style="flex:1;min-width:0">
         <div class="notif-text">${n.message}</div>
@@ -131,15 +138,15 @@ async function markAllRead() {
   }
 }
 
-// Request permission and start 10-second polling loop for all users
+// Request permission and start fast 2-second polling loop for ALL users
 document.addEventListener('DOMContentLoaded', () => {
   requestNotificationPermission();
   checkNotificationPermissionBanner();
 });
 
-// Auto-refresh notifications every 10 seconds for ALL users
+// Auto-refresh notifications every 2 seconds for INSTANT mobile push delivery
 setInterval(() => {
-  if (typeof App !== 'undefined' && App && App.user) {
+  if (typeof App !== 'undefined' && App && App.currentUser) {
     loadNotifications();
   }
-}, 10000);
+}, 2000);
