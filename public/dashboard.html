@@ -678,19 +678,19 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" style="padding:24px">
-        <form id="addMemberForm" onsubmit="event.preventDefault(); submitAddMember();">
+        <form id="addMemberForm" autocomplete="off" onsubmit="event.preventDefault(); submitAddMember();">
           <div class="mb-3">
             <label class="form-label-custom">Full Name *</label>
-            <input type="text" class="form-control-custom" id="newMemberName" placeholder="e.g. Ramesh Kumar" required />
+            <input type="text" class="form-control-custom" id="newMemberName" placeholder="e.g. Ramesh Kumar" autocomplete="off" required />
           </div>
           <div class="mb-3">
             <label class="form-label-custom">User ID / Login Username *</label>
-            <input type="text" class="form-control-custom" id="newMemberUserid" placeholder="e.g. 192472399 or ramesh" required />
+            <input type="text" class="form-control-custom" id="newMemberUserid" placeholder="e.g. 192472399 or ramesh" autocomplete="off" required />
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Member will use this ID to sign in.</div>
           </div>
           <div class="mb-3">
             <label class="form-label-custom">Password *</label>
-            <input type="password" class="form-control-custom" id="newMemberPassword" placeholder="Set a secure password" required />
+            <input type="password" class="form-control-custom" id="newMemberPassword" placeholder="Set a secure password" autocomplete="new-password" required />
           </div>
           <div class="mb-3" id="memberRoleGroup">
             <label class="form-label-custom">Account Role</label>
@@ -701,7 +701,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label-custom">Email (Optional)</label>
-            <input type="email" class="form-control-custom" id="newMemberEmail" placeholder="e.g. ramesh@curry.local" />
+            <input type="email" class="form-control-custom" id="newMemberEmail" placeholder="e.g. ramesh@curry.local" autocomplete="off" />
           </div>
         </form>
       </div>
@@ -722,27 +722,27 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" style="padding:24px">
-        <form id="createAdminForm" onsubmit="event.preventDefault(); submitCreateGroupAdmin();">
+        <form id="createAdminForm" autocomplete="off" onsubmit="event.preventDefault(); submitCreateGroupAdmin();">
           <div class="mb-3">
             <label class="form-label-custom">Admin Full Name *</label>
-            <input type="text" class="form-control-custom" id="newAdminName" placeholder="e.g. Rajesh Sharma" required />
+            <input type="text" class="form-control-custom" id="newAdminName" placeholder="e.g. Rajesh Sharma" autocomplete="off" value="" required />
           </div>
           <div class="mb-3">
             <label class="form-label-custom">Admin User ID / Username *</label>
-            <input type="text" class="form-control-custom" id="newAdminUserid" placeholder="e.g. rajesh_admin or 192499100" required />
+            <input type="text" class="form-control-custom" id="newAdminUserid" placeholder="e.g. rajesh_admin or 192499100" autocomplete="off" value="" required />
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px">This admin will use this User ID to log in and manage their own room/group.</div>
           </div>
           <div class="mb-3">
             <label class="form-label-custom">Password *</label>
-            <input type="password" class="form-control-custom" id="newAdminPassword" placeholder="Set password for this Group Admin" required />
+            <input type="password" class="form-control-custom" id="newAdminPassword" placeholder="Set password for this Group Admin" autocomplete="new-password" value="" required />
           </div>
           <div class="mb-3">
             <label class="form-label-custom">Room / Group Name (Optional)</label>
-            <input type="text" class="form-control-custom" id="newAdminGroupName" placeholder="e.g. Flat 301 Roommates or Curry Group B" />
+            <input type="text" class="form-control-custom" id="newAdminGroupName" placeholder="e.g. Flat 301 Roommates or Curry Group B" autocomplete="off" value="" />
           </div>
           <div class="mb-3">
             <label class="form-label-custom">Admin Email (Optional)</label>
-            <input type="email" class="form-control-custom" id="newAdminEmail" placeholder="e.g. rajesh@curry.local" />
+            <input type="email" class="form-control-custom" id="newAdminEmail" placeholder="e.g. rajesh@curry.local" autocomplete="off" value="" />
           </div>
           <div style="font-size:12px;color:var(--text-muted);background:rgba(26,115,232,0.08);padding:12px;border-radius:10px;border:1px solid rgba(26,115,232,0.2)">
             <i class="fas fa-crown text-warning me-1"></i>Created Group Admin will have their own separate dashboard to manage their specific group members and bills!

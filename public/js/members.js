@@ -488,7 +488,13 @@ function renderSettlements(settlements) {
 }
 
 function openAddMemberModal() {
-  document.getElementById('addMemberForm').reset();
+  const form = document.getElementById('addMemberForm');
+  if (form) form.reset();
+  ['newMemberUserid', 'newMemberName', 'newMemberPassword', 'newMemberEmail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
   const roleGroup = document.getElementById('memberRoleGroup');
   const roleSelect = document.getElementById('newMemberRole');
   const isSuperAdmin = App.currentUser?.role === 'super_admin' || App.currentUser?.userid === '192472374';
@@ -508,6 +514,13 @@ function openAddMemberModal() {
 
   const modal = new bootstrap.Modal(document.getElementById('addMemberModal'));
   modal.show();
+
+  setTimeout(() => {
+    ['newMemberUserid', 'newMemberName', 'newMemberPassword', 'newMemberEmail'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  }, 120);
 }
 
 async function submitAddMember() {
@@ -688,8 +701,22 @@ async function quickSettleFull(fromMemberId, fromMemberName, toMemberId, toMembe
 window.loadMembers = loadMembers;
 
 function openCreateAdminModal() {
+  const form = document.getElementById('createAdminForm');
+  if (form) form.reset();
+  ['newAdminName', 'newAdminUserid', 'newAdminPassword', 'newAdminGroupName', 'newAdminEmail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
   const modal = new bootstrap.Modal(document.getElementById('createAdminModal'));
   modal.show();
+
+  setTimeout(() => {
+    ['newAdminName', 'newAdminUserid', 'newAdminPassword', 'newAdminGroupName', 'newAdminEmail'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  }, 120);
 }
 
 async function submitCreateGroupAdmin() {
