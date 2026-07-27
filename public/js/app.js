@@ -176,7 +176,7 @@ function navigateTo(view) {
   hideLoader();
 
   // Guard Admin-Only Views (Chat & Broadcast)
-  if ((view === 'chat' || view === 'broadcast') && (!App.isAdmin || !App.currentUser || App.currentUser.role !== 'admin')) {
+  if ((view === 'chat' || view === 'broadcast') && !App.isAdmin) {
     showToast('Access Restricted 🔒', 'Roommate Chat & Admin Broadcasts are strictly restricted to Admin Jagan.', 'warning');
     if (view !== 'dashboard') navigateTo('dashboard');
     return;
