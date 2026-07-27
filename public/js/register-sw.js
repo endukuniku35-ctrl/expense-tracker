@@ -24,12 +24,22 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
     const keyArray = urlBase64ToUint8Array(vapidRes.publicKey);
     let sub = await reg.pushManager.getSubscription();
 
-    // ONLY subscribe if permission is already explicitly GRANTED by user tap
-    if (!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    if (!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: keyArray
-      }).catch(err => console.log('[PWA] Subscribe catch:', err));
+      }).catch(async () => {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+          const perm = await Notification.requestPermission().catch(() => 'denied');
+          if (perm === 'granted') {
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: keyArray
+            }).catch(() => null);
+          }
+        }
+        return null;
+      });
     }
 
     if (sub) {
@@ -38,7 +48,7 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...sub.toJSON(), userid: 'device_' + Date.now() })
       });
-      console.log('[PWA] Device Push Registered 24/7!');
+      console.log('[PWA] Device Push Registered Successfully 24/7!');
     }
   } catch (e) {
     console.log('[PWA] Auto-push notice:', e);
@@ -54,7 +64,7 @@ if ('serviceWorker' in navigator) {
         }
       }).catch(() => {});
     }
-    navigator.serviceWorker.register('/sw.js?v=210', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?v=300', { scope: '/' })
       .then(function() {
         window.autoRegisterDevicePush();
       })

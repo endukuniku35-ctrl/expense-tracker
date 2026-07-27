@@ -233,4 +233,4 @@ router.delete('/settle/:id', requireAdmin, async (req, res) => {
   }
 });
 
-module.exports = { router, computeBalances, getMembers };
+module.exports = { router, computeBalances, getMembers, MEMBERS };
