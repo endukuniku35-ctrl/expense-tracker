@@ -140,8 +140,21 @@ function avatarClass(name) {
   if (n.includes('sagar')) return 'avatar-sagar';
   if (n.includes('prathap')) return 'avatar-prathap';
   if (n.includes('bharath')) return 'avatar-bharath';
-  return 'avatar-jagan';
+  return 'avatar-default';
 }
+
+// ─── Get Member Avatar HTML ─────────────────────────
+// Admin (Jagan) gets real photo; all others get styled initials
+window.getMemberAvatarHtml = function(name, userid, role, size = 40, radius = '50%') {
+  const isAdmin = (userid === '192472374' || role === 'admin' || role === 'super_admin');
+  const initials = (name || '?').substring(0, 2).toUpperCase();
+  const cls = avatarClass(name);
+  if (isAdmin && App.isAdmin) {
+    // Only admin viewer sees the real photo
+    return `<img src="/images/jagan.jpg" alt="Jagan" style="width:${size}px;height:${size}px;border-radius:${radius};object-fit:cover;object-position:center top;border:2.5px solid var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,0.2)" onerror="this.onerror=null;this.outerHTML='<div class=${JSON.stringify('avatar ' + cls)} style=\'width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size*0.35)}px;\'>${initials}</div>'" />`;
+  }
+  return `<div class="avatar ${cls}" style="width:${size}px;height:${size}px;border-radius:${radius};font-size:${Math.floor(size * 0.35)}px;font-weight:700;display:flex;align-items:center;justify-content:center">${initials}</div>`;
+};
 
 // ─── Sidebar Controls ──────────────────────────────
 function toggleSidebar() {
@@ -302,12 +315,23 @@ async function initApp() {
 
   // Update UI with user info
   const { name, shortName, avatar, role, userid } = authData.user;
-  const userPhoto = (userid === '192472374' || App.isAdmin) ? '/images/logo_brand.png' : null;
+  // Admin (Jagan) gets real photo — members get initials
+  const isJagan = (userid === '192472374' || App.isAdmin);
 
   const sidebarAv = document.getElementById('sidebarAvatar');
   if (sidebarAv) {
-    if (userPhoto) sidebarAv.innerHTML = `<img src="${userPhoto}" onerror="this.onerror=null;this.parentElement.textContent='${avatar}'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
-    else sidebarAv.textContent = avatar;
+    if (isJagan) {
+      sidebarAv.innerHTML = `
+        <div style="position:relative;width:44px;height:44px">
+          <img src="/images/jagan.jpg" alt="Jagan"
+            style="width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:center top;border:2.5px solid var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,0.25),0 4px 12px rgba(0,0,0,0.3)"
+            onerror="this.onerror=null;this.parentElement.innerHTML='<span style=font-size:22px>${avatar}</span>'" />
+          <div style="position:absolute;bottom:-2px;right:-2px;width:14px;height:14px;background:#34a853;border-radius:50%;border:2px solid var(--bg-1)"></div>
+        </div>`;
+    } else {
+      const initials = (shortName || name || '?').substring(0, 2).toUpperCase();
+      sidebarAv.innerHTML = `<div class="avatar ${avatarClass(name)}" style="width:40px;height:40px;border-radius:50%;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">${initials}</div>`;
+    }
   }
 
   document.getElementById('sidebarName').textContent = name;
@@ -315,8 +339,14 @@ async function initApp() {
 
   const topbarAv = document.getElementById('topbarAvatar');
   if (topbarAv) {
-    if (userPhoto) topbarAv.innerHTML = `<img src="${userPhoto}" onerror="this.onerror=null;this.parentElement.textContent='${avatar}'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)" />`;
-    else topbarAv.textContent = avatar;
+    if (isJagan) {
+      topbarAv.innerHTML = `<img src="/images/jagan.jpg" alt="J"
+        style="width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid var(--primary);box-shadow:0 0 0 2px rgba(26,115,232,0.3)"
+        onerror="this.onerror=null;this.parentElement.innerHTML='<span>${shortName}</span>'" />`;
+    } else {
+      const initials = (shortName || name || '?').substring(0, 2).toUpperCase();
+      topbarAv.innerHTML = `<div class="avatar ${avatarClass(name)}" style="width:32px;height:32px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">${initials}</div>`;
+    }
   }
   document.getElementById('topbarName').textContent = shortName;
 

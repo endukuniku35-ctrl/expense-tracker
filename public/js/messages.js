@@ -75,6 +75,7 @@ async function loadChatMessages() {
   box.innerHTML = messages.map(m => {
     const isMe = App.currentUser && App.currentUser.userid === m.senderId;
     const isNudge = m.isNudge;
+    const isAdminMsg = m.senderRole === 'admin' || m.senderRole === 'super_admin';
     const timeStr = typeof timeAgo === 'function' ? timeAgo(m.timestamp) : new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (isNudge) {
@@ -89,14 +90,24 @@ async function loadChatMessages() {
       `;
     }
 
+    // Avatar: Admin (Jagan) gets real photo if viewer is admin; others get initials
+    const initials = (m.senderName || '?').substring(0, 2).toUpperCase();
+    const showRealPhoto = isAdminMsg && App.isAdmin;
+    const avatarHtml = showRealPhoto
+      ? `<div style="position:relative;width:36px;height:36px;flex-shrink:0">
+           <img src="/images/jagan.jpg" alt="J"
+             style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:center top;border:2px solid var(--primary);box-shadow:0 2px 8px rgba(0,0,0,0.25)"
+             onerror="this.onerror=null;this.outerHTML='<div style=width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px>${initials}</div>'" />
+           <div style="position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;background:#34a853;border-radius:50%;border:1.5px solid var(--bg-1)"></div>
+         </div>`
+      : `<div style="width:36px;height:36px;border-radius:50%;background:${isMe ? 'var(--primary)' : 'var(--bg-2)'};color:${isMe ? '#fff' : 'var(--text-primary)'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;border:1.5px solid ${isMe ? 'transparent' : 'var(--glass-border)'}">${initials}</div>`;
+
     return `
       <div style="display:flex;gap:10px;align-self:${isMe ? 'flex-end' : 'flex-start'};max-width:80%;flex-direction:${isMe ? 'row-reverse' : 'row'}">
-        <div style="width:36px;height:36px;border-radius:50%;background:${isMe ? 'var(--primary)' : 'var(--bg-2)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">
-          ${m.senderAvatar || m.senderName.substring(0, 2).toUpperCase()}
-        </div>
+        ${avatarHtml}
         <div style="background:${isMe ? 'var(--primary)' : 'var(--glass-bg)'};color:${isMe ? '#ffffff' : 'var(--text-primary)'};border:${isMe ? 'none' : '1px solid var(--glass-border)'};padding:10px 14px;border-radius:14px;font-size:13.5px;box-shadow:0 2px 8px rgba(0,0,0,0.05)">
           <div style="font-size:11px;font-weight:700;margin-bottom:4px;opacity:0.8;display:flex;align-items:center;gap:6px">
-            ${m.senderName} ${m.senderRole === 'admin' ? '👑' : ''}
+            ${m.senderName} ${isAdminMsg ? '👑' : ''}
           </div>
           <div style="word-break:break-word;line-height:1.4">${escapeHtml(m.text)}</div>
           <div style="font-size:10px;opacity:0.65;text-align:right;margin-top:4px">${timeStr}</div>
@@ -104,6 +115,7 @@ async function loadChatMessages() {
       </div>
     `;
   }).join('');
+
 
   box.scrollTop = box.scrollHeight;
 }
