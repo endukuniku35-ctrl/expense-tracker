@@ -230,16 +230,18 @@ async function loadNotifications() {
 
   // Check for new notifications to trigger instant Mobile Push Notification & Chime
   if (notifications && notifications.length > 0) {
-    notifications.forEach(n => {
-      if (!seenNotifIds.has(n.id)) {
-        if (!isFirstNotifLoad || !n.read) {
+    if (isFirstNotifLoad) {
+      notifications.forEach(n => seenNotifIds.add(n.id));
+      isFirstNotifLoad = false;
+    } else {
+      notifications.forEach(n => {
+        if (!seenNotifIds.has(n.id)) {
+          seenNotifIds.add(n.id);
           triggerPushNotification('Curry Tracker 🍛', n.message);
         }
-        seenNotifIds.add(n.id);
-      }
-    });
+      });
+    }
   }
-  isFirstNotifLoad = false;
 
   // Render notifications list in topbar dropdown
   const list = document.getElementById('notifList');
