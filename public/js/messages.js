@@ -45,7 +45,7 @@ async function loadChatMessages() {
       </div>`;
   }
 
-  const data = await api('/api/messages');
+  const data = await api('/api/messages', { bypassCache: true });
   if (!data || !data.data) return;
 
   const messages = data.data;
@@ -316,9 +316,10 @@ async function submitAdminBroadcast() {
 window.loadChatMessages = loadChatMessages;
 window.loadAdminBroadcasts = loadAdminBroadcasts;
 
-// Auto-refresh chat messages every 2 seconds when user is on the chat view
+// Auto-refresh chat messages every 2 seconds whenever chat window is visible
 setInterval(() => {
-  if (typeof App !== 'undefined' && App && App.currentView === 'chat') {
+  const box = document.getElementById('chatMessagesBox');
+  if (box && box.offsetParent !== null) {
     loadChatMessages();
   }
 }, 2000);
