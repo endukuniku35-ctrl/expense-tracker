@@ -165,28 +165,35 @@ function triggerPushNotification(title, body) {
   }
 
   try {
+    const iconUrl = 'https://expense-tracker-77br.onrender.com/icons/icon-192.png';
+    const notifOptions = {
+      body: body,
+      icon: iconUrl,
+      badge: iconUrl,
+      vibrate: [300, 100, 300, 100, 300],
+      tag: 'curry-notif-' + Date.now(),
+      renotify: true,
+      data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
+    };
+
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
+      navigator.serviceWorker.getRegistration().then(reg => {
         if (reg && reg.showNotification) {
-          reg.showNotification(title, {
-            body: body,
-            icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
-            badge: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png',
-            vibrate: [300, 100, 300, 100, 300],
-            tag: 'curry-notif-' + Date.now(),
-            renotify: true,
-            data: { url: 'https://expense-tracker-77br.onrender.com/dashboard.html#chat' }
-          }).catch(() => {
+          reg.showNotification(title, notifOptions).catch(() => {
             if (navigator.serviceWorker.controller) {
               navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
             }
           });
-        } else if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body });
+        } else {
+          navigator.serviceWorker.register('/sw.js').then(newReg => {
+            if (newReg && newReg.showNotification) {
+              newReg.showNotification(title, notifOptions).catch(() => {});
+            }
+          }).catch(() => {});
         }
-      });
+      }).catch(() => {});
     } else if (typeof Notification !== 'undefined') {
-      new Notification(title, { body, icon: 'https://expense-tracker-77br.onrender.com/icons/icon-192.png' });
+      new Notification(title, { body, icon: iconUrl });
     }
   } catch (e) {
     console.log('[Notification] Push notice:', e);
