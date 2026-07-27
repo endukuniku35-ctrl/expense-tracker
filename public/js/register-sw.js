@@ -24,16 +24,12 @@ window.autoRegisterDevicePush = async function autoRegisterDevicePush() {
     const keyArray = urlBase64ToUint8Array(vapidRes.publicKey);
     let sub = await reg.pushManager.getSubscription();
 
-    if (!sub && typeof Notification !== 'undefined') {
-      if (Notification.permission === 'default') {
-        await Notification.requestPermission().catch(() => {});
-      }
-      if (Notification.permission === 'granted' || Notification.permission === 'default') {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: keyArray
-        }).catch(err => console.log('[PWA] Subscribe catch:', err));
-      }
+    // ONLY subscribe if permission is already explicitly GRANTED by user tap
+    if (!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: keyArray
+      }).catch(err => console.log('[PWA] Subscribe catch:', err));
     }
 
     if (sub) {
@@ -58,7 +54,7 @@ if ('serviceWorker' in navigator) {
         }
       }).catch(() => {});
     }
-    navigator.serviceWorker.register('/sw.js?v=200', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?v=210', { scope: '/' })
       .then(function() {
         window.autoRegisterDevicePush();
       })

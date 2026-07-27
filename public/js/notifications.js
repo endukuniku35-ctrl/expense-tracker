@@ -56,15 +56,23 @@ window.requestNotificationPermission = function requestNotificationPermission() 
 };
 
 function checkNotificationPermissionBanner() {
-  const banner = document.getElementById('notifPermBanner');
-  if (!banner) return;
+  const permBanner = document.getElementById('notifPermBanner');
+  const blockBanner = document.getElementById('notifBlockedBanner');
 
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  if (isStandalone || (typeof Notification !== 'undefined' && Notification.permission === 'granted')) {
-    banner.style.display = 'none';
-  } else {
-    banner.style.display = 'flex';
+  if (typeof Notification !== 'undefined') {
+    if (Notification.permission === 'denied') {
+      if (permBanner) permBanner.style.display = 'none';
+      if (blockBanner) blockBanner.style.display = 'flex';
+      return;
+    } else if (Notification.permission === 'granted') {
+      if (permBanner) permBanner.style.display = 'none';
+      if (blockBanner) blockBanner.style.display = 'none';
+      return;
+    }
   }
+
+  if (permBanner) permBanner.style.display = 'flex';
+  if (blockBanner) blockBanner.style.display = 'none';
 }
 
 window.registerPhoneForPushNotifications = async function registerPhoneForPushNotifications() {
