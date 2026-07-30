@@ -33,12 +33,14 @@ window.loadRotationView = async function loadRotationView() {
                 <button onclick="openCompleteTurnModal()" class="btn-success-custom" style="padding:10px 20px;font-size:14px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;font-weight:700">
                   <i class="fas fa-check-circle"></i> I Paid Today (Pass Turn ➔)
                 </button>
-                <button onclick="openCustomizeSequenceModal()" class="btn-primary-custom" style="padding:10px 16px;font-size:13px;border-radius:12px;display:inline-flex;align-items:center;gap:6px">
-                  <i class="fas fa-sliders-h"></i> Customize Sequence
-                </button>
-                <button onclick="skipRotationTurn()" class="btn-outline-custom" style="padding:10px 16px;font-size:13px;border-radius:12px;display:inline-flex;align-items:center;gap:6px">
-                  <i class="fas fa-forward"></i> Skip Turn
-                </button>
+                ${App.isAdmin ? `
+                  <button onclick="openCustomizeSequenceModal()" class="btn-primary-custom" style="padding:10px 16px;font-size:13px;border-radius:12px;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fas fa-sliders-h"></i> Customize Sequence
+                  </button>
+                  <button onclick="skipRotationTurn()" class="btn-outline-custom" style="padding:10px 16px;font-size:13px;border-radius:12px;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fas fa-forward"></i> Skip Turn
+                  </button>
+                ` : ''}
               </div>
             </div>
 
@@ -69,9 +71,11 @@ window.loadRotationView = async function loadRotationView() {
           <h3 style="font-size:18px;font-weight:800;color:var(--text-primary);margin:0">
             <i class="fas fa-list-ol text-primary me-2"></i>Payer Rotation Order (1 ➔ 2 ➔ 3 ➔ 4)
           </h3>
-          <button onclick="openCustomizeSequenceModal()" class="btn-sm btn-outline-primary" style="font-size:12px;padding:4px 10px;border-radius:8px">
-            <i class="fas fa-cog me-1"></i>Re-order / Customize Users
-          </button>
+          ${App.isAdmin ? `
+            <button onclick="openCustomizeSequenceModal()" class="btn-sm btn-outline-primary" style="font-size:12px;padding:4px 10px;border-radius:8px">
+              <i class="fas fa-cog me-1"></i>Re-order / Customize Users
+            </button>
+          ` : ''}
         </div>
         <div class="row g-3" id="rotationSequenceCards">
           <div class="col-12 text-center" style="padding:30px;color:var(--text-muted)">
@@ -293,6 +297,11 @@ async function fetchRotationData() {
 
 // Open Customize Modal
 window.openCustomizeSequenceModal = function openCustomizeSequenceModal() {
+  if (!App || !App.isAdmin) {
+    showToast('Admin Only 🔒', 'Only Admin Jagan can customize sequence or re-order members.', 'warning');
+    return;
+  }
+
   // Initialize tempSequence with currently active sequence, then add unselected members at bottom
   const activeIds = (tempSequence || []).map(m => m.userid);
   const activeMembers = [...(tempSequence || [])];
@@ -390,6 +399,11 @@ window.moveSeqMember = function moveSeqMember(index, direction) {
 };
 
 window.saveCustomSequence = async function saveCustomSequence() {
+  if (!App || !App.isAdmin) {
+    showToast('Admin Only 🔒', 'Only Admin Jagan can update rotation sequence.', 'warning');
+    return;
+  }
+
   const activeMembers = tempSequence.filter(m => !m.excluded);
   if (activeMembers.length === 0) {
     showToast('No Members Selected ⚠️', 'Please select at least 1 member for the daily payer rotation.', 'warning');
@@ -463,6 +477,10 @@ window.submitCompleteTurn = async function submitCompleteTurn() {
 
 // Skip Turn
 window.skipRotationTurn = async function skipRotationTurn() {
+  if (!App || !App.isAdmin) {
+    showToast('Admin Only 🔒', 'Only Admin Jagan can skip rotation turns.', 'warning');
+    return;
+  }
   if (!confirm('Skip current person\'s turn and pass to next person?')) return;
   showLoader();
   const res = await api('/api/rotation/skip-turn', { method: 'POST' });
