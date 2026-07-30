@@ -57,10 +57,15 @@ async function all(tableOrSql) {
   if (tableOrSql.includes('inventory')) return readData('inventory');
   if (tableOrSql.includes('rotation_logs')) return readData('rotation_logs');
   if (tableOrSql.includes('rotation_state')) return readData('rotation_state');
+  if (tableOrSql.includes('duties')) return readData('duties');
   return [];
 }
 
 async function get(sql, params = []) {
+  if (sql.includes('FROM duties')) {
+    const duties = readData('duties');
+    return duties.find(d => d.id === params[0]) || null;
+  }
   if (sql.includes('FROM rotation_state')) {
     const states = readData('rotation_state');
     return states.find(s => s.id === (params[0] || 'default')) || states[0] || null;
@@ -224,6 +229,49 @@ async function run(sql, params = []) {
     writeData('rotation_state', states);
     return;
   }
+
+  // Duties INSERT
+  if (sql.includes('INSERT INTO duties')) {
+    const duties = readData('duties');
+    duties.unshift({
+      id: params[0],
+      title: params[1],
+      assignedToId: params[2],
+      assignedToName: params[3],
+      assignedById: params[4],
+      assignedByName: params[5],
+      category: params[6] || 'Household',
+      frequency: params[7] || 'Daily',
+      status: params[8] || 'pending',
+      dueDate: params[9],
+      notes: params[10] || '',
+      createdAt: params[11] || new Date().toISOString(),
+      updatedAt: params[12] || new Date().toISOString()
+    });
+    writeData('duties', duties);
+    return;
+  }
+
+  // Duties UPDATE
+  if (sql.includes('UPDATE duties')) {
+    const duties = readData('duties');
+    const idx = duties.findIndex(d => d.id === params[2]);
+    if (idx !== -1) {
+      duties[idx].status = params[0];
+      duties[idx].updatedAt = params[1];
+      writeData('duties', duties);
+    }
+    return;
+  }
+
+  // Duties DELETE
+  if (sql.includes('DELETE FROM duties')) {
+    let duties = readData('duties');
+    duties = duties.filter(d => d.id !== params[0]);
+    writeData('duties', duties);
+    return;
+  }
+
 
 
   // Receipt Verification INSERT

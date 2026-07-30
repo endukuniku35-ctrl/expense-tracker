@@ -98,6 +98,7 @@ app.use('/api/groups', require('./routes/groups'));
 app.use('/api/community', require('./routes/community'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/rotation', require('./routes/rotation'));
+app.use('/api/duties', require('./routes/duties'));
 app.use('/api/telegram', require('./routes/telegram'));
 
 // Serve login page at root with no-cache

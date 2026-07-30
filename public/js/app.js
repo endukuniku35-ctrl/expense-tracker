@@ -249,7 +249,8 @@ function navigateTo(view) {
     audit: { title: 'System Audit Logs', breadcrumb: 'Activity History & Tracking' },
     community: { title: 'Community Hub', breadcrumb: 'Polls, Groceries & Help' },
     calendar: { title: 'Expense Calendar', breadcrumb: 'Monthly Calendar View' },
-    rotation: { title: 'Daily Payer Rotation', breadcrumb: 'Sequential Daily Payer Tracker (Person 1 ➔ 2 ➔ 3 ➔ 4)' }
+    rotation: { title: 'Daily Payer Rotation', breadcrumb: 'Sequential Daily Payer Tracker (Person 1 ➔ 2 ➔ 3 ➔ 4)' },
+    duties: { title: 'Item Duties & Task Assignment', breadcrumb: 'Assign & Track Member Duties' }
   };
 
   const info = titles[view] || { title: view, breadcrumb: '' };
@@ -275,7 +276,8 @@ function navigateTo(view) {
     audit: window.loadAuditView,
     community: window.loadCommunityView,
     calendar: window.loadCalendarView,
-    rotation: window.loadRotationView
+    rotation: window.loadRotationView,
+    duties: window.loadDutiesView
   };
 
   const loaderFn = loaders[view] || window.loadDashboard;
