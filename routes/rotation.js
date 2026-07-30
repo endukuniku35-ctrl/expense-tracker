@@ -205,6 +205,9 @@ router.post('/skip-turn', requireAdmin, async (req, res) => {
 
     await run('UPDATE rotation_state SET currentIndex = ?, updatedAt = ? WHERE id = "default"', [newIndex, new Date().toISOString()]);
 
+    sendTelegramMessage(`⏩ <b>Rotation Turn Skipped</b>\n\n👤 <b>Skipped:</b> ${skippedMember.name}\n👉 <b>Now Next Payer:</b> <b>${nextMember.name}</b>\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+    sendPushToAllSubscribers('Rotation Turn Skipped ⏩', `Skipped ${skippedMember.name}'s turn. Now it's ${nextMember.name}'s turn!`).catch(() => {});
+
     res.json({
       success: true,
       message: `Skipped ${skippedMember.name}'s turn. Now it's ${nextMember.name}'s turn!`,
@@ -231,6 +234,9 @@ router.post('/update-sequence', requireAdmin, async (req, res) => {
     if (resetIndex) newIdx = 0;
 
     await run('UPDATE rotation_state SET customSequence = ?, currentIndex = ?, updatedAt = ? WHERE id = "default"', [seqJson, newIdx, createdAt]);
+
+    sendTelegramMessage(`⚙️ <b>Rotation Sequence Updated!</b>\n\n👥 <b>Active Members Count:</b> ${customSequence.length}\n👑 Updated by Admin Jagan\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+    sendPushToAllSubscribers('Rotation Sequence Updated ⚙️', `Admin updated rotation to ${customSequence.length} selected member(s)`).catch(() => {});
 
     res.json({
       success: true,

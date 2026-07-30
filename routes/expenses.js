@@ -135,7 +135,7 @@ router.get('/all', requireAuth, async (req, res) => {
   }
 });
 
-const { notifyNewExpense } = require('../telegram');
+const { notifyNewExpense, sendTelegramMessage } = require('../telegram');
 
 // POST /api/expenses - add new expense (Open for all users & APKs)
 router.post('/', async (req, res) => {
@@ -254,7 +254,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
       ]
     );
 
-    await addNotification(`Expense updated: ${updated.title}`, 'expense');
+    await addNotification(`Expense updated: ${updated.title} (₹${updated.amount})`, 'expense');
+    sendTelegramMessage(`✏️ <b>Expense Updated!</b>\n\n💰 <b>Title:</b> ${updated.title}\n💵 <b>Amount:</b> ₹${updated.amount}\n👤 <b>Paid By:</b> ${updated.paidByName}\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+    sendPushToAllSubscribers('Expense Updated ✏️', `"${updated.title}" modified to ₹${updated.amount}`).catch(() => {});
 
     res.json({ success: true, message: 'Expense updated successfully', data: updated });
   } catch (err) {
@@ -275,6 +277,8 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
     await run('DELETE FROM expenses WHERE id = ?', [id]);
     await addNotification(`Expense deleted: ${existing.title}`, 'expense');
+    sendTelegramMessage(`🗑️ <b>Expense Removed</b>\n\n❌ <b>Deleted:</b> ${existing.title} (₹${existing.amount})\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+    sendPushToAllSubscribers('Expense Removed 🗑️', `"${existing.title}" deleted`).catch(() => {});
 
     res.json({ success: true, message: 'Expense deleted successfully' });
   } catch (err) {

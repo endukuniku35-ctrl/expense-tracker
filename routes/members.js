@@ -14,6 +14,8 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const { computeBalances } = require('./balance');
 const { get, run, all } = require('../database');
+const { sendPushToAllSubscribers } = require('../push_service');
+const { sendTelegramMessage } = require('../telegram');
 
 // POST /api/members/create-admin – Create a new Group Admin (ONLY Super Admin Jagan)
 router.post('/create-admin', requireSuperAdmin, async (req, res) => {
@@ -160,6 +162,9 @@ router.post('/', requireAdmin, async (req, res) => {
       [uuidv4(), 'system', `New member added: ${name.trim()} (${userid.trim()}) by ${createdByName}`, new Date().toISOString(), 'all']
     );
 
+    sendTelegramMessage(`👤 <b>New Member Added!</b>\n\n📌 <b>Name:</b> ${name.trim()}\n🆔 <b>ID:</b> ${userid.trim()}\n👑 <b>Added By:</b> ${createdByName}\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+    sendPushToAllSubscribers('New Member Added 👤', `${name.trim()} (${userid.trim()}) added by ${createdByName}`).catch(() => {});
+
     res.status(201).json({
       success: true,
       message: `Member ${name.trim()} added successfully by ${createdByName}!`,
@@ -208,6 +213,9 @@ router.delete('/:userid', requireAdmin, async (req, res) => {
       [uuidv4(), 'system', `🗑️ Member removed: ${targetUser.name} (${targetUser.userid}) by ${req.session?.user?.name || 'Admin'}`, new Date().toISOString(), 'all']
     );
 
+    sendTelegramMessage(`🗑️ <b>Member Removed</b>\n\n❌ <b>User:</b> ${targetUser.name} (${targetUser.userid})\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+    sendPushToAllSubscribers('Member Removed 🗑️', `${targetUser.name} account deleted`).catch(() => {});
+
     res.json({ success: true, message: `Member ${targetUser.name} (${userid.trim()}) removed successfully!` });
   } catch (err) {
     console.error('Error deleting member:', err);
@@ -240,6 +248,8 @@ router.post('/reset-password', requireAdmin, async (req, res) => {
     user.password = bcrypt.hashSync(newPassword.trim(), salt);
     user.rawPassword = newPassword.trim();
     fs.writeFileSync(dataPath, JSON.stringify(users, null, 2));
+
+    sendTelegramMessage(`🔐 <b>Password Reset Alert</b>\n\n👤 <b>User:</b> ${user.name} (${user.userid})\n🔒 Password updated by Admin.\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
 
     res.json({ success: true, message: `Password for ${user.name} (${user.userid}) updated successfully!` });
   } catch (err) {

@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { all, get, run } = require('../database');
 const { sendPushToAllSubscribers } = require('../push_service');
+const { notifySettlement, sendTelegramMessage } = require('../telegram');
 
 const MEMBERS = ['192472374', '192472343', '192411184', '192411185'];
 
@@ -204,13 +205,14 @@ router.post('/settle', requireAuth, async (req, res) => {
       [id, fromMemberId, fromMemberName, toMemberId, toMemberName, parsedAmount, notes || '', settlementDate, createdAt]
     );
 
-    const message = `💸 Payment Recorded: ${fromMemberName} paid ₹${parsedAmount.toLocaleString('en-IN')} to ${toMemberName}`;
+    const message = `💸 Payment Settled: ${fromMemberName} paid ₹${parsedAmount.toLocaleString('en-IN')} to ${toMemberName}`;
     await run(
       `INSERT INTO notifications (id, type, message, timestamp, read, forRole) VALUES (?, ?, ?, ?, 0, ?)`,
       [uuidv4(), 'payment', message, createdAt, 'all']
     );
 
-    sendPushToAllSubscribers('Curry Tracker 🍛', message).catch(() => {});
+    sendPushToAllSubscribers('Jagan Money 💰', message).catch(() => {});
+    notifySettlement({ amount: parsedAmount, paidByName: fromMemberName, toName: toMemberName }).catch(() => {});
 
     res.status(201).json({
       success: true,
@@ -226,7 +228,14 @@ router.post('/settle', requireAuth, async (req, res) => {
 // DELETE /api/balance/settle/:id – delete settlement transaction
 router.delete('/settle/:id', requireAdmin, async (req, res) => {
   try {
+    const existing = await get('SELECT * FROM settlements WHERE id = ?', [req.params.id]);
     await run('DELETE FROM settlements WHERE id = ?', [req.params.id]);
+    
+    if (existing) {
+      sendTelegramMessage(`🔄 <b>Settlement Record Removed</b>\n\n❌ <b>Deleted:</b> ₹${existing.amount} paid by ${existing.fromMemberName}\n\n<i>Jagan Money Expense Tracker</i>`).catch(() => {});
+      sendPushToAllSubscribers('Settlement Removed 🔄', `Settlement of ₹${existing.amount} deleted`).catch(() => {});
+    }
+
     res.json({ success: true, message: 'Settlement record deleted' });
   } catch (e) {
     res.status(500).json({ success: false, message: 'Failed to delete settlement' });
