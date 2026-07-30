@@ -88,7 +88,7 @@ window.registerPhoneForPushNotifications = async function registerPhoneForPushNo
       const perm = await Notification.requestPermission().catch(() => 'denied');
       if (perm === 'denied') {
         if (isManualClick && typeof showToast === 'function') {
-          showToast('Permission Blocked 🔒', 'Tap Tune/Lock icon to left of URL -> Permissions -> Notifications -> ALLOW', 'warning', 8000);
+          showToast('Permission Blocked by Browser 🔒', 'Go to Chrome Site Settings -> Tap "Delete data & reset permissions", or use Telegram Bot alerts!', 'warning', 9000);
         }
         return;
       }
