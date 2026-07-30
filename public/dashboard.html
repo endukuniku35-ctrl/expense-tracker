@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Curry Expense Tracker – Dashboard</title>
+  <title>Jagan Money Expense Tracker – Dashboard</title>
   <!-- PWA Meta & Play Store Packaging -->
   <link rel="manifest" href="/manifest.json" />
   <link rel="serviceworker" type="application/javascript" href="/sw.js" />
@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="CurryTracker" />
+  <meta name="apple-mobile-web-app-title" content="JaganMoney" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
@@ -330,8 +330,8 @@
     <div class="sidebar-brand">
       <img src="/images/logo_brand.png" alt="Logo" onerror="this.onerror=null;this.src='/icons/icon-192.png'" style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);box-shadow:0 4px 12px rgba(0,0,0,0.15)" />
       <div>
-        <div class="sidebar-title">CurryTracker</div>
-        <div class="sidebar-subtitle">Expense Manager</div>
+        <div class="sidebar-title">Jagan Money</div>
+        <div class="sidebar-subtitle">Expense Tracker</div>
       </div>
     </div>
 
@@ -360,6 +360,12 @@
         <a class="nav-link-custom" data-view="payments" onclick="navigateTo('payments')">
           <i class="fas fa-wallet nav-icon"></i>
           <span>Payment Status</span>
+        </a>
+      </div>
+      <div class="nav-item-wrapper">
+        <a class="nav-link-custom" data-view="rotation" onclick="navigateTo('rotation')">
+          <i class="fas fa-sync-alt nav-icon text-success"></i>
+          <span>Daily Payer Rotation</span>
         </a>
       </div>
       <div class="nav-item-wrapper" id="roommateChatNavItem" style="display:none">
@@ -701,7 +707,7 @@
 
     <!-- Footer -->
     <footer class="app-footer">
-      <span>🍛 Curry Expense Tracker &copy; 2026</span>
+      <span>💰 Jagan Money Expense Tracker &copy; 2026</span>
       <span>v1.0 &bull; Powered by Node.js + Express</span>
     </footer>
   </div>
@@ -848,6 +854,7 @@
 <script src="/js/groups.js?v=1.0"></script>
 <script src="/js/community.js?v=1.0"></script>
 <script src="/js/calendar.js?v=1.0"></script>
+<script src="/js/rotation.js?v=1.0"></script>
 <script src="/js/rapid_expense.js?v=1.0"></script>
 <script src="/js/keep_alive.js?v=1.0"></script>
 <script src="/js/status_bar_push.js?v=1.0"></script>

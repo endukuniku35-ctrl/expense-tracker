@@ -224,7 +224,7 @@ function notifyNewExpense(expense) {
 👤 <b>Paid By:</b> ${expense.paidByName}
 📅 <b>Date:</b> ${new Date(expense.date || Date.now()).toLocaleDateString('en-IN')}
 
-<i>Curry Expense Tracker</i>`;
+<i>Jagan Money Expense Tracker</i>`;
   return sendTelegramMessage(msg);
 }
 
@@ -235,7 +235,7 @@ function notifySettlement(settlement) {
 👤 <b>Paid By:</b> ${settlement.paidByName}
 🎯 <b>To:</b> ${settlement.toName || 'Group'}
 
-<i>Curry Expense Tracker</i>`;
+<i>Jagan Money Expense Tracker</i>`;
   return sendTelegramMessage(msg);
 }
 
@@ -254,7 +254,7 @@ function notifySummaryReport(stats) {
 <b>Member Balances:</b>
 ${balancesText}
 
-<i>Curry Expense Tracker</i>`.trim();
+<i>Jagan Money Expense Tracker</i>`.trim();
 
   return sendTelegramMessage(msg);
 }

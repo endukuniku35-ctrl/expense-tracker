@@ -39,6 +39,20 @@ window.loadPayments = async function loadPayments() {
                   </div>
                 </div>
               </div>
+
+              <!-- ⚡ Auto-Detect & Verify Payment (UTR / Ref Number) -->
+              <div style="margin-top:16px;padding-top:16px;border-top:1px dashed var(--glass-border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+                <div style="font-size:12.5px;color:var(--text-secondary)">
+                  <strong style="color:var(--primary)"><i class="fas fa-bolt me-1"></i>Auto-Settle Paid Amount:</strong> Paste your PhonePe / GPay 12-digit UTR No. for instant auto-verification!
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <input type="text" id="autoVerifyUtrInput" placeholder="12-digit UTR (e.g. 42371982...)" style="background:var(--bg-1);border:1px solid var(--glass-border);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--text-primary);width:190px;font-family:monospace" />
+                  <input type="number" id="autoVerifyAmountInput" placeholder="₹ Amount" style="background:var(--bg-1);border:1px solid var(--glass-border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text-primary);width:90px;font-weight:700" />
+                  <button onclick="verifyUtrPayment()" class="btn-primary-custom" style="padding:6px 14px;font-size:12px;border-radius:8px;display:inline-flex;align-items:center;gap:4px">
+                    <i class="fas fa-check-circle"></i> Auto-Verify
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -490,3 +504,38 @@ window.updateDynamicUpiQr = function updateDynamicUpiQr(amount) {
     upiBtn.href = upiUri;
   }
 };
+
+window.verifyUtrPayment = async function verifyUtrPayment() {
+  const utrEl = document.getElementById('autoVerifyUtrInput');
+  const amtEl = document.getElementById('autoVerifyAmountInput');
+  if (!utrEl || !amtEl) return;
+
+  const utr = utrEl.value.trim();
+  const amount = parseFloat(amtEl.value);
+
+  if (!utr || utr.length < 8) {
+    showToast('Invalid UTR ⚠️', 'Please enter your 12-digit PhonePe / GPay Transaction Reference No.', 'warning');
+    return;
+  }
+  if (!amount || amount <= 0) {
+    showToast('Invalid Amount ⚠️', 'Please enter the amount paid.', 'warning');
+    return;
+  }
+
+  showLoader();
+  const res = await api('/api/payments/verify-utr', {
+    method: 'POST',
+    body: JSON.stringify({ utr, amount })
+  });
+  hideLoader();
+
+  if (res && res.success) {
+    showToast('Auto-Verified & Settled! ⚡', res.message || `₹${amount} settled automatically!`, 'success');
+    utrEl.value = '';
+    amtEl.value = '';
+    loadPayments();
+  } else {
+    showToast('Verification Failed', res?.message || 'Failed to auto-verify payment UTR.', 'error');
+  }
+};
+

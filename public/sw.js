@@ -34,7 +34,7 @@ setInterval(async () => {
       for (const n of json.data) {
         if (!swSeenNotifIds.has(n.id)) {
           swSeenNotifIds.add(n.id);
-          showStatusBarNotification('Curry Tracker 🍛', n.message || 'New update from roommates!');
+          showStatusBarNotification('Jagan Money 💰', n.message || 'New update from roommates!');
         }
       }
     }
@@ -57,7 +57,7 @@ function showStatusBarNotification(title, body) {
 
 // ── VAPID Push Event ─────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let title = 'Curry Tracker 🍛';
+  let title = 'Jagan Money 💰';
   let body = 'New update from your roommates!';
   try {
     const data = event.data ? event.data.json() : {};
@@ -109,6 +109,6 @@ self.addEventListener('fetch', (event) => {
 // ── Message from page ─────────────────────────────────────────────────────────
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
-    showStatusBarNotification(event.data.title || 'Curry Tracker 🍛', event.data.body || 'New alert!');
+    showStatusBarNotification(event.data.title || 'Jagan Money 💰', event.data.body || 'New alert!');
   }
 });

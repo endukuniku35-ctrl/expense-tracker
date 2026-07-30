@@ -158,7 +158,7 @@ async function sendPushToAllSubscribers(title, message) {
   }
 
   const payload = JSON.stringify({
-    title: title || 'Curry Tracker 🍛',
+    title: title || 'Jagan Money 💰',
     body: message,
     url: '/dashboard.html#chat'
   });

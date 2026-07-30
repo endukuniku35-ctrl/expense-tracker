@@ -97,6 +97,7 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/groups', require('./routes/groups'));
 app.use('/api/community', require('./routes/community'));
 app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/rotation', require('./routes/rotation'));
 app.use('/api/telegram', require('./routes/telegram'));
 
 // Serve login page at root with no-cache
@@ -127,7 +128,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log('================================================');
-  console.log('  🍛 Curry Expense Tracker - Server Started');
+  console.log('  💰 Jagan Money Expense Tracker - Server Started');
   console.log('================================================');
   console.log(`  URL: http://localhost:${PORT}`);
   console.log(`  Mode: Fast-Performance Engine`);

@@ -1,7 +1,7 @@
 {
   "id": "https://expense-tracker-77br.onrender.com",
-  "name": "Curry Expense Tracker",
-  "short_name": "CurryTracker",
+  "name": "Jagan Money Expense Tracker",
+  "short_name": "Jagan Money",
   "description": "Track, manage, and settle group curry expenses easily with real-time balance calculations, UPI payment integration, and analytics.",
   "start_url": "/?mode=standalone",
   "scope": "/",

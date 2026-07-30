@@ -248,7 +248,8 @@ function navigateTo(view) {
     groups: { title: 'Multi-House Groups', breadcrumb: 'Flats & Hostel Directory' },
     audit: { title: 'System Audit Logs', breadcrumb: 'Activity History & Tracking' },
     community: { title: 'Community Hub', breadcrumb: 'Polls, Groceries & Help' },
-    calendar: { title: 'Expense Calendar', breadcrumb: 'Monthly Calendar View' }
+    calendar: { title: 'Expense Calendar', breadcrumb: 'Monthly Calendar View' },
+    rotation: { title: 'Daily Payer Rotation', breadcrumb: 'Sequential Daily Payer Tracker (Person 1 ➔ 2 ➔ 3 ➔ 4)' }
   };
 
   const info = titles[view] || { title: view, breadcrumb: '' };
@@ -273,7 +274,8 @@ function navigateTo(view) {
     groups: window.loadGroupsView,
     audit: window.loadAuditView,
     community: window.loadCommunityView,
-    calendar: window.loadCalendarView
+    calendar: window.loadCalendarView,
+    rotation: window.loadRotationView
   };
 
   const loaderFn = loaders[view] || window.loadDashboard;
