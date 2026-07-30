@@ -55,10 +55,16 @@ async function all(tableOrSql) {
   if (tableOrSql.includes('receipt_verifications')) return readData('receipt_verifications');
   if (tableOrSql.includes('attendance')) return readData('attendance');
   if (tableOrSql.includes('inventory')) return readData('inventory');
+  if (tableOrSql.includes('rotation_logs')) return readData('rotation_logs');
+  if (tableOrSql.includes('rotation_state')) return readData('rotation_state');
   return [];
 }
 
 async function get(sql, params = []) {
+  if (sql.includes('FROM rotation_state')) {
+    const states = readData('rotation_state');
+    return states.find(s => s.id === (params[0] || 'default')) || states[0] || null;
+  }
   if (sql.includes('FROM users WHERE userid')) {
     const users = readData('users');
     return users.find(u => u.userid === params[0]) || null;
@@ -181,6 +187,44 @@ async function run(sql, params = []) {
     writeData('budgets', budgets);
     return;
   }
+
+  // Rotation Logs INSERT
+  if (sql.includes('INSERT INTO rotation_logs')) {
+    const logs = readData('rotation_logs');
+    logs.unshift({
+      id: params[0],
+      payerId: params[1],
+      payerName: params[2],
+      amount: parseFloat(params[3]),
+      item: params[4] || 'Daily Rotation',
+      date: params[5],
+      turnIndex: parseInt(params[6]) || 0,
+      createdAt: params[7] || new Date().toISOString()
+    });
+    writeData('rotation_logs', logs);
+    return;
+  }
+
+  // Rotation State INSERT / UPDATE
+  if (sql.includes('rotation_state')) {
+    const states = readData('rotation_state');
+    let record = states.find(s => s.id === 'default');
+    if (!record) {
+      record = { id: 'default', currentIndex: 0, customSequence: '[]', updatedAt: new Date().toISOString() };
+      states.push(record);
+    }
+    if (sql.includes('customSequence')) {
+      record.customSequence = params[0];
+      record.currentIndex = typeof params[1] === 'number' ? params[1] : (parseInt(params[1]) || 0);
+      record.updatedAt = params[2] || new Date().toISOString();
+    } else {
+      record.currentIndex = typeof params[0] === 'number' ? params[0] : (parseInt(params[0]) || 0);
+      record.updatedAt = params[1] || new Date().toISOString();
+    }
+    writeData('rotation_state', states);
+    return;
+  }
+
 
   // Receipt Verification INSERT
   if (sql.includes('INSERT INTO receipt_verifications')) {

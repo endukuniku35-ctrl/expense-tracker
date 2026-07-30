@@ -1,6 +1,7 @@
 /**
  * rotation.js – Daily Payer Rotation & Turn Tracker Route
  * Automatically tracks whose turn it is to pay today (Person 1 -> 2 -> 3 -> 4 -> Repeats)
+ * Includes custom user sequence customization & skip turn capabilities.
  */
 
 const express = require('express');
@@ -29,6 +30,7 @@ async function initRotationTable() {
     CREATE TABLE IF NOT EXISTS rotation_state (
       id TEXT PRIMARY KEY,
       currentIndex INTEGER DEFAULT 0,
+      customSequence TEXT,
       updatedAt TEXT
     )
   `);
@@ -41,11 +43,39 @@ async function initRotationTable() {
 }
 initRotationTable().catch(err => console.error('[Rotation DB Error]:', err));
 
+// Helper: Get members in configured custom rotation sequence
+async function getOrderedRotationMembers() {
+  const allMembers = await all('SELECT userid, name, shortName, avatar, role FROM users ORDER BY userid ASC');
+  const state = await get('SELECT currentIndex, customSequence FROM rotation_state WHERE id = "default"') || { currentIndex: 0 };
+
+  let customSeq = [];
+  try {
+    if (state.customSequence) {
+      customSeq = typeof state.customSequence === 'string' ? JSON.parse(state.customSequence) : state.customSequence;
+    }
+  } catch (e) {}
+
+  if (Array.isArray(customSeq) && customSeq.length > 0) {
+    const memberMap = {};
+    allMembers.forEach(m => { memberMap[m.userid] = m; });
+    const ordered = [];
+    customSeq.forEach(uid => {
+      if (memberMap[uid]) ordered.push(memberMap[uid]);
+    });
+    // Add any remaining members not in custom sequence
+    allMembers.forEach(m => {
+      if (!ordered.find(x => x.userid === m.userid)) ordered.push(m);
+    });
+    return { members: ordered, state, allMembers };
+  }
+
+  return { members: allMembers, state, allMembers };
+}
+
 // GET /api/rotation - Get current turn, member sequence, and recent rotation logs
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const members = await all('SELECT userid, name, shortName, avatar, role FROM users ORDER BY userid ASC');
-    const state = await get('SELECT currentIndex FROM rotation_state WHERE id = "default"') || { currentIndex: 0 };
+    const { members, state, allMembers } = await getOrderedRotationMembers();
     const logs = await all('SELECT * FROM rotation_logs ORDER BY createdAt DESC LIMIT 30');
 
     const totalMembers = members.length || 1;
@@ -55,9 +85,9 @@ router.get('/', requireAuth, async (req, res) => {
     const nextIndex = (currentIndex + 1) % totalMembers;
     const nextPayer = members[nextIndex] || members[0];
 
-    // Compute stats per member (turns completed, total spent in rotation)
+    // Compute stats per member
     const statsMap = {};
-    members.forEach(m => { statsMap[m.userid] = { turnsCount: 0, totalAmount: 0 }; });
+    allMembers.forEach(m => { statsMap[m.userid] = { turnsCount: 0, totalAmount: 0 }; });
 
     (logs || []).forEach(log => {
       if (statsMap[log.payerId]) {
@@ -81,6 +111,7 @@ router.get('/', requireAuth, async (req, res) => {
       nextPayer,
       totalMembers,
       sequence,
+      allMembers,
       logs: logs || []
     });
   } catch (err) {
@@ -92,17 +123,16 @@ router.get('/', requireAuth, async (req, res) => {
 // POST /api/rotation/complete-turn - Mark current turn as complete, record expense, and advance to next person
 router.post('/complete-turn', requireAuth, async (req, res) => {
   try {
-    const { amount, item, note } = req.body;
+    const { amount, item } = req.body;
     const parsedAmount = parseFloat(amount);
 
     if (!parsedAmount || parsedAmount <= 0) {
       return res.status(400).json({ success: false, message: 'Please enter a valid amount spent today' });
     }
 
-    const members = await all('SELECT userid, name, shortName FROM users ORDER BY userid ASC');
+    const { members, state } = await getOrderedRotationMembers();
     if (!members.length) return res.status(400).json({ success: false, message: 'No members found' });
 
-    const state = await get('SELECT currentIndex FROM rotation_state WHERE id = "default"') || { currentIndex: 0 };
     const currentIndex = (state.currentIndex || 0) % members.length;
     const currentPayer = members[currentIndex];
 
@@ -121,9 +151,23 @@ router.post('/complete-turn', requireAuth, async (req, res) => {
     // Also auto-add to main expenses table so balance stays in sync!
     const expenseId = 'exp_rot_' + Date.now();
     await run(
-      `INSERT INTO expenses (id, paidById, paidByName, amount, description, category, date, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [expenseId, currentPayer.userid, currentPayer.name, parsedAmount, `[Rotation Turn] ${itemDescription}`, 'Food/Curry', todayStr, createdAt]
+      `INSERT INTO expenses (id, title, description, amount, paidBy, paidByName, splitBetween, category, date, notes, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        expenseId,
+        `[Rotation Turn] ${itemDescription}`,
+        itemDescription,
+        parsedAmount,
+        currentPayer.userid,
+        currentPayer.name,
+        JSON.stringify(members.map(m => m.userid)),
+        'Food/Curry',
+        todayStr,
+        `Daily Payer Rotation Turn #${currentIndex + 1}`,
+        'active',
+        createdAt,
+        createdAt
+      ]
     );
 
     // Advance turn index to next person
@@ -145,17 +189,16 @@ router.post('/complete-turn', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Error completing rotation turn:', err);
-    res.status(500).json({ success: false, message: 'Failed to advance rotation turn' });
+    res.status(500).json({ success: false, message: 'Failed to advance rotation turn: ' + err.message });
   }
 });
 
-// POST /api/rotation/skip-turn - Skip current person's turn (e.g. if absent)
+// POST /api/rotation/skip-turn - Skip current person's turn
 router.post('/skip-turn', requireAdmin, async (req, res) => {
   try {
-    const members = await all('SELECT userid, name FROM users ORDER BY userid ASC');
+    const { members, state } = await getOrderedRotationMembers();
     if (!members.length) return res.status(400).json({ success: false, message: 'No members found' });
 
-    const state = await get('SELECT currentIndex FROM rotation_state WHERE id = "default"') || { currentIndex: 0 };
     const currentIndex = (state.currentIndex || 0) % members.length;
     const skippedMember = members[currentIndex];
 
@@ -171,6 +214,33 @@ router.post('/skip-turn', requireAdmin, async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to skip turn' });
+  }
+});
+
+// POST /api/rotation/update-sequence - Customize user rotation sequence & member order
+router.post('/update-sequence', requireAdmin, async (req, res) => {
+  try {
+    const { customSequence, resetIndex } = req.body;
+    if (!Array.isArray(customSequence) || customSequence.length === 0) {
+      return res.status(400).json({ success: false, message: 'Please select at least 1 member for rotation' });
+    }
+
+    const seqJson = JSON.stringify(customSequence);
+    const createdAt = new Date().toISOString();
+
+    const state = await get('SELECT * FROM rotation_state WHERE id = "default"');
+    let newIdx = state ? state.currentIndex : 0;
+    if (resetIndex) newIdx = 0;
+
+    await run('UPDATE rotation_state SET customSequence = ?, currentIndex = ?, updatedAt = ? WHERE id = "default"', [seqJson, newIdx, createdAt]);
+
+    res.json({
+      success: true,
+      message: `Rotation sequence updated with ${customSequence.length} member(s)!`
+    });
+  } catch (err) {
+    console.error('Error updating rotation sequence:', err);
+    res.status(500).json({ success: false, message: 'Failed to update rotation sequence' });
   }
 });
 
