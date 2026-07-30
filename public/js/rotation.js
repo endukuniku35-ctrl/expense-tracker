@@ -293,8 +293,15 @@ async function fetchRotationData() {
 
 // Open Customize Modal
 window.openCustomizeSequenceModal = function openCustomizeSequenceModal() {
-  const container = document.getElementById('customizeSeqList');
-  if (!container) return;
+  // Initialize tempSequence with currently active sequence, then add unselected members at bottom
+  const activeIds = (tempSequence || []).map(m => m.userid);
+  const activeMembers = [...(tempSequence || [])];
+  (cachedAllMembers || []).forEach(m => {
+    if (!activeIds.includes(m.userid)) {
+      activeMembers.push({ ...m, excluded: true });
+    }
+  });
+  tempSequence = activeMembers;
 
   renderSeqModalList();
   const modal = new bootstrap.Modal(document.getElementById('customizeSequenceModal'));
@@ -305,34 +312,91 @@ function renderSeqModalList() {
   const container = document.getElementById('customizeSeqList');
   if (!container) return;
 
-  container.innerHTML = tempSequence.map((m, idx) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-2);padding:10px 14px;border-radius:10px;border:1px solid var(--glass-border)">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:12px;font-weight:800;color:var(--primary);width:20px">#${idx + 1}</span>
-        <div>
-          <strong style="font-size:14px;color:var(--text-primary)">${m.name}</strong>
-          <span style="font-size:11px;color:var(--text-muted);margin-left:6px">ID: ${m.userid}</span>
+  const activeMembers = tempSequence.filter(m => !m.excluded);
+  const inactiveMembers = tempSequence.filter(m => m.excluded);
+
+  let html = `
+    <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px">
+      Active Rotation Users (${activeMembers.length} Selected):
+    </div>
+  `;
+
+  if (activeMembers.length === 0) {
+    html += `<div style="font-size:12px;color:var(--text-muted);padding:8px">No members selected. Check members below to include in rotation!</div>`;
+  } else {
+    html += activeMembers.map((m, idx) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-2);padding:10px 14px;border-radius:10px;border:1.5px solid var(--primary)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" checked onchange="toggleSeqMember('${m.userid}', false)" style="width:16px;height:16px;cursor:pointer" />
+          <span style="font-size:12px;font-weight:800;color:var(--primary);width:22px">#${idx + 1}</span>
+          <div>
+            <strong style="font-size:14px;color:var(--text-primary)">${m.name}</strong>
+            <span style="font-size:11px;color:var(--text-muted);margin-left:6px">ID: ${m.userid}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button onclick="moveSeqMember(${idx}, -1)" class="btn btn-sm btn-outline-secondary" ${idx === 0 ? 'disabled' : ''} style="padding:2px 8px">▲</button>
+          <button onclick="moveSeqMember(${idx}, 1)" class="btn btn-sm btn-outline-secondary" ${idx === activeMembers.length - 1 ? 'disabled' : ''} style="padding:2px 8px">▼</button>
         </div>
       </div>
-      <div style="display:flex;gap:4px">
-        <button onclick="moveSeqMember(${idx}, -1)" class="btn btn-sm btn-outline-secondary" ${idx === 0 ? 'disabled' : ''} style="padding:2px 8px">▲</button>
-        <button onclick="moveSeqMember(${idx}, 1)" class="btn btn-sm btn-outline-secondary" ${idx === tempSequence.length - 1 ? 'disabled' : ''} style="padding:2px 8px">▼</button>
+    `).join('');
+  }
+
+  if (inactiveMembers.length > 0) {
+    html += `
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-top:14px;margin-bottom:8px">
+        Other Members (Not in Daily Rotation):
       </div>
-    </div>
-  `).join('');
+    `;
+    html += inactiveMembers.map(m => `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg-1);padding:8px 14px;border-radius:10px;border:1px dashed var(--glass-border);opacity:0.65">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" onchange="toggleSeqMember('${m.userid}', true)" style="width:16px;height:16px;cursor:pointer" />
+          <span style="font-size:12px;color:var(--text-muted);width:22px">-</span>
+          <div>
+            <span style="font-size:13.5px;color:var(--text-primary)">${m.name}</span>
+            <span style="font-size:11px;color:var(--text-muted);margin-left:6px">ID: ${m.userid}</span>
+          </div>
+        </div>
+        <span class="badge bg-secondary" style="font-size:10px">Exempt</span>
+      </div>
+    `).join('');
+  }
+
+  container.innerHTML = html;
 }
 
+window.toggleSeqMember = function toggleSeqMember(userid, include) {
+  const item = tempSequence.find(m => m.userid === userid);
+  if (item) {
+    item.excluded = !include;
+  }
+  renderSeqModalList();
+};
+
 window.moveSeqMember = function moveSeqMember(index, direction) {
+  const activeMembers = tempSequence.filter(m => !m.excluded);
   const target = index + direction;
-  if (target < 0 || target >= tempSequence.length) return;
-  const temp = tempSequence[index];
-  tempSequence[index] = tempSequence[target];
-  tempSequence[target] = temp;
+  if (target < 0 || target >= activeMembers.length) return;
+
+  const temp = activeMembers[index];
+  activeMembers[index] = activeMembers[target];
+  activeMembers[target] = temp;
+
+  // Re-combine active and inactive members
+  const inactiveMembers = tempSequence.filter(m => m.excluded);
+  tempSequence = [...activeMembers, ...inactiveMembers];
   renderSeqModalList();
 };
 
 window.saveCustomSequence = async function saveCustomSequence() {
-  const customSequence = tempSequence.map(m => m.userid);
+  const activeMembers = tempSequence.filter(m => !m.excluded);
+  if (activeMembers.length === 0) {
+    showToast('No Members Selected ⚠️', 'Please select at least 1 member for the daily payer rotation.', 'warning');
+    return;
+  }
+
+  const customSequence = activeMembers.map(m => m.userid);
   const resetCheck = document.getElementById('resetRotationIndexCheck');
   const resetIndex = resetCheck ? resetCheck.checked : false;
 
@@ -348,7 +412,7 @@ window.saveCustomSequence = async function saveCustomSequence() {
     const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
 
-    showToast('Sequence Updated! ⚙️', res.message, 'success');
+    showToast('Rotation Updated! ⚙️', `Rotation now set for ${customSequence.length} selected member(s)!`, 'success');
     fetchRotationData();
   } else {
     showToast('Error', res?.message || 'Failed to update sequence.', 'error');

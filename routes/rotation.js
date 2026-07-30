@@ -62,11 +62,9 @@ async function getOrderedRotationMembers() {
     customSeq.forEach(uid => {
       if (memberMap[uid]) ordered.push(memberMap[uid]);
     });
-    // Add any remaining members not in custom sequence
-    allMembers.forEach(m => {
-      if (!ordered.find(x => x.userid === m.userid)) ordered.push(m);
-    });
-    return { members: ordered, state, allMembers };
+    if (ordered.length > 0) {
+      return { members: ordered, state, allMembers };
+    }
   }
 
   return { members: allMembers, state, allMembers };
